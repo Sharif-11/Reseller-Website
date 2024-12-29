@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 const OTPForm = () => {
   const [mobileNumber, setMobileNumber] = useState("");
 
-  const handleSendOTP = (e) => {
+  const handleSendOTP = (e: ChangeEvent<HTMLFormElement>) => {
     e.preventDefault();
     alert(`OTP sent to: ${mobileNumber}`);
   };

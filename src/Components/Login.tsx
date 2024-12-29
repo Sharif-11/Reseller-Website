@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -6,14 +6,14 @@ const LoginPage = () => {
     password: "",
   });
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = (e: ChangeEvent<HTMLFormElement>) => {
     e.preventDefault();
     alert(`মোবাইল: ${formData.mobileNumber}, পাসওয়ার্ড: ${formData.password}`);
   };

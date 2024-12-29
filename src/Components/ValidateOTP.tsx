@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 const OTPValidation = () => {
   const [otp, setOtp] = useState(""); // OTP input value
@@ -18,12 +18,12 @@ const OTPValidation = () => {
   };
 
   // Handle OTP input change
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setOtp(e.target.value);
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: ChangeEvent<HTMLFormElement>) => {
     e.preventDefault();
     validateOTP();
   };

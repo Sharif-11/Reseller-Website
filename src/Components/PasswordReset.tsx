@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 const PasswordReset = () => {
   const [mobileNumber, setMobileNumber] = useState("");
   //   const [message, setMessage] = useState("");
 
-  const handleMobileChange = (e) => {
+  const handleMobileChange = (e: ChangeEvent<HTMLInputElement>) => {
     setMobileNumber(e.target.value);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: ChangeEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Add logic to handle the password reset
   };
