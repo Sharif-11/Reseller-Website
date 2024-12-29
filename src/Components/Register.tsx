@@ -4,7 +4,7 @@ import RegistrationInfo from "./RegistrationInfo";
 import OTPValidation from "./ValidateOTP";
 
 const Register = () => {
-  const [page, setPage] = useState(2);
+  const [page, setPage] = useState(0);
   const [mobileNumber, setMobileNumber] = useState("01776775495");
   return (
     <div>
