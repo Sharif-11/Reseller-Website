@@ -1,11 +1,34 @@
-import { ChangeEvent, useState } from "react";
+import { ErrorMessage, Field, Form, Formik } from "formik";
+import * as Yup from "yup";
+import { sendOtp } from "../Api/otp.api";
 
-const OTPForm = () => {
-  const [mobileNumber, setMobileNumber] = useState("");
+const OTPForm = ({
+  mobileNumber,
+  setMobileNumber,
+  setPage,
+}: {
+  mobileNumber: string;
+  setMobileNumber: React.Dispatch<React.SetStateAction<string>>;
+  setPage: React.Dispatch<React.SetStateAction<number>>;
+}) => {
+  const validationSchema = Yup.object({
+    mobileNumber: Yup.string()
+      .matches(/^01\d{9}$/, "Valid mobile number format is 01XXXXXXXXX")
+      .required("Mobile number is required"),
+  });
 
-  const handleSendOTP = (e: ChangeEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    alert(`OTP sent to: ${mobileNumber}`);
+  const handleSendOTP = async ({
+    mobileNumber: mobileNo,
+  }: {
+    mobileNumber: string;
+  }) => {
+    const { success, error } = await sendOtp(mobileNo);
+    if (success) {
+      setPage(1);
+    } else {
+      alert(error);
+    }
+    setMobileNumber(mobileNo);
   };
 
   return (
@@ -18,33 +41,45 @@ const OTPForm = () => {
           আপনার মোবাইলে একটি OTP কোড পাঠানো হবে, কোডটি দিয়ে রেজিস্ট্রেশন
           সম্পূর্ণ করুন।
         </p>
-        <form onSubmit={handleSendOTP}>
-          {/* Mobile Number Input */}
-          <div className="mb-3 sm:mb-4">
-            <label
-              htmlFor="mobile"
-              className="block text-gray-700 font-medium mb-1 sm:mb-2"
-            >
-              মোবাইল নম্বর*
-            </label>
-            <input
-              id="mobile"
-              type="text"
-              placeholder="01XXXXXXXXX"
-              className="w-full border border-gray-300 rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[rgb(135,89,78)] focus:outline-none"
-              value={mobileNumber}
-              onChange={(e) => setMobileNumber(e.target.value)}
-              required
-            />
-          </div>
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-[rgb(135,89,78)] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[rgb(110,72,63)] transition"
-          >
-            OTP পাঠান
-          </button>
-        </form>
+        <Formik
+          initialValues={{ mobileNumber }}
+          validationSchema={validationSchema}
+          onSubmit={(values) => handleSendOTP(values)}
+        >
+          {({ isSubmitting }) => (
+            <Form>
+              {/* Mobile Number Input */}
+              <div className="mb-3 sm:mb-4">
+                <label
+                  htmlFor="mobile"
+                  className="block text-gray-700 font-medium mb-1 sm:mb-2"
+                >
+                  মোবাইল নম্বর*
+                </label>
+                <Field
+                  id="mobile"
+                  name="mobileNumber"
+                  type="text"
+                  placeholder="01XXXXXXXXX"
+                  className="w-full border border-gray-300 rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[rgb(135,89,78)] focus:outline-none"
+                />
+                <ErrorMessage
+                  name="mobileNumber"
+                  component="div"
+                  className="text-red-500 text-sm mt-1"
+                />
+              </div>
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="w-full bg-[rgb(135,89,78)] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[rgb(110,72,63)] transition"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Processing..." : "OTP পাঠান"}
+              </button>
+            </Form>
+          )}
+        </Formik>
       </div>
     </div>
   );

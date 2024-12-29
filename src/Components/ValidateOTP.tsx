@@ -1,31 +1,34 @@
-import { ChangeEvent, useState } from "react";
+import { ErrorMessage, Field, Form, Formik } from "formik";
+import { useState } from "react";
+import * as Yup from "yup";
+import { verifyOtp } from "../Api/otp.api";
 
-const OTPValidation = () => {
-  const [otp, setOtp] = useState(""); // OTP input value
-  const [error, setError] = useState(""); // Error message state
-  const [isSubmitted, setIsSubmitted] = useState(false); // Flag to track if form is submitted
-
-  // OTP validation logic
-  const validateOTP = () => {
-    // Example OTP: "123456", you can replace this with API call logic
-    const validOTP = "123456"; // In real scenario, this would come from your backend
-    if (otp === validOTP) {
-      setIsSubmitted(true);
-      setError("");
-    } else {
-      setError("Invalid OTP. Please try again.");
-    }
-  };
-
-  // Handle OTP input change
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setOtp(e.target.value);
-  };
+const OTPValidation = ({
+  mobileNumber,
+  setPage,
+}: {
+  mobileNumber: string;
+  setPage: React.Dispatch<React.SetStateAction<number>>;
+}) => {
+  const [error, setError] = useState<string | null>(null);
+  // Yup validation schema
+  const validationSchema = Yup.object({
+    otp: Yup.string()
+      .length(6, "OTP must be exactly 6 digits")
+      .matches(/^\d+$/, "OTP must only contain digits")
+      .required("OTP is required"),
+  });
 
   // Handle form submission
-  const handleSubmit = (e: ChangeEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    validateOTP();
+  const handleSubmit = async (values: { otp: string }) => {
+    const { otp } = values;
+    const { success, error } = await verifyOtp(mobileNumber, otp);
+    if (success) {
+      setPage(2);
+    }
+    if (error) {
+      setError(error);
+    }
   };
 
   return (
@@ -35,43 +38,47 @@ const OTPValidation = () => {
           OTP ভেরিফিকেশন
         </h1>
 
-        {isSubmitted ? (
-          <div className="text-green-500 text-center font-medium mb-4">
-            OTP সফলভাবে যাচাই হয়েছে!
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            {/* OTP Input */}
-            <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2">
-                OTP দিন
-              </label>
-              <input
-                type="text"
-                name="otp"
-                value={otp}
-                onChange={handleChange}
-                maxLength={6}
-                placeholder="6 ডিজিটের OTP"
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none"
-                required
-              />
-            </div>
+        <Formik
+          initialValues={{ otp: "" }}
+          validationSchema={validationSchema}
+          onSubmit={handleSubmit}
+        >
+          {({ isSubmitting }) => (
+            <Form>
+              {/* OTP Input */}
+              <div className="mb-4">
+                <label
+                  htmlFor="otp"
+                  className="block text-gray-700 font-medium mb-2"
+                >
+                  OTP দিন
+                </label>
+                <Field
+                  type="text"
+                  name="otp"
+                  id="otp"
+                  placeholder="6 ডিজিটের OTP"
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none"
+                />
+                <ErrorMessage
+                  name="otp"
+                  component="div"
+                  className="text-red-500 text-sm mt-1"
+                />
+              </div>
 
-            {/* Error message */}
-            {error && (
-              <div className="text-red-500 text-center mb-4">{error}</div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="w-full bg-[#87594e] text-white font-medium py-3 rounded-lg hover:bg-[#a0685a] transition"
-            >
-              OTP যাচাই করুন
-            </button>
-          </form>
-        )}
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-[#87594e] text-white font-medium py-3 rounded-lg hover:bg-[#a0685a] transition"
+              >
+                {isSubmitting ? "Validating..." : "OTP যাচাই করুন"}
+              </button>
+              <p className="text-[red] text-center">{error}</p>
+            </Form>
+          )}
+        </Formik>
       </div>
     </div>
   );
