@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { NavLink } from "react-router";
+import { UserContext } from "../Context/userContext";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+  const userContext = useContext(UserContext);
+  const user = userContext ? userContext.user : null;
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -68,18 +70,22 @@ const Header = () => {
             >
               হোম
             </NavLink>
-            <NavLink
-              to="/login"
-              className="text-white hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
-            >
-              লগইন
-            </NavLink>
-            <NavLink
-              to="/register"
-              className="text-white hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
-            >
-              রেজিস্ট্রেশন
-            </NavLink>
+            {!!user || (
+              <NavLink
+                to="/login"
+                className="text-white hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
+              >
+                লগইন
+              </NavLink>
+            )}
+            {!!user || (
+              <NavLink
+                to="/register"
+                className="text-white hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
+              >
+                রেজিস্ট্রেশন
+              </NavLink>
+            )}
           </div>
         </div>
       </div>
@@ -95,20 +101,24 @@ const Header = () => {
             >
               হোম
             </NavLink>
-            <NavLink
-              to="/login"
-              className="text-white block px-3 py-2 rounded-md hover:bg-[rgba(255,255,255,0.2)] transition duration-300"
-              onClick={toggleMenu}
-            >
-              লগইন
-            </NavLink>
-            <NavLink
-              to="/register"
-              className="text-white block px-3 py-2 rounded-md hover:bg-[rgba(255,255,255,0.2)] transition duration-300"
-              onClick={toggleMenu}
-            >
-              রেজিস্ট্রেশন
-            </NavLink>
+            {!!user || (
+              <NavLink
+                to="/login"
+                className="text-white block px-3 py-2 rounded-md hover:bg-[rgba(255,255,255,0.2)] transition duration-300"
+                onClick={toggleMenu}
+              >
+                লগইন
+              </NavLink>
+            )}
+            {!!user || (
+              <NavLink
+                to="/register"
+                className="text-white block px-3 py-2 rounded-md hover:bg-[rgba(255,255,255,0.2)] transition duration-300"
+                onClick={toggleMenu}
+              >
+                রেজিস্ট্রেশন
+              </NavLink>
+            )}
           </div>
         </div>
       )}
