@@ -1,21 +1,38 @@
-import { ChangeEvent, useState } from "react";
+import { ErrorMessage, Field, Form, Formik } from "formik";
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import * as Yup from "yup";
+import { login } from "../Api/auth.api";
 
 const LoginPage = () => {
-  const [formData, setFormData] = useState({
-    mobileNumber: "",
-    password: "",
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  // Validation Schema using Yup
+  const validationSchema = Yup.object().shape({
+    mobileNumber: Yup.string()
+      .matches(/^01[3-9]\d{8}$/, "সঠিক মোবাইল নম্বর দিন")
+      .required("মোবাইল নম্বর প্রয়োজন"),
+    password: Yup.string()
+      .min(6, "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে")
+      .required("পাসওয়ার্ড প্রয়োজন"),
   });
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+  const handleLogin = async (values: {
+    mobileNumber: string;
+    password: string;
+  }) => {
+    const { mobileNumber, password } = values;
+    const { success, error, data } = await login({
+      mobileNo: mobileNumber,
+      password,
     });
-  };
-
-  const handleLogin = (e: ChangeEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    alert(`মোবাইল: ${formData.mobileNumber}, পাসওয়ার্ড: ${formData.password}`);
+    if (success) {
+      localStorage.setItem("token", data?.accessToken);
+      navigate("/");
+    }
+    if (error) {
+      setError(error);
+    }
   };
 
   return (
@@ -24,55 +41,69 @@ const LoginPage = () => {
         <h1 className="text-xl sm:text-2xl font-bold text-[rgb(135,89,78)] text-center mb-4 sm:mb-6">
           লগইন করুন
         </h1>
-        <form onSubmit={handleLogin}>
-          {/* Mobile Number */}
-          <div className="mb-4">
-            <label
-              htmlFor="mobile"
-              className="block text-gray-700 font-medium mb-2"
-            >
-              মোবাইল নম্বর*
-            </label>
-            <input
-              id="mobile"
-              type="text"
-              name="mobileNumber"
-              placeholder="01XXXXXXXXX"
-              className="w-full border border-gray-300 rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[rgb(135,89,78)] focus:outline-none"
-              value={formData.mobileNumber}
-              onChange={handleChange}
-              required
-            />
-          </div>
+        <Formik
+          initialValues={{ mobileNumber: "", password: "" }}
+          validationSchema={validationSchema}
+          onSubmit={handleLogin}
+        >
+          {({ isSubmitting }) => (
+            <Form>
+              {/* Mobile Number */}
+              <div className="mb-4">
+                <label
+                  htmlFor="mobileNumber"
+                  className="block text-gray-700 font-medium mb-2"
+                >
+                  মোবাইল নম্বর*
+                </label>
+                <Field
+                  id="mobileNumber"
+                  name="mobileNumber"
+                  type="text"
+                  placeholder="01XXXXXXXXX"
+                  className="w-full border border-gray-300 rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[rgb(135,89,78)] focus:outline-none"
+                />
+                <ErrorMessage
+                  name="mobileNumber"
+                  component="div"
+                  className="text-red-500 text-sm mt-1"
+                />
+              </div>
 
-          {/* Password */}
-          <div className="mb-4">
-            <label
-              htmlFor="password"
-              className="block text-gray-700 font-medium mb-2"
-            >
-              পাসওয়ার্ড*
-            </label>
-            <input
-              id="password"
-              type="password"
-              name="password"
-              placeholder="আপনার পাসওয়ার্ড লিখুন"
-              className="w-full border border-gray-300 rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[rgb(135,89,78)] focus:outline-none"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
+              {/* Password */}
+              <div className="mb-4">
+                <label
+                  htmlFor="password"
+                  className="block text-gray-700 font-medium mb-2"
+                >
+                  পাসওয়ার্ড*
+                </label>
+                <Field
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="আপনার পাসওয়ার্ড লিখুন"
+                  className="w-full border border-gray-300 rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[rgb(135,89,78)] focus:outline-none"
+                />
+                <ErrorMessage
+                  name="password"
+                  component="div"
+                  className="text-red-500 text-sm mt-1"
+                />
+              </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-[rgb(135,89,78)] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[rgb(110,72,63)] transition"
-          >
-            লগইন করুন
-          </button>
-        </form>
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-[rgb(135,89,78)] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[rgb(110,72,63)] transition"
+              >
+                {isSubmitting ? "প্রসেসিং..." : "লগইন করুন"}
+              </button>
+              <p className="text-center text-[red]">{error}</p>
+            </Form>
+          )}
+        </Formik>
 
         {/* Additional Options */}
         <div className="mt-4 text-center">
