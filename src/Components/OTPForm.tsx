@@ -22,8 +22,11 @@ const OTPForm = ({
   }: {
     mobileNumber: string;
   }) => {
-    const { success, error } = await sendOtp(mobileNo);
-    if (success) {
+    const { success, error, message } = await sendOtp(mobileNo);
+
+    if (message === "Mobile number already verified") {
+      setPage(2);
+    } else if (success) {
       setPage(1);
     } else {
       alert(error);
