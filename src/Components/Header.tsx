@@ -4,14 +4,28 @@ import { UserContext } from "../Context/userContext";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const userContext = useContext(UserContext);
   const user = userContext ? userContext.user : null;
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const handleLogout = () => {
+    console.log("Logout clicked");
+  };
+
+  const handlePasswordChange = () => {
+    console.log("Password Change clicked");
+  };
+
   return (
-    <div className=" bg-[rgb(135,89,78)] sticky top-0 z-50">
+    <div className="bg-[rgb(135,89,78)] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -23,10 +37,10 @@ const Header = () => {
           </NavLink>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center">
             <button
               onClick={toggleMenu}
-              className="text-white hover:text-gray-200 focus:outline-none"
+              className="text-white hover:text-gray-200 focus:outline-none mr-4"
             >
               {isMenuOpen ? (
                 <svg
@@ -60,31 +74,113 @@ const Header = () => {
                 </svg>
               )}
             </button>
+
+            {/* User Icon for Mobile */}
+            {user && (
+              <div className="relative">
+                <button
+                  onClick={toggleDropdown}
+                  className="text-white flex items-center hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12zM12 14c-4.418 0-8 2.015-8 4.5V21h16v-2.5c0-2.485-3.582-4.5-8-4.5z"
+                    />
+                  </svg>
+                </button>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                    <button
+                      onClick={handlePasswordChange}
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
+                    >
+                      Change Password
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-4">
+          <div className="hidden md:flex items-center space-x-4">
             <NavLink
               to="/"
               className="text-white hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
             >
               হোম
             </NavLink>
-            {!!user || (
-              <NavLink
-                to="/login"
-                className="text-white hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
-              >
-                লগইন
-              </NavLink>
+            {!user && (
+              <>
+                <NavLink
+                  to="/login"
+                  className="text-white hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
+                >
+                  লগইন
+                </NavLink>
+                <NavLink
+                  to="/register"
+                  className="text-white hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
+                >
+                  রেজিস্ট্রেশন
+                </NavLink>
+              </>
             )}
-            {!!user || (
-              <NavLink
-                to="/register"
-                className="text-white hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
-              >
-                রেজিস্ট্রেশন
-              </NavLink>
+
+            {/* User Icon with Dropdown */}
+            {user && (
+              <div className="relative">
+                <button
+                  onClick={toggleDropdown}
+                  className="text-white flex items-center hover:bg-[rgba(255,255,255,0.2)] px-3 py-2 rounded-md transition duration-300"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12zM12 14c-4.418 0-8 2.015-8 4.5V21h16v-2.5c0-2.485-3.582-4.5-8-4.5z"
+                    />
+                  </svg>
+                </button>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                    <button
+                      onClick={handlePasswordChange}
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
+                    >
+                      Change Password
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -101,23 +197,23 @@ const Header = () => {
             >
               হোম
             </NavLink>
-            {!!user || (
-              <NavLink
-                to="/login"
-                className="text-white block px-3 py-2 rounded-md hover:bg-[rgba(255,255,255,0.2)] transition duration-300"
-                onClick={toggleMenu}
-              >
-                লগইন
-              </NavLink>
-            )}
-            {!!user || (
-              <NavLink
-                to="/register"
-                className="text-white block px-3 py-2 rounded-md hover:bg-[rgba(255,255,255,0.2)] transition duration-300"
-                onClick={toggleMenu}
-              >
-                রেজিস্ট্রেশন
-              </NavLink>
+            {!user && (
+              <>
+                <NavLink
+                  to="/login"
+                  className="text-white block px-3 py-2 rounded-md hover:bg-[rgba(255,255,255,0.2)] transition duration-300"
+                  onClick={toggleMenu}
+                >
+                  লগইন
+                </NavLink>
+                <NavLink
+                  to="/register"
+                  className="text-white block px-3 py-2 rounded-md hover:bg-[rgba(255,255,255,0.2)] transition duration-300"
+                  onClick={toggleMenu}
+                >
+                  রেজিস্ট্রেশন
+                </NavLink>
+              </>
             )}
           </div>
         </div>

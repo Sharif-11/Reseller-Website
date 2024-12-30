@@ -49,7 +49,7 @@ const LoginPage = () => {
           লগইন করুন
         </h1>
         <Formik
-          initialValues={{ mobileNumber: "", password: "" }}
+          initialValues={{ mobileNumber: "01776775495", password: "123456" }}
           validationSchema={validationSchema}
           onSubmit={handleLogin}
         >
