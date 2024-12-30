@@ -2,12 +2,16 @@ import { useContext, useState } from "react";
 import { NavLink } from "react-router";
 import { UserContext } from "../Context/userContext";
 
-const Header = () => {
+const Header = ({
+  setIsSidebarOpen,
+}: {
+  setIsSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const userContext = useContext(UserContext);
   const user = userContext ? userContext.user : null;
-
+  const setUser = userContext ? userContext.setUser : null;
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -17,63 +21,82 @@ const Header = () => {
   };
 
   const handleLogout = () => {
-    console.log("Logout clicked");
-  };
-
-  const handlePasswordChange = () => {
-    console.log("Password Change clicked");
+    localStorage.removeItem("token");
+    if (setUser) setUser(null);
   };
 
   return (
     <div className="bg-[rgb(135,89,78)] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <NavLink
-            to="/"
-            className="text-white text-2xl font-bold hover:text-gray-200 transition duration-300"
-          >
-            Reseller Bd
-          </NavLink>
+          <div className="flex items-center text-white  gap-3">
+            <div
+              onClick={() => setIsSidebarOpen((prev) => !prev)}
+              className="md:hidden"
+            >
+              <svg
+                className="h-6 w-6"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </div>
 
+            <NavLink
+              to="/"
+              className="text-white text-2xl font-bold hover:text-gray-200 transition duration-300"
+            >
+              Reseller Bd
+            </NavLink>
+          </div>
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center">
-            <button
-              onClick={toggleMenu}
-              className="text-white hover:text-gray-200 focus:outline-none mr-4"
-            >
-              {isMenuOpen ? (
-                <svg
-                  className="h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              )}
-            </button>
+            {!!user || (
+              <button
+                onClick={toggleMenu}
+                className="text-white hover:text-gray-200 focus:outline-none mr-4"
+              >
+                {isMenuOpen ? (
+                  <svg
+                    className="h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                )}
+              </button>
+            )}
 
             {/* User Icon for Mobile */}
             {user && (
@@ -100,16 +123,10 @@ const Header = () => {
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
                     <button
-                      onClick={handlePasswordChange}
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
-                    >
-                      Change Password
-                    </button>
-                    <button
                       onClick={handleLogout}
                       className="block px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
                     >
-                      Logout
+                      লগআউট
                     </button>
                   </div>
                 )}
@@ -167,16 +184,10 @@ const Header = () => {
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
                     <button
-                      onClick={handlePasswordChange}
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
-                    >
-                      Change Password
-                    </button>
-                    <button
                       onClick={handleLogout}
                       className="block px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
                     >
-                      Logout
+                      লগআউট
                     </button>
                   </div>
                 )}
