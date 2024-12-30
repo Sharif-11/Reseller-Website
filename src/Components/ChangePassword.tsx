@@ -1,12 +1,10 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
-import { useState } from "react";
-import { useNavigate } from "react-router";
 import * as Yup from "yup";
 
 const ChangePasswordPage = () => {
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const navigate = useNavigate();
+  //   const [error, setError] = useState<string | null>(null);
+  //   const [success, setSuccess] = useState<string | null>(null);
+  //   const navigate = useNavigate();
 
   // Validation Schema using Yup
   const validationSchema = Yup.object().shape({
@@ -17,7 +15,7 @@ const ChangePasswordPage = () => {
       .min(6, "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে")
       .required("নতুন পাসওয়ার্ড প্রয়োজন"),
     confirmPassword: Yup.string()
-      .oneOf([Yup.ref("newPassword"), null], "পাসওয়ার্ড মিলছে না")
+      .oneOf([Yup.ref("newPassword"), ""], "পাসওয়ার্ড মিলছে না")
       .required("পাসওয়ার্ড নিশ্চিত করুন"),
   });
 
@@ -26,6 +24,7 @@ const ChangePasswordPage = () => {
     newPassword: string;
     confirmPassword: string;
   }) => {
+    alert(JSON.stringify(values));
     // const { oldPassword, newPassword } = values;
     // const { success, error } = await changePassword({
     //   oldPassword,
@@ -131,12 +130,12 @@ const ChangePasswordPage = () => {
               >
                 {isSubmitting ? "প্রসেসিং..." : "পরিবর্তন করুন"}
               </button>
-              {error && (
+              {/* {error && (
                 <p className="text-center text-red-500 mt-2">{error}</p>
               )}
               {success && (
                 <p className="text-center text-green-500 mt-2">{success}</p>
-              )}
+              )} */}
             </Form>
           )}
         </Formik>
