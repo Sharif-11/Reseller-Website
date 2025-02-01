@@ -9,7 +9,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
   const [error, setError] = useState<string | null>(null);
   const formik = useFormik({
     initialValues: {
-      mobileNumber, // Read-only field
+      phoneNo: mobileNumber, // Read-only field
       name: "",
       zilla: "",
       address: "",
@@ -35,12 +35,12 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
       const {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         confirmPassword: _,
-        mobileNumber: mobileNo,
+        phoneNo,
         ...otherData
       } = values;
       const { success, error } = await register({
         ...otherData,
-        mobileNo,
+        phoneNo,
       });
       if (success) {
         navigate("/login");
@@ -66,7 +66,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
             <input
               type="text"
               name="mobileNumber"
-              value={formik.values.mobileNumber}
+              value={formik.values.phoneNo}
               readOnly
               className="w-full border border-gray-300 rounded-lg p-3 bg-gray-100 focus:outline-none"
             />

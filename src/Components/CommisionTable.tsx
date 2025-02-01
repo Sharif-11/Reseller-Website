@@ -1,10 +1,15 @@
 import { useState } from "react";
 
-const CommissionTable = () => {
-  const [tableData, setTableData] = useState([]); // Start with an empty table
-  const [columns, setColumns] = useState([]); // Start with no columns
+type TableRow = {
+  startPrice: string;
+  endPrice: string;
+  levels: string[];
+};
 
-  // Function to handle row addition
+const CommissionTable: React.FC = () => {
+  const [tableData, setTableData] = useState<TableRow[]>([]);
+  const [columns, setColumns] = useState<number[]>([]);
+
   const addRow = () => {
     setTableData([
       ...tableData,
@@ -12,7 +17,6 @@ const CommissionTable = () => {
     ]);
   };
 
-  // Function to handle column (level) addition
   const addColumn = () => {
     const newColumnIndex = columns.length + 1;
     setColumns([...columns, newColumnIndex]);
@@ -24,38 +28,37 @@ const CommissionTable = () => {
     );
   };
 
-  // Function to handle row deletion
-  const deleteRow = (rowIndex) => {
-    const updatedTable = tableData.filter((_, index) => index !== rowIndex);
-    setTableData(updatedTable);
+  const deleteRow = (rowIndex: number) => {
+    setTableData(tableData.filter((_, index) => index !== rowIndex));
   };
 
-  // Function to handle column (level) deletion
-  const deleteColumn = (colIndex) => {
-    const updatedColumns = columns.filter((_, index) => index !== colIndex);
-    setColumns(updatedColumns);
+  const deleteColumn = (colIndex: number) => {
+    setColumns(columns.filter((_, index) => index !== colIndex));
     setTableData(
       tableData.map((row) => {
-        const updatedLevels = row.levels.filter(
-          (_, index) => index !== colIndex
-        );
-        return { ...row, levels: updatedLevels };
+        return {
+          ...row,
+          levels: row.levels.filter((_, index) => index !== colIndex),
+        };
       })
     );
   };
 
-  // Function to handle input changes
-  const handleInputChange = (e, rowIndex, colIndex) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    rowIndex: number,
+    colIndex: number | null
+  ) => {
     const { name, value } = e.target;
-    const updatedTable = [...tableData];
-
-    if (name === "startPrice" || name === "endPrice") {
-      updatedTable[rowIndex][name] = value;
-    } else {
-      updatedTable[rowIndex].levels[colIndex] = value;
-    }
-
-    setTableData(updatedTable);
+    setTableData((prevData) => {
+      const updatedTable = [...prevData];
+      if (colIndex === null) {
+        updatedTable[rowIndex] = { ...updatedTable[rowIndex], [name]: value };
+      } else {
+        updatedTable[rowIndex].levels[colIndex] = value;
+      }
+      return updatedTable;
+    });
   };
 
   return (
