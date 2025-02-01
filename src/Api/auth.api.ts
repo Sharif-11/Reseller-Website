@@ -2,7 +2,7 @@
 import axiosInstance from "../Axios/axiosInstance";
 
 export const register = async ({
-  mobileNo,
+  phoneNo,
   name,
   password,
   zilla,
@@ -10,7 +10,7 @@ export const register = async ({
   sellerCode,
   email,
 }: {
-  mobileNo: string;
+  phoneNo: string;
   name: string;
   password: string;
   zilla: string;
@@ -21,7 +21,7 @@ export const register = async ({
   try {
     const { data } = await axiosInstance.post("auth/create-seller", {
       name,
-      mobileNo,
+      phoneNo,
       password,
       zilla,
       address,
@@ -45,15 +45,15 @@ export const register = async ({
   }
 };
 export const login = async ({
-  mobileNo,
+  phoneNo,
   password,
 }: {
-  mobileNo: string;
+  phoneNo: string;
   password: string;
 }) => {
   try {
     const { data } = await axiosInstance.post("auth/login", {
-      mobileNo,
+      phoneNo,
       password,
     });
     return {

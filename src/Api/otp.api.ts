@@ -6,9 +6,9 @@ interface SendOtpResponse {
   error: string | null;
 }
 
-export const sendOtp = async (mobileNo: string): Promise<SendOtpResponse> => {
+export const sendOtp = async (phoneNo: string): Promise<SendOtpResponse> => {
   try {
-    const result = await axiosInstance.post("auth/send-otp", { mobileNo });
+    const result = await axiosInstance.post("auth/send-otp", { phoneNo });
     return {
       success: result.data.success,
       error: null,
@@ -25,11 +25,11 @@ export const sendOtp = async (mobileNo: string): Promise<SendOtpResponse> => {
     };
   }
 };
-export const verifyOtp = async (mobileNo: string, otp: string) => {
+export const verifyOtp = async (phoneNo: string, otp: string) => {
   try {
     const result = await axiosInstance.post("auth//verify-otp", {
       otp,
-      mobileNo,
+      phoneNo,
     });
     return {
       success: result.data.success,

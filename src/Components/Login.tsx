@@ -29,7 +29,7 @@ const LoginPage = () => {
   }) => {
     const { mobileNumber, password } = values;
     const { success, error, data } = await login({
-      mobileNo: mobileNumber,
+      phoneNo: mobileNumber,
       password,
     });
     if (success) {
