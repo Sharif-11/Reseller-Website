@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useFormik } from "formik";
 import { useState } from "react";
 import { useNavigate } from "react-router";
@@ -53,10 +54,10 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
     }),
     onSubmit: async (values) => {
       setError(null);
-      const { phoneNo, ...otherData } = values;
-      const { success, error } = await register({ ...otherData, phoneNo });
+      const { phoneNo, confirmPassword, ...otherData } = values;
+      const { success, message } = await register({ ...otherData, phoneNo });
       if (success) navigate("/login");
-      if (error) setError(error);
+      else setError(message);
     },
   });
 
@@ -269,9 +270,12 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-[#87594e] text-white font-medium py-3 rounded-lg hover:bg-[#a0685a]"
+            className="w-full bg-[#87594e] text-white font-medium py-3 rounded-lg hover:bg-[#a0685a] disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={formik.isSubmitting}
           >
-            রেজিস্ট্রেশন সম্পন্ন করুন
+            {formik.isSubmitting
+              ? "অপেক্ষা করুন..."
+              : "রেজিস্ট্রেশন সম্পন্ন করুন"}
           </button>
 
           {/* API Error Message */}

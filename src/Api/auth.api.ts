@@ -34,19 +34,23 @@ export const register = async ({
       shopName,
       nomineePhone,
     });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
     return {
-      success: data?.success,
-      message: data?.message,
-      error: null,
-      data: data?.data,
+      success,
+      message,
+      data: responseData,
+      statusCode,
     };
   } catch (error: any) {
     const { data } = error.response;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
     return {
-      success: data?.success,
-      error: data?.message,
-      message: null,
-      data: null,
+      success,
+      message,
+      statusCode,
+      data: responseData,
     };
   }
 };
@@ -62,19 +66,23 @@ export const login = async ({
       phoneNo,
       password,
     });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
     return {
-      success: data?.success,
-      message: data?.message,
-      error: null,
-      data: data?.data,
+      success,
+      message,
+      data: responseData,
+      statusCode,
     };
   } catch (error: any) {
     const { data } = error.response;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
     return {
-      success: data?.success,
-      message: null,
-      error: data?.message,
-      data: null,
+      success,
+      message,
+      statusCode,
+      data: responseData,
     };
   }
 };
