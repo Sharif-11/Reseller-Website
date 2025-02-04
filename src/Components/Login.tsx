@@ -27,18 +27,20 @@ const LoginPage = () => {
     mobileNumber: string;
     password: string;
   }) => {
+    setError(null);
     const { mobileNumber, password } = values;
-    const { success, error, data } = await login({
+    const result = await login({
       phoneNo: mobileNumber,
       password,
     });
+    const { success, message } = result;
+    const data = result?.data;
     if (success) {
       localStorage.setItem("token", data?.accessToken);
       setUser(data?.user);
       navigate("/");
-    }
-    if (error) {
-      setError(error);
+    } else {
+      setError(message);
     }
   };
 
@@ -105,9 +107,11 @@ const LoginPage = () => {
                 disabled={isSubmitting}
                 className="w-full bg-[rgb(135,89,78)] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[rgb(110,72,63)] transition"
               >
-                {isSubmitting ? "প্রসেসিং..." : "লগইন করুন"}
+                {isSubmitting ? "অপেক্ষা করুন..." : "লগইন করুন"}
               </button>
-              <p className="text-center text-[red]">{error}</p>
+              <p className="text-center text-[red] text-[12px] font-[600] my-[3px]">
+                {error}
+              </p>
             </Form>
           )}
         </Formik>

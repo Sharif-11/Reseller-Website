@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useFormik } from "formik";
 import { useState } from "react";
 import { useNavigate } from "react-router";
@@ -54,8 +53,10 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
     }),
     onSubmit: async (values) => {
       setError(null);
-      const { phoneNo, confirmPassword, ...otherData } = values;
-      const { success, message } = await register({ ...otherData, phoneNo });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { confirmPassword, ...payload } = values; // Excluding confirmPassword only
+      const { success, message } = await register(payload);
+
       if (success) navigate("/login");
       else setError(message);
     },
@@ -63,7 +64,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
 
   // Handle Zilla Selection
   const handleZillaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedZilla = e.target.value;
+    const selectedZilla = e.target.value as keyof typeof districts; // Type assertion here
     formik.setFieldValue("zilla", selectedZilla);
     formik.setFieldValue("upazilla", ""); // Reset upazilla when zilla changes
 
@@ -77,6 +78,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
         <h1 className="text-xl font-bold text-[#87594e] text-center mb-4">
           রেজিস্ট্রেশন তথ্য
         </h1>
+
         <form onSubmit={formik.handleSubmit}>
           {/* Phone Number (Read-only) */}
           <div className="mb-4">
@@ -85,7 +87,6 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
             </label>
             <input
               type="text"
-              name="phoneNo"
               value={formik.values.phoneNo}
               readOnly
               className="w-full border border-gray-300 rounded-lg p-3 bg-gray-100 focus:outline-none"
@@ -99,7 +100,6 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
             </label>
             <input
               type="text"
-              name="name"
               placeholder="আপনার নাম লিখুন"
               className="w-full border rounded-lg p-3"
               {...formik.getFieldProps("name")}
@@ -116,7 +116,6 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
             </label>
             <input
               type="text"
-              name="shopName"
               placeholder="দোকানের নাম লিখুন"
               className="w-full border rounded-lg p-3"
               {...formik.getFieldProps("shopName")}
@@ -125,23 +124,6 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
               <p className="text-red-500 text-xs mt-1">
                 {formik.errors.shopName}
               </p>
-            )}
-          </div>
-
-          {/* Email */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              ইমেইল
-            </label>
-            <input
-              type="email"
-              name="email"
-              placeholder="আপনার ইমেইল লিখুন"
-              className="w-full border rounded-lg p-3"
-              {...formik.getFieldProps("email")}
-            />
-            {formik.touched.email && formik.errors.email && (
-              <p className="text-red-500 text-xs mt-1">{formik.errors.email}</p>
             )}
           </div>
 
@@ -173,7 +155,6 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
               উপজেলা*
             </label>
             <select
-              name="upazilla"
               className="w-full border rounded-lg p-3"
               {...formik.getFieldProps("upazilla")}
               disabled={!formik.values.zilla}
@@ -193,39 +174,18 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
           </div>
 
           {/* Address */}
-          {/* Address */}
           <div className="mb-4">
             <label className="block text-gray-700 font-medium mb-2">
               ঠিকানা*
             </label>
             <textarea
-              name="address"
               placeholder="আপনার ঠিকানা লিখুন"
-              className="w-full border rounded-lg p-3 resize-none" // Added resize-none to prevent resizing
+              className="w-full border rounded-lg p-3 resize-none"
               {...formik.getFieldProps("address")}
             />
             {formik.touched.address && formik.errors.address && (
               <p className="text-red-500 text-xs mt-1">
                 {formik.errors.address}
-              </p>
-            )}
-          </div>
-
-          {/* Nominee Phone */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              নমিনির ফোন নম্বর
-            </label>
-            <input
-              type="text"
-              name="nomineePhone"
-              placeholder="নমিনির ফোন নম্বর লিখুন"
-              className="w-full border rounded-lg p-3"
-              {...formik.getFieldProps("nomineePhone")}
-            />
-            {formik.touched.nomineePhone && formik.errors.nomineePhone && (
-              <p className="text-red-500 text-xs mt-1">
-                {formik.errors.nomineePhone}
               </p>
             )}
           </div>
@@ -237,7 +197,6 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
             </label>
             <input
               type="password"
-              name="password"
               className="w-full border rounded-lg p-3"
               {...formik.getFieldProps("password")}
             />
@@ -255,7 +214,6 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
             </label>
             <input
               type="password"
-              name="confirmPassword"
               className="w-full border rounded-lg p-3"
               {...formik.getFieldProps("confirmPassword")}
             />
@@ -267,6 +225,9 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
               )}
           </div>
 
+          {/* Error Display */}
+          {error && <div className="text-red-500 text-xs mt-2">{error}</div>}
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -277,13 +238,6 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
               ? "অপেক্ষা করুন..."
               : "রেজিস্ট্রেশন সম্পন্ন করুন"}
           </button>
-
-          {/* API Error Message */}
-          {error && (
-            <p className="text-red-500 text-xs font-bold text-center mt-2">
-              {error}
-            </p>
-          )}
         </form>
       </div>
     </div>
