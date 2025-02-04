@@ -1,6 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axiosInstance from "../Axios/axiosInstance";
-
+export interface RegisterInfo {
+  phoneNo: string;
+  name: string;
+  password: string;
+  zilla: string;
+  address: string;
+  email?: string;
+  upazilla: string;
+  shopName: string;
+  nomineePhone?: string;
+  referralCode?: string;
+}
 export const register = async ({
   phoneNo,
   name,
@@ -11,17 +22,8 @@ export const register = async ({
   shopName,
   email,
   nomineePhone,
-}: {
-  phoneNo: string;
-  name: string;
-  password: string;
-  zilla: string;
-  address: string;
-  email: string;
-  upazilla: string;
-  shopName: string;
-  nomineePhone: string;
-}) => {
+  referralCode,
+}: RegisterInfo) => {
   try {
     const { data } = await axiosInstance.post("auth/create-seller", {
       name,
@@ -33,6 +35,7 @@ export const register = async ({
       upazilla,
       shopName,
       nomineePhone,
+      referralCode,
     });
     const { success, message, statusCode } = data;
     const responseData = data?.data;

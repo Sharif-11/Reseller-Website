@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import * as Yup from "yup";
 import districts from "../../public/zillasInfo.json"; // Importing the JSON
-import { register } from "../Api/auth.api";
+import { register, RegisterInfo } from "../Api/auth.api";
+import { omitEmptyStringKeys } from "../utils/omitEmptyStrings";
 
 const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
       nomineePhone: "",
       password: "",
       confirmPassword: "",
+      referralCode: "",
     },
     validationSchema: Yup.object({
       name: Yup.string()
@@ -50,12 +52,23 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
       confirmPassword: Yup.string()
         .oneOf([Yup.ref("password")], "পাসওয়ার্ড মেলেনি")
         .required("পাসওয়ার্ড নিশ্চিত করা আবশ্যক"),
+      referralCode: Yup.string()
+        .optional()
+        .matches(
+          /^[a-zA-Z0-9-_]+$/,
+          "রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।"
+        )
+        .min(3, "রেফারাল কোডটি অন্তত ৩ অক্ষরের হতে হবে।")
+        .max(16, "রেফারাল কোডটি ১৬ অক্ষরের বেশি হতে পারবে না।"),
     }),
     onSubmit: async (values) => {
       setError(null);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...payload } = values; // Excluding confirmPassword only
-      const { success, message } = await register(payload);
+      // check whether optional value is empty or not
+      const registrationData = omitEmptyStringKeys(payload) as RegisterInfo;
+      alert(JSON.stringify(registrationData));
+      const { success, message } = await register(registrationData);
 
       if (success) navigate("/login");
       else setError(message);
@@ -73,7 +86,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4 my-16">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <h1 className="text-xl font-bold text-[#87594e] text-center mb-4">
           রেজিস্ট্রেশন তথ্য
@@ -141,6 +154,23 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
               </p>
             )}
           </div>
+          {/* Referral Code */}
+          <div className="mb-4">
+            <label className="block text-gray-700 font-medium mb-2">
+              রেফারাল কোড (ঐচ্ছিক)
+            </label>
+            <input
+              type="text"
+              placeholder="রেফারাল কোড লিখুন"
+              className="w-full border rounded-lg p-3"
+              {...formik.getFieldProps("referralCode")}
+            />
+            {formik.touched.referralCode && formik.errors.referralCode && (
+              <p className="text-red-500 text-xs mt-1">
+                {formik.errors.referralCode}
+              </p>
+            )}
+          </div>
 
           {/* Zilla Selection */}
           <div className="mb-4">
@@ -167,7 +197,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
           {/* Upazilla Selection */}
           <div className="mb-4">
             <label className="block text-gray-700 font-medium mb-2">
-              উপজেলা*
+              উপজেলা/থানা*
             </label>
             <select
               className="w-full border rounded-lg p-3"
