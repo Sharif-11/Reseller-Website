@@ -27,7 +27,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
       name: Yup.string()
         .max(48, "নামটি আরও ছোট হতে হবে।")
         .required("নাম আবশ্যক"),
-      email: Yup.string().email("ইমেইলটি সঠিক নয়").optional(),
+      email: Yup.string().optional().email("ইমেইলটি সঠিক নয়"),
       shopName: Yup.string()
         .max(32, "দোকানের নাম আরও ছোট হতে হবে।")
         .required("দোকানের নাম আবশ্যক"),
@@ -41,8 +41,8 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
         .max(255, "ঠিকানা আরও ছোট হতে হবে।")
         .required("ঠিকানা আবশ্যক"),
       nomineePhone: Yup.string()
-        .matches(/^01\d{9}$/, "নমিনির ফোন নম্বরটি সঠিক নয়।")
-        .optional(),
+        .optional()
+        .matches(/^01\d{9}$/, "নমিনির ফোন নম্বরটি সঠিক নয়।"),
       password: Yup.string()
         .min(6, "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে")
         .max(16, "পাসওয়ার্ডটি আরও ছোট হতে হবে।")
@@ -106,6 +106,21 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
             />
             {formik.touched.name && formik.errors.name && (
               <p className="text-red-500 text-xs mt-1">{formik.errors.name}</p>
+            )}
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-gray-700 font-medium mb-2">
+              ইমেইল (ঐচ্ছিক)
+            </label>
+            <input
+              type="email"
+              placeholder="আপনার ইমেইল লিখুন"
+              className="w-full border rounded-lg p-3"
+              {...formik.getFieldProps("email")}
+            />
+            {formik.touched.email && formik.errors.email && (
+              <p className="text-red-500 text-xs mt-1">{formik.errors.email}</p>
             )}
           </div>
 
@@ -225,8 +240,23 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
               )}
           </div>
 
-          {/* Error Display */}
-          {error && <div className="text-red-500 text-xs mt-2">{error}</div>}
+          {/* Nominee Phone Number */}
+          <div className="mb-4">
+            <label className="block text-gray-700 font-medium mb-2">
+              নমিনির ফোন নম্বর (ঐচ্ছিক)
+            </label>
+            <input
+              type="text"
+              placeholder="নমিনির ফোন নম্বর লিখুন"
+              className="w-full border rounded-lg p-3"
+              {...formik.getFieldProps("nomineePhone")}
+            />
+            {formik.touched.nomineePhone && formik.errors.nomineePhone && (
+              <p className="text-red-500 text-xs mt-1">
+                {formik.errors.nomineePhone}
+              </p>
+            )}
+          </div>
 
           {/* Submit Button */}
           <button
@@ -238,6 +268,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
               ? "অপেক্ষা করুন..."
               : "রেজিস্ট্রেশন সম্পন্ন করুন"}
           </button>
+          <div className="text-red-500 text-xs mt-2 text-center">{error}</div>
         </form>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useContext, useState } from "react";
 import { NavLink } from "react-router";
+import { logout } from "../Api/auth.api";
 import { UserContext } from "../Context/userContext";
 
 const Header = ({
@@ -20,9 +21,12 @@ const Header = ({
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    if (setUser) setUser(null);
+  const handleLogout = async () => {
+    const { success } = await logout();
+    if (success) {
+      localStorage.removeItem("token");
+      if (setUser) setUser(null);
+    }
   };
 
   return (
@@ -30,25 +34,27 @@ const Header = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center text-white  gap-3">
-            <div
-              onClick={() => setIsSidebarOpen((prev) => !prev)}
-              className="md:hidden"
-            >
-              <svg
-                className="h-6 w-6"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            {user && (
+              <div
+                onClick={() => setIsSidebarOpen((prev) => !prev)}
+                className="md:hidden"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </div>
+                <svg
+                  className="h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </div>
+            )}
 
             <NavLink
               to="/"

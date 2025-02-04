@@ -36,7 +36,7 @@ const LoginPage = () => {
     const { success, message } = result;
     const data = result?.data;
     if (success) {
-      localStorage.setItem("token", data?.accessToken);
+      localStorage.setItem("token", data?.token);
       setUser(data?.user);
       navigate("/");
     } else {

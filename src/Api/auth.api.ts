@@ -86,3 +86,26 @@ export const login = async ({
     };
   }
 };
+export const logout = async () => {
+  try {
+    const { data } = await axiosInstance.post("auth/logout");
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error: any) {
+    const { data } = error.response;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      statusCode,
+      data: responseData,
+    };
+  }
+};
