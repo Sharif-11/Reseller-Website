@@ -81,9 +81,11 @@ const OTPForm = ({
                 className="w-full bg-[rgb(135,89,78)] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[rgb(110,72,63)] transition"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Processing..." : "OTP পাঠান"}
+                {isSubmitting ? "অপেক্ষা করুন..." : "OTP পাঠান"}
               </button>
-              <p className="text-[red] text-center ">{error}</p>
+              <p className="text-[red] text-center text-xs my-[3px] font-[600]">
+                {error}
+              </p>
             </Form>
           )}
         </Formik>
