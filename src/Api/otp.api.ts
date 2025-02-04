@@ -10,7 +10,8 @@ interface SendOtpResponse {
 export const sendOtp = async (phoneNo: string): Promise<SendOtpResponse> => {
   try {
     const { data } = await axiosInstance.post("auth/send-otp", { phoneNo });
-    const { success, message, data: responseData, statusCode } = data;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
     return {
       success,
       message,
@@ -35,7 +36,8 @@ export const verifyOtp = async (phoneNo: string, otp: string) => {
       otp,
       phoneNo,
     });
-    const { success, message, data: responseData, statusCode } = data;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
     return {
       success,
       message,

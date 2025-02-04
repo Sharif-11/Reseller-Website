@@ -21,13 +21,17 @@ const OTPValidation = ({
 
   // Handle form submission
   const handleSubmit = async (values: { otp: string }) => {
+    setError(null);
     const { otp } = values;
-    const { success, error } = await verifyOtp(mobileNumber, otp);
-    if (success) {
+    const result = await verifyOtp(mobileNumber, otp);
+    const { message, success } = result;
+    const data = result?.data;
+
+    if (data?.alreadyVerified || data?.otpVerified) {
       setPage(2);
     }
-    if (error) {
-      setError(error);
+    if (!success) {
+      setError(message);
     }
   };
 
@@ -75,7 +79,9 @@ const OTPValidation = ({
               >
                 {isSubmitting ? "Validating..." : "OTP যাচাই করুন"}
               </button>
-              <p className="text-[red] text-center">{error}</p>
+              <p className="text-[red] text-center text-[12px] my-[3px]">
+                {error}
+              </p>
             </Form>
           )}
         </Formik>
