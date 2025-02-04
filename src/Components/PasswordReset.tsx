@@ -1,16 +1,27 @@
-import { ChangeEvent, useState } from "react";
+import { ErrorMessage, Field, Form, Formik } from "formik";
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import * as Yup from "yup";
+import { forgotPassword } from "../Api/auth.api";
+
+// Validation schema using Yup
+const validationSchema = Yup.object({
+  phoneNo: Yup.string()
+    .required("ফোন নম্বর প্রয়োজন।")
+    .matches(/^01\d{9}$/, "ফোন নম্বরটি সঠিক নয়।"),
+});
 
 const PasswordReset = () => {
-  const [mobileNumber, setMobileNumber] = useState("");
-  //   const [message, setMessage] = useState("");
-
-  const handleMobileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setMobileNumber(e.target.value);
-  };
-
-  const handleSubmit = (e: ChangeEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Add logic to handle the password reset
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const handleSubmit = async (values: { phoneNo: string }) => {
+    const { phoneNo } = values;
+    const { success, message } = await forgotPassword({ phoneNo });
+    if (success) {
+      navigate("/login");
+    } else {
+      setError(message);
+    }
   };
 
   return (
@@ -22,38 +33,45 @@ const PasswordReset = () => {
         <p className="text-center text-gray-700 mb-4">
           পাসওয়ার্ড রিসেট করতে আপনার মোবাইল নম্বর দিন।
         </p>
-        <form onSubmit={handleSubmit}>
-          {/* Mobile Number */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              মোবাইল নম্বর*
-            </label>
-            <input
-              type="text"
-              name="mobileNumber"
-              value={mobileNumber}
-              onChange={handleMobileChange}
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#87594E] focus:outline-none"
-              placeholder="আপনার মোবাইল নম্বর দিন"
-              required
-            />
-          </div>
+        <Formik
+          initialValues={{ phoneNo: "" }}
+          validationSchema={validationSchema}
+          onSubmit={handleSubmit}
+        >
+          {({ isSubmitting }) => (
+            <Form>
+              {/* Phone Number */}
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">
+                  মোবাইল নম্বর*
+                </label>
+                <Field
+                  type="text"
+                  name="phoneNo"
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#87594E] focus:outline-none"
+                  placeholder="আপনার মোবাইল নম্বর দিন"
+                />
+                <ErrorMessage
+                  name="phoneNo"
+                  component="div"
+                  className="text-red-500 text-sm mt-2"
+                />
+              </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-[#87594E] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[#7a4a3e] transition"
-          >
-            পাসওয়ার্ড রিসেট করুন
-          </button>
-        </form>
-
-        {/* Message */}
-        {/* {message && (
-          <div className="mt-4 text-center text-sm text-gray-700">
-            <p>{message}</p>
-          </div>
-        )} */}
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-[#87594E] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[#7a4a3e] transition"
+              >
+                {isSubmitting ? "অপেক্ষা করুন..." : "পাসওয়ার্ড রিসেট করুন"}
+              </button>
+              <p className="text-red-500 text-sm my-[3px] text-center">
+                {error ? error : ""}
+              </p>
+            </Form>
+          )}
+        </Formik>
       </div>
     </div>
   );

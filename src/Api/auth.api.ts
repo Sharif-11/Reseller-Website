@@ -109,3 +109,28 @@ export const logout = async () => {
     };
   }
 };
+export const forgotPassword = async ({ phoneNo }: { phoneNo: string }) => {
+  try {
+    const { data } = await axiosInstance.post("auth/forgot-password", {
+      phoneNo,
+    });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error: any) {
+    const { data } = error.response;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      statusCode,
+      data: responseData,
+    };
+  }
+};
