@@ -2,45 +2,56 @@ import axiosInstance from "../Axios/axiosInstance";
 
 interface SendOtpResponse {
   success: boolean;
-  message?: string;
-  error: string | null;
+  statusCode: number;
+  data?: any;
+  message: string;
 }
 
 export const sendOtp = async (phoneNo: string): Promise<SendOtpResponse> => {
   try {
-    const result = await axiosInstance.post("auth/send-otp", { phoneNo });
+    const { data } = await axiosInstance.post("auth/send-otp", { phoneNo });
+    const { success, message, data: responseData, statusCode } = data;
     return {
-      success: result.data.success,
-      error: null,
-      message: result.data.message,
+      success,
+      message,
+      data: responseData,
+      statusCode,
     };
   } catch (error) {
+    const { data } = error.response;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
     return {
-      success: false,
-
-      error:
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error as any).response?.data?.message ||
-        "An unexpected error occurred.",
+      success,
+      message,
+      statusCode,
+      data: responseData,
     };
   }
 };
 export const verifyOtp = async (phoneNo: string, otp: string) => {
   try {
-    const result = await axiosInstance.post("auth//verify-otp", {
+    const { data } = await axiosInstance.post("auth//verify-otp", {
       otp,
       phoneNo,
     });
+    const { success, message, data: responseData, statusCode } = data;
     return {
-      success: result.data.success,
-      error: null,
-      message: result.data.message,
+      success,
+      message,
+      data: responseData,
+      statusCode,
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    const { data } = error.response;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
     return {
-      success: false,
-      error: error.response.data.message,
+      success,
+      message,
+      statusCode,
+      data: responseData,
     };
   }
 };

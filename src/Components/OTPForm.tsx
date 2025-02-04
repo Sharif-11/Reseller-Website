@@ -1,4 +1,5 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
+import { useState } from "react";
 import * as Yup from "yup";
 import { sendOtp } from "../Api/otp.api";
 
@@ -11,9 +12,10 @@ const OTPForm = ({
   setMobileNumber: React.Dispatch<React.SetStateAction<string>>;
   setPage: React.Dispatch<React.SetStateAction<number>>;
 }) => {
+  const [error, setError] = useState<string | null>(null);
   const validationSchema = Yup.object({
     mobileNumber: Yup.string()
-      .matches(/^01\d{9}$/, "Valid mobile number format is 01XXXXXXXXX")
+      .matches(/^01\d{9}$/, "Mobile number is not valid")
       .required("Mobile number is required"),
   });
 
@@ -22,14 +24,15 @@ const OTPForm = ({
   }: {
     mobileNumber: string;
   }) => {
-    const { success, error, message } = await sendOtp(mobileNo);
+    setError(null);
+    const { data, message } = await sendOtp(mobileNo);
 
-    if (message === "Mobile number already verified") {
+    if (data?.isVerified) {
       setPage(2);
-    } else if (success) {
+    } else if (data?.sendOTP) {
       setPage(1);
     } else {
-      alert(error);
+      setError(message);
     }
     setMobileNumber(mobileNo);
   };
@@ -80,6 +83,7 @@ const OTPForm = ({
               >
                 {isSubmitting ? "Processing..." : "OTP পাঠান"}
               </button>
+              <p className="text-[red] text-center ">{error}</p>
             </Form>
           )}
         </Formik>

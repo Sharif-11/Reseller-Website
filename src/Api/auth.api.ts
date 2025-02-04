@@ -7,8 +7,10 @@ export const register = async ({
   password,
   zilla,
   address,
-  sellerCode,
+  upazilla,
+  shopName,
   email,
+  nomineePhone,
 }: {
   phoneNo: string;
   name: string;
@@ -16,7 +18,9 @@ export const register = async ({
   zilla: string;
   address: string;
   email: string;
-  sellerCode: string;
+  upazilla: string;
+  shopName: string;
+  nomineePhone: string;
 }) => {
   try {
     const { data } = await axiosInstance.post("auth/create-seller", {
@@ -26,7 +30,9 @@ export const register = async ({
       zilla,
       address,
       email,
-      sellerCode,
+      upazilla,
+      shopName,
+      nomineePhone,
     });
     return {
       success: data?.success,

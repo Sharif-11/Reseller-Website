@@ -11,37 +11,42 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
     initialValues: {
       phoneNo: mobileNumber, // Read-only field
       name: "",
-      zilla: "",
-      address: "",
-      email: "",
-      sellerCode: "",
       password: "",
-      confirmPassword: "",
+      email: "",
+      shopName: "",
+      zilla: "",
+      upazilla: "",
+      address: "",
+      nomineePhone: "",
     },
     validationSchema: Yup.object({
-      name: Yup.string().required("নাম আবশ্যক"),
-      zilla: Yup.string().required("জেলা আবশ্যক"),
-      address: Yup.string().required("ঠিকানা আবশ্যক"),
-      email: Yup.string().email("ইমেইল সঠিক নয়").optional(),
-      sellerCode: Yup.string().optional(), // Optional field
+      name: Yup.string()
+        .max(48, "নামটি আরও ছোট হতে হবে।")
+        .required("নাম আবশ্যক"),
       password: Yup.string()
         .min(6, "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে")
+        .max(16, "পাসওয়ার্ডটি আরও ছোট হতে হবে।")
         .required("পাসওয়ার্ড আবশ্যক"),
-      confirmPassword: Yup.string()
-        .oneOf([Yup.ref("password")], "পাসওয়ার্ড মিলছে না")
-        .required("পাসওয়ার্ড নিশ্চিত করুন"),
+      email: Yup.string().email("ইমেইলটি সঠিক নয়").optional(),
+      shopName: Yup.string()
+        .max(32, "দোকানের নাম আরও ছোট হতে হবে।")
+        .required("দোকানের নাম আবশ্যক"),
+      zilla: Yup.string()
+        .max(48, "জেলার নাম আরও ছোট হতে হবে।")
+        .required("জেলা আবশ্যক"),
+      upazilla: Yup.string()
+        .max(48, "উপজেলার নাম আরও ছোট হতে হবে।")
+        .required("উপজেলা আবশ্যক"),
+      address: Yup.string()
+        .max(255, "ঠিকানা আরও ছোট হতে হবে।")
+        .required("ঠিকানা আবশ্যক"),
+      nomineePhone: Yup.string()
+        .matches(/^01\d{9}$/, "নমিনির ফোন নম্বরটি সঠিক নয়।")
+        .optional(),
     }),
     onSubmit: async (values) => {
-      const {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        confirmPassword: _,
-        phoneNo,
-        ...otherData
-      } = values;
-      const { success, error } = await register({
-        ...otherData,
-        phoneNo,
-      });
+      const { phoneNo, ...otherData } = values;
+      const { success, error } = await register({ ...otherData, phoneNo });
       if (success) {
         navigate("/login");
       }
@@ -58,174 +63,65 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
           রেজিস্ট্রেশন তথ্য
         </h1>
         <form onSubmit={formik.handleSubmit}>
-          {/* Mobile Number (Read-only) */}
           <div className="mb-4">
             <label className="block text-gray-700 font-medium mb-2">
               মোবাইল নম্বর*
             </label>
             <input
               type="text"
-              name="mobileNumber"
+              name="phoneNo"
               value={formik.values.phoneNo}
               readOnly
               className="w-full border border-gray-300 rounded-lg p-3 bg-gray-100 focus:outline-none"
             />
           </div>
 
-          {/* Name */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">নাম*</label>
-            <input
-              type="text"
-              name="name"
-              placeholder="আপনার নাম লিখুন"
-              className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none ${
-                formik.touched.name && formik.errors.name
-                  ? "border-red-500"
-                  : "border-gray-300"
-              }`}
-              value={formik.values.name}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-            />
-            {formik.touched.name && formik.errors.name && (
-              <p className="text-red-500 text-sm mt-1">{formik.errors.name}</p>
-            )}
-          </div>
+          {Object.keys(formik.initialValues).map((key) =>
+            key !== "phoneNo" ? (
+              <div className="mb-4" key={key}>
+                <label className="block text-gray-700 font-medium mb-2">
+                  {key === "password"
+                    ? "পাসওয়ার্ড*"
+                    : key === "confirmPassword"
+                    ? "পাসওয়ার্ড নিশ্চিত করুন*"
+                    : key === "email"
+                    ? "ইমেইল (ঐচ্ছিক)"
+                    : key === "shopName"
+                    ? "দোকানের নাম*"
+                    : key === "zilla"
+                    ? "জেলা*"
+                    : key === "upazilla"
+                    ? "উপজেলা*"
+                    : key === "address"
+                    ? "ঠিকানা*"
+                    : key === "nomineePhone"
+                    ? "নমিনির ফোন নম্বর (ঐচ্ছিক)"
+                    : "নাম*"}
+                </label>
+                <input
+                  type={key.includes("password") ? "password" : "text"}
+                  name={key}
+                  placeholder={`আপনার ${key} লিখুন`}
+                  className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none ${
+                    formik.touched[key as keyof typeof formik.values] &&
+                    formik.errors[key as keyof typeof formik.values]
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
+                  value={formik.values[key as keyof typeof formik.values]}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+                {formik.touched[key as keyof typeof formik.values] &&
+                  formik.errors[key as keyof typeof formik.values] && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {formik.errors[key as keyof typeof formik.values]}
+                    </p>
+                  )}
+              </div>
+            ) : null
+          )}
 
-          {/* Zilla */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              জেলা*
-            </label>
-            <input
-              type="text"
-              name="zilla"
-              placeholder="আপনার জেলা লিখুন"
-              className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none ${
-                formik.touched.zilla && formik.errors.zilla
-                  ? "border-red-500"
-                  : "border-gray-300"
-              }`}
-              value={formik.values.zilla}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-            />
-            {formik.touched.zilla && formik.errors.zilla && (
-              <p className="text-red-500 text-sm mt-1">{formik.errors.zilla}</p>
-            )}
-          </div>
-
-          {/* Address */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              ঠিকানা*
-            </label>
-            <input
-              type="text"
-              name="address"
-              placeholder="আপনার ঠিকানা লিখুন"
-              className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none ${
-                formik.touched.address && formik.errors.address
-                  ? "border-red-500"
-                  : "border-gray-300"
-              }`}
-              value={formik.values.address}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-            />
-            {formik.touched.address && formik.errors.address && (
-              <p className="text-red-500 text-sm mt-1">
-                {formik.errors.address}
-              </p>
-            )}
-          </div>
-
-          {/* Email */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              ইমেইল (ঐচ্ছিক)
-            </label>
-            <input
-              type="email"
-              name="email"
-              placeholder="আপনার ইমেইল লিখুন (যদি থাকে)"
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none"
-              value={formik.values.email}
-              onChange={formik.handleChange}
-            />
-            {formik.touched.email && formik.errors.email && (
-              <p className="text-red-500 text-sm mt-1">{formik.errors.email}</p>
-            )}
-          </div>
-
-          {/* Seller Code */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              সেলার কোড (ঐচ্ছিক)
-            </label>
-            <input
-              type="text"
-              name="sellerCode"
-              placeholder="আপনার সেলার কোড লিখুন (যদি থাকে)"
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none"
-              value={formik.values.sellerCode}
-              onChange={formik.handleChange}
-            />
-          </div>
-
-          {/* Password */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-2">
-              পাসওয়ার্ড*
-            </label>
-            <input
-              type="password"
-              name="password"
-              placeholder="পাসওয়ার্ড দিন"
-              className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none ${
-                formik.touched.password && formik.errors.password
-                  ? "border-red-500"
-                  : "border-gray-300"
-              }`}
-              value={formik.values.password}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-            />
-            {formik.touched.password && formik.errors.password && (
-              <p className="text-red-500 text-sm mt-1">
-                {formik.errors.password}
-              </p>
-            )}
-          </div>
-
-          {/* Confirm Password */}
-          <div className="mb-6">
-            <label className="block text-gray-700 font-medium mb-2">
-              পাসওয়ার্ড নিশ্চিত করুন*
-            </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              placeholder="পাসওয়ার্ড পুনরায় লিখুন"
-              className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-[#87594e] focus:outline-none ${
-                formik.touched.confirmPassword && formik.errors.confirmPassword
-                  ? "border-red-500"
-                  : "border-gray-300"
-              }`}
-              value={formik.values.confirmPassword}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-            />
-            {formik.touched.confirmPassword &&
-              formik.errors.confirmPassword && (
-                <p className="text-red-500 text-sm mt-1">
-                  {formik.errors.confirmPassword}
-                </p>
-              )}
-          </div>
-
-          {/* Submit Button */}
           <button
             type="submit"
             className={`w-full bg-[#87594e] text-white font-medium py-3 rounded-lg transition ${
