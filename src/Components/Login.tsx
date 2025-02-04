@@ -1,6 +1,6 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { useContext, useState } from "react";
-import { useNavigate } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import * as Yup from "yup";
 import { login } from "../Api/auth.api";
 import { UserContext } from "../Context/userContext";
@@ -120,21 +120,21 @@ const LoginPage = () => {
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600">
             নতুন ব্যবহারকারী?{" "}
-            <a
-              href="/register"
+            <NavLink
+              to="/register" // Use NavLink for navigation
               className="text-[rgb(135,89,78)] font-medium hover:underline"
             >
               এখানে নিবন্ধন করুন
-            </a>
+            </NavLink>
           </p>
           <p className="text-sm text-gray-600 mt-2">
             পাসওয়ার্ড ভুলে গেছেন?{" "}
-            <a
-              href="/forgot-password"
+            <NavLink
+              to="/forgot-password" // Use NavLink for navigation
               className="text-[rgb(135,89,78)] font-medium hover:underline"
             >
               পাসওয়ার্ড পুনরুদ্ধার করুন
-            </a>
+            </NavLink>
           </p>
         </div>
       </div>
