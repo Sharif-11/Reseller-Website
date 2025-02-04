@@ -1,7 +1,8 @@
 import { useContext, useState } from "react";
-import { NavLink } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import { logout } from "../Api/auth.api";
 import { UserContext } from "../Context/userContext";
+import { loadingText } from "../utils/utils.variables";
 
 const Header = ({
   setIsSidebarOpen,
@@ -9,6 +10,8 @@ const Header = ({
   setIsSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const userContext = useContext(UserContext);
   const user = userContext ? userContext.user : null;
@@ -22,11 +25,14 @@ const Header = ({
   };
 
   const handleLogout = async () => {
+    setLoading(true);
     const { success } = await logout();
     if (success) {
       localStorage.removeItem("token");
       if (setUser) setUser(null);
+      navigate("/login");
     }
+    setLoading(false);
   };
 
   return (
@@ -132,7 +138,7 @@ const Header = ({
                       onClick={handleLogout}
                       className="block px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
                     >
-                      লগআউট
+                      {loading ? loadingText : " লগআউট"}
                     </button>
                   </div>
                 )}

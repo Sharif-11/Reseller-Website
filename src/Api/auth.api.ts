@@ -134,3 +134,36 @@ export const forgotPassword = async ({ phoneNo }: { phoneNo: string }) => {
     };
   }
 };
+// define a function for changing password of a user THAT IS LOGGED INRECEIVES THE OLD PASSWORD AND NEW PASSWORDoldPassword: string;newPassword: string;
+export const changePassword = async ({
+  currentPassword,
+  newPassword,
+}: {
+  currentPassword: string;
+  newPassword: string;
+}) => {
+  try {
+    const { data } = await axiosInstance.patch("auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error: any) {
+    const { data } = error.response;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      statusCode,
+      data: responseData,
+    };
+  }
+};
