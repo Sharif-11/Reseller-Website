@@ -6,7 +6,13 @@ import districts from "../../public/zillasInfo.json"; // Importing the JSON
 import { register, RegisterInfo } from "../Api/auth.api";
 import { omitEmptyStringKeys } from "../utils/omitEmptyStrings";
 
-const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
+const RegistrationInfo = ({
+  mobileNumber,
+  referralCode,
+}: {
+  mobileNumber: string;
+  referralCode: string | null;
+}) => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [upazillas, setUpazillas] = useState<string[]>([]);
@@ -23,7 +29,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
       nomineePhone: "",
       password: "123456",
       confirmPassword: "123456",
-      referralCode: "",
+      referralCode: referralCode || "",
     },
     validationSchema: Yup.object({
       name: Yup.string()
