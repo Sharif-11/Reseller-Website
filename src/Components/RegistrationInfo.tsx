@@ -14,15 +14,15 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
   const formik = useFormik({
     initialValues: {
       phoneNo: mobileNumber, // Read-only field
-      name: "",
+      name: "Shariful Islam",
       email: "",
-      shopName: "",
+      shopName: "Hello Bd",
       zilla: "",
       upazilla: "",
-      address: "",
+      address: "nazirhat",
       nomineePhone: "",
-      password: "",
-      confirmPassword: "",
+      password: "123456",
+      confirmPassword: "123456",
       referralCode: "",
     },
     validationSchema: Yup.object({
@@ -67,7 +67,7 @@ const RegistrationInfo = ({ mobileNumber }: { mobileNumber: string }) => {
       const { confirmPassword, ...payload } = values; // Excluding confirmPassword only
       // check whether optional value is empty or not
       const registrationData = omitEmptyStringKeys(payload) as RegisterInfo;
-      alert(JSON.stringify(registrationData));
+      // alert(JSON.stringify(registrationData));
       const { success, message } = await register(registrationData);
 
       if (success) navigate("/login");

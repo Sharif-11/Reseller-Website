@@ -46,13 +46,13 @@ export const register = async ({
       statusCode,
     };
   } catch (error: any) {
-    const { data } = error.response;
-    const { success, message, statusCode } = data;
+    const data = error?.response?.data;
+
     const responseData = data?.data;
     return {
-      success,
-      message,
-      statusCode,
+      success: data?.success,
+      message: data?.message,
+      statusCode: data?.statusCode,
       data: responseData,
     };
   }
