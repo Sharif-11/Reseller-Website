@@ -1,17 +1,15 @@
-import { useState } from "react";
 import { Outlet } from "react-router";
-import { User, UserContext } from "../Context/userContext";
+import { UserProvider } from "../Context/userContext";
 import DashboardLayout from "./Dashboard";
 
 const Home = () => {
-  const [user, setUser] = useState<User | null>(null);
   return (
     <div>
-      <UserContext.Provider value={{ user, setUser }}>
+      <UserProvider>
         <DashboardLayout>
           <Outlet />
         </DashboardLayout>
-      </UserContext.Provider>
+      </UserProvider>
     </div>
   );
 };

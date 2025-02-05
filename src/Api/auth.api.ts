@@ -78,7 +78,7 @@ export const login = async ({
       statusCode,
     };
   } catch (error: any) {
-    const { data } = error.response;
+    const data = error.response.data;
     const { success, message, statusCode } = data;
     const responseData = data?.data;
     return {
@@ -149,6 +149,55 @@ export const changePassword = async ({
     const { data } = await axiosInstance.patch("auth/change-password", {
       currentPassword,
       newPassword,
+    });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error: any) {
+    const { data } = error.response;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      statusCode,
+      data: responseData,
+    };
+  }
+};
+// define a function for updating profile of a user THAT IS LOGGED INreceives the new profile information
+
+export const updateProfile = async ({
+  name,
+  email,
+  shopName,
+  zilla,
+  upazilla,
+  address,
+  nomineePhone,
+}: {
+  name: string;
+  email: string;
+  shopName: string;
+  zilla: string;
+  upazilla: string;
+  address: string;
+  nomineePhone: string;
+}) => {
+  try {
+    const { data } = await axiosInstance.patch("auth/update-profile", {
+      name,
+      email,
+      shopName,
+      zilla,
+      upazilla,
+      address,
+      nomineePhone,
     });
     const { success, message, statusCode } = data;
     const responseData = data?.data;
