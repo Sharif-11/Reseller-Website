@@ -55,6 +55,15 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               >
                 অর্ডার
               </NavLink>
+              {user?.isVerified && (
+                <NavLink
+                  to="/add-referral-code"
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  রেফারেল কোড যোগ করুন
+                </NavLink>
+              )}
               <NavLink
                 to="/change-password"
                 className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"

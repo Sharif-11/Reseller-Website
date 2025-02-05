@@ -168,8 +168,15 @@ const RegistrationInfo = ({
             <input
               type="text"
               placeholder="রেফারাল কোড লিখুন"
-              className="w-full border rounded-lg p-3"
+              className={
+                formik.values.referralCode && formik.values.referralCode !== ""
+                  ? "w-full border rounded-lg p-3 bg-gray-100 focus:outline-none"
+                  : "w-full border rounded-lg p-3"
+              }
               {...formik.getFieldProps("referralCode")}
+              readOnly={Boolean(
+                formik.values.referralCode && formik.values.referralCode !== ""
+              )}
             />
             {formik.touched.referralCode && formik.errors.referralCode && (
               <p className="text-red-500 text-xs mt-1">

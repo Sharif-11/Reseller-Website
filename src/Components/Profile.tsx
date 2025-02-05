@@ -77,6 +77,17 @@ const Profile = () => {
         <h1 className="text-xl font-bold text-[#87594e] text-center mb-4">
           প্রোফাইল আপডেট করুন
         </h1>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-medium mb-2">
+            ফোন নম্বর
+          </label>
+          <input
+            type="text"
+            readOnly
+            className="w-full border rounded-lg p-3"
+            value={user?.phoneNo}
+          />
+        </div>
         <form onSubmit={formik.handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 font-medium mb-2">

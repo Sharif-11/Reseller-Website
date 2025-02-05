@@ -8,6 +8,7 @@ import Orders from "./Components/Orders.tsx";
 import PasswordReset from "./Components/PasswordReset.tsx";
 import ProductsPage from "./Components/Products.tsx";
 import Profile from "./Components/Profile.tsx";
+import Referral from "./Components/Refferal.tsx";
 import Register from "./Components/Register.tsx";
 import "./index.css";
 
@@ -21,6 +22,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="login" element={<LoginPage />} />
           <Route path="forgot-password" element={<PasswordReset />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="add-referral-code" element={<Referral />} />
           <Route path="orders" element={<Orders />} />
           <Route path="change-password" element={<ChangePasswordPage />} />
         </Route>
