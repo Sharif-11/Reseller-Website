@@ -219,3 +219,26 @@ export const updateProfile = async ({
     };
   }
 };
+export const verifyLogin = async () => {
+  try {
+    const { data } = await axiosInstance.get("auth/verify-login");
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error: any) {
+    const data = error.response?.data;
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      statusCode,
+      data: responseData,
+    };
+  }
+};

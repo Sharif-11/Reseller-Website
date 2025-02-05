@@ -1,17 +1,13 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import * as Yup from "yup";
 import { login } from "../Api/auth.api";
-import { UserContext } from "../Context/userContext";
+import { useAuth } from "../Hooks/useAuth";
 
 const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
-  const userContext = useContext(UserContext);
-  if (!userContext) {
-    throw new Error("UserContext is null");
-  }
-  const { setUser } = userContext;
+  const { setUser } = useAuth();
   const navigate = useNavigate();
   // Validation Schema using Yup
   const validationSchema = Yup.object().shape({

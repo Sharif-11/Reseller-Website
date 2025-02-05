@@ -1,4 +1,5 @@
-import { createContext, ReactNode, useState } from "react";
+import { createContext, ReactNode, useEffect, useState } from "react";
+import { verifyLogin } from "../Api/auth.api";
 
 export interface User {
   userId: string;
@@ -27,6 +28,20 @@ export const UserContext = createContext<UserContextType | null>(null);
 // Provider Component
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    const checkLogin = async () => {
+      try {
+        const result = await verifyLogin();
+        if (result?.success) {
+          setUser(result.data?.user);
+        }
+      } catch (error) {
+        console.error("Login verification failed:", error);
+      }
+    };
+
+    checkLogin(); // Call the async function inside useEffect
+  }, []);
   return (
     <UserContext.Provider value={{ user, setUser }}>
       {children}

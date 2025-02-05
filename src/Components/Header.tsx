@@ -1,7 +1,7 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { logout } from "../Api/auth.api";
-import { UserContext } from "../Context/userContext";
+import { useAuth } from "../Hooks/useAuth";
 import { loadingText } from "../utils/utils.variables";
 
 const Header = ({
@@ -13,9 +13,7 @@ const Header = ({
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const userContext = useContext(UserContext);
-  const user = userContext ? userContext.user : null;
-  const setUser = userContext ? userContext.setUser : null;
+  const { user, setUser } = useAuth();
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
