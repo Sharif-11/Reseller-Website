@@ -49,6 +49,20 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 প্রোফাইল
               </NavLink>
               <NavLink
+                to="/add-product"
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                পণ্য যোগ করুন
+              </NavLink>
+              <NavLink
+                to="/products"
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                পণ্য সমূহ
+              </NavLink>
+              <NavLink
                 to="/orders"
                 className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
                 onClick={() => setIsSidebarOpen(false)}

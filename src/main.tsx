@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
+import AddProduct from "./Components/AddProduct.tsx";
+import Products from "./Components/AdminProducts.tsx";
 import ChangePasswordPage from "./Components/ChangePassword.tsx";
 import Home from "./Components/Home.tsx";
 import LoginPage from "./Components/Login.tsx";
@@ -23,6 +25,8 @@ createRoot(document.getElementById("root")!).render(
           <Route path="forgot-password" element={<PasswordReset />} />
           <Route path="profile" element={<Profile />} />
           <Route path="add-referral-code" element={<Referral />} />
+          <Route path="add-product" element={<AddProduct />} />
+          <Route path="products" element={<Products />} />
           <Route path="orders" element={<Orders />} />
           <Route path="change-password" element={<ChangePasswordPage />} />
         </Route>
