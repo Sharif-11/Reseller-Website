@@ -61,7 +61,6 @@ const AddProduct = () => {
     onSubmit: async (values) => {
       setError(null);
       const { success, message } = await addProduct(values);
-      alert(message);
       if (success) navigate("/products");
       else setError(message);
     },

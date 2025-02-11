@@ -32,7 +32,35 @@ const uploadImageToCloudinary = async (image: File) => {
     });
     return response.data.secure_url; // Cloudinary returns the URL of the uploaded image
   } catch {
-    throw new Error("Failed to upload image to Cloudinary");
+    throw new Error("Failed to upload image");
+  }
+};
+export const uploadImagesToCloudinary = async (images: File[]) => {
+  try {
+    // Map each image to a upload promise
+    const uploadPromises = images.map((image) => {
+      const formData = new FormData();
+      formData.append("file", image);
+      formData.append("upload_preset", "upload_pic");
+
+      return axios.post(cloudinaryUrl, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    });
+
+    // Wait for all uploads to complete
+    const responses = await Promise.all(uploadPromises);
+
+    // Extract the secure URLs from the responses
+    const imageUrls = responses.map((response) => response.data.secure_url);
+
+    return imageUrls;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
   }
 };
 
@@ -124,6 +152,39 @@ export const getAdminProducts = async () => {
       message: "An unexpected error occurred",
       statusCode: 500,
       data: null,
+    };
+  }
+};
+export const uploadProductImages = async (
+  productId: number,
+  images: File[]
+) => {
+  try {
+    const imageUrls = await uploadImagesToCloudinary(images);
+    const { data } = await axiosInstance.post(
+      `admin/products/${productId}/images`,
+      {
+        images: imageUrls,
+      }
+    );
+
+    return {
+      success: data?.success,
+      message: data?.message,
+      statusCode: data?.statusCode,
+    };
+  } catch (error: any) {
+    if (error instanceof axios.AxiosError && error.response?.data) {
+      return {
+        success: error?.response?.data?.success || false,
+        message: error?.response?.data?.message || "Something went wrong",
+        statusCode: error?.response?.data?.statusCode || 500,
+      };
+    }
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
     };
   }
 };
