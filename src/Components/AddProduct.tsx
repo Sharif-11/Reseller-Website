@@ -62,7 +62,7 @@ const AddProduct = () => {
       setError(null);
       const { success, message } = await addProduct(values);
       alert(message);
-      if (success) navigate("/");
+      if (success) navigate("/products");
       else setError(message);
     },
   });

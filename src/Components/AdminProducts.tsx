@@ -16,7 +16,7 @@ const Products = () => {
       {error && <p className="text-red-500">{error}</p>}
     </div>
   ) : (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
       {products.map((product, index) => (
         <Product key={index} {...product} />
       ))}
@@ -28,22 +28,28 @@ export default Products;
 
 const Product = ({ imageUrl, name, basePrice }: Product) => {
   return (
-    <div className="border rounded-lg shadow-md bg-white p-4 flex flex-col items-center">
-      <img
-        src={imageUrl}
-        alt={name}
-        className="w-full h-40 object-cover rounded-md"
-      />
-      <h3 className="text-sm font-semibold mt-3 text-center">{name}</h3>
-      <p className="text-red-500 text-sm font-bold mt-1">
-        প্রাইস: ৳{basePrice}
-      </p>
+    <div className="border rounded-lg shadow-md bg-white p-4 flex flex-col h-full">
+      <div className="relative w-full pt-[100%] mb-4">
+        <img
+          src={imageUrl}
+          alt={name}
+          className="absolute inset-0 w-full h-full object-contain rounded-md"
+        />
+      </div>
+      <div className="flex flex-col flex-grow">
+        <h3 className="text-sm font-semibold mb-2 text-center line-clamp-2">
+          {name}
+        </h3>
+        <p className="text-red-500 text-sm font-bold mb-4 text-center">
+          প্রাইস: ৳{basePrice}
+        </p>
+      </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 mt-3 w-full">
-        <button className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+      <div className="flex flex-col gap-2 w-full mt-auto">
+        <button className="w-full px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm">
           📷 আরো ছবি যোগ করুন
         </button>
-        <button className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+        <button className="w-full px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-sm">
           অন্যান্য তথ্য যোগ করুন
         </button>
       </div>
