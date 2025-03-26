@@ -213,3 +213,52 @@ export const publishProduct = async (productId: number) => {
     };
   }
 }
+export const addProductMeta = async (productId: number, meta: { key: string; value: string }[]) => {
+  try {
+    const { data } = await axiosInstance.put(`admin/products/${productId}/meta`, {meta});
+    return {
+      success: data?.success,
+      message: data?.message,
+      statusCode: data?.statusCode,
+    };
+  } catch (error: any) {
+    if (error instanceof axios.AxiosError && error.response?.data) {
+      return {
+        success: error?.response?.data?.success || false,
+        message: error?.response?.data?.message || "Something went wrong",
+        statusCode: error?.response?.data?.statusCode || 500,
+      };
+    }
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+    };
+  }
+}
+export const getProductMeta = async (productId: number) => {
+  try {
+    const { data } = await axiosInstance.get(`admin/products/${productId}/meta`);
+    return {
+      success: data?.success,
+      message: data?.message,
+      data: data?.data,
+      statusCode: data?.statusCode,
+    };
+  } catch (error: any) {
+    if (error instanceof axios.AxiosError && error.response?.data) {
+      return {
+        success: error?.response?.data?.success || false,
+        message: error?.response?.data?.message || "Something went wrong",
+        statusCode: error?.response?.data?.statusCode || 500,
+        data: error?.response?.data?.data || null,
+      };
+    }
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}

@@ -5,6 +5,7 @@ import Loading from "./Loading";
 import { publishProduct } from "../Api/product.api";
 import axios from "axios";
 import { loadingText } from "../utils/utils.variables";
+import ProductMetaModal from "./ProductMeta";
 
 export interface Product {
   name: string;
@@ -64,6 +65,7 @@ const Product = ({
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [metaModalOpen, setMetaModalOpen] = useState(false);
   const handlePublish = async () => {
       try {
         setPublishing(true);
@@ -118,7 +120,7 @@ const Product = ({
         >
           📷 আরো ছবি যোগ করুন
         </button>
-        <button className="w-full px-2 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-xs sm:text-sm">
+        <button  onClick={() => setMetaModalOpen(true)} className="w-full px-2 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-xs sm:text-sm">
           অন্যান্য তথ্য যোগ করুন
         </button>
          {
@@ -127,10 +129,15 @@ const Product = ({
           { publishing ? loadingText:'পাবলিশ করুন '} 
         </button>
       
-        {error && <p className="text-red-500 text-xs sm:text-sm">{error}</p>}
-        {success && <p className="text-green-500 text-xs sm:text-sm">{success}</p>}</>
+        {error && <p className="text-red-500 text-xs sm:text-sm text-center p-2">{error}</p>}
+        {success && <p className="text-green-500 text-xs sm:text-sm text-center p-2">{success}</p>}</>
          }
       </div>
+      <ProductMetaModal
+        isOpen={metaModalOpen}
+        onClose={() => setMetaModalOpen(false)}
+        productId={productId}
+      />
     </div>
   );
 };
