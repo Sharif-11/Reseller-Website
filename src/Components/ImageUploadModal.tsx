@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { AiOutlineClose, AiOutlinePlus } from "react-icons/ai";
 import { ImSpinner8 } from "react-icons/im";
 import * as Yup from "yup";
-import { uploadProductImages } from "../Api/product.api";
+import { uploadProductImages, getProductImages } from "../Api/product.api";
 
 interface ModalProps {
   isOpen: boolean;
@@ -12,25 +12,56 @@ interface ModalProps {
 }
 
 interface ImageWithPreview {
-  file: File;
+  file: File | null;
   preview: string;
+  isExisting?: boolean;
 }
 
 const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
   const [images, setImages] = useState<ImageWithPreview[]>([
-    { file: new File([], ""), preview: "" },
+    { file: null, preview: "", isExisting: false },
   ]);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Fetch existing images when modal opens
+  useEffect(() => {
+    const fetchExistingImages = async () => {
+      if (!isOpen || !selectedProduct) return;
+      
+      setFetching(true);
+      try {
+        const {data:existingImages} = await getProductImages(selectedProduct);
+        if (existingImages.length > 0) {
+            const initialImages: ImageWithPreview[] = existingImages.map((img: { imageUrl:string }) => ({
+            file: null,
+            preview: img.imageUrl,
+            isExisting: true
+            }));
+          // Add one empty slot for new uploads
+          setImages([...initialImages, { file: null, preview: "", isExisting: false }]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch existing images:", err);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchExistingImages();
+  }, [isOpen, selectedProduct]);
+
   // Clean up object URLs when component unmounts
   useEffect(() => {
     return () => {
       images.forEach((image) => {
-        if (image.preview) URL.revokeObjectURL(image.preview);
+        if (image.preview && !image.isExisting) {
+          URL.revokeObjectURL(image.preview);
+        }
       });
     };
   }, [images]);
@@ -69,7 +100,7 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
       setUploadProgress(0);
 
       try {
-        if (values.images.every((img) => img instanceof File && img.name !== "")) {
+        if (values.images.length > 0) {
           const result = await uploadProductImages(
             selectedProduct!,
             values.images,
@@ -111,32 +142,42 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
     const file = e.target.files?.[0];
     if (file) {
       // Revoke previous object URL if exists
-      if (images[index].preview) {
+      if (images[index].preview && !images[index].isExisting) {
         URL.revokeObjectURL(images[index].preview);
       }
 
       const preview = URL.createObjectURL(file);
       const updatedImages = [...images];
-      updatedImages[index] = { file, preview };
+      updatedImages[index] = { ...updatedImages[index], file, preview };
       setImages(updatedImages);
-      formik.setFieldValue("images", updatedImages.map(img => img.file));
+      
+      // Update formik values with only new files (not existing images)
+      const newFiles = updatedImages
+        .filter(img => img.file)
+        .map(img => img.file as File);
+      formik.setFieldValue("images", newFiles);
     }
   };
 
   const addImageInput = () => {
-    setImages([...images, { file: new File([], ""), preview: "" }]);
+    setImages([...images, { file: null, preview: "", isExisting: false }]);
   };
 
   const removeImageInput = (index: number) => {
     if (images.length > 1) {
-      // Revoke the object URL to avoid memory leaks
-      if (images[index].preview) {
+      // Revoke the object URL to avoid memory leaks (only for non-existing images)
+      if (images[index].preview && !images[index].isExisting) {
         URL.revokeObjectURL(images[index].preview);
       }
       
       const updatedImages = images.filter((_, i) => i !== index);
       setImages(updatedImages);
-      formik.setFieldValue("images", updatedImages.map(img => img.file));
+      
+      // Update formik values
+      const newFiles = updatedImages
+        .filter(img => img.file)
+        .map(img => img.file as File);
+      formik.setFieldValue("images", newFiles);
     }
   };
 
@@ -167,127 +208,135 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
           আরো ছবি যোগ করুন
         </h2>
         
-        <form onSubmit={formik.handleSubmit}>
-          <div className="space-y-4">
-            {images.map((image, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-start gap-4">
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, index)}
-                      className="hidden"
-                      ref={el => fileInputRefs.current[index] = el}
-                      disabled={loading}
-                    />
-                    
-                    {image.preview ? (
-                      <div className="relative group">
-                        <div className="flex justify-center items-center bg-gray-100 rounded-lg p-2">
-                          <img
-                            src={image.preview}
-                            alt={`Preview ${index}`}
-                            className="max-h-64 max-w-full object-contain rounded-lg"
-                            style={{ maxHeight: '256px' }}
-                          />
+        {fetching ? (
+          <div className="flex justify-center items-center h-40">
+            <ImSpinner8 className="animate-spin text-2xl text-blue-500" />
+          </div>
+        ) : (
+          <form onSubmit={formik.handleSubmit}>
+            <div className="space-y-4">
+              {images.map((image, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, index)}
+                        className="hidden"
+                        ref={el => fileInputRefs.current[index] = el}
+                        disabled={loading || image.isExisting}
+                      />
+                      
+                      {image.preview ? (
+                        <div className="relative group">
+                          <div className="flex justify-center items-center bg-gray-100 rounded-lg p-2">
+                            <img
+                              src={image.preview}
+                              alt={`Preview ${index}`}
+                              className="max-h-64 max-w-full object-contain rounded-lg"
+                              style={{ maxHeight: '256px' }}
+                            />
+                          </div>
+                          {!image.isExisting && (
+                            <button
+                              type="button"
+                              onClick={() => triggerFileInput(index)}
+                              className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 opacity-0 group-hover:opacity-100 text-white"
+                            >
+                              <span className="bg-black bg-opacity-70 px-3 py-1 rounded">
+                                {image.file ? "Change Image" : "Upload Image"}
+                              </span>
+                            </button>
+                          )}
                         </div>
+                      ) : (
                         <button
                           type="button"
                           onClick={() => triggerFileInput(index)}
-                          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 opacity-0 group-hover:opacity-100 text-white"
+                          className="w-full h-40 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors"
                         >
-                          <span className="bg-black bg-opacity-70 px-3 py-1 rounded">
-                            Change Image
-                          </span>
+                          <AiOutlinePlus size={32} />
+                          <span className="mt-2 text-sm">Select Image</span>
                         </button>
-                      </div>
-                    ) : (
+                      )}
+                      
+                      {formik.errors.images?.[index] && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {typeof formik.errors.images?.[index] === "string" && formik.errors.images[index]}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {images.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => triggerFileInput(index)}
-                        className="w-full h-40 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors"
+                        onClick={() => removeImageInput(index)}
+                        className="text-red-500 hover:text-red-700 transition-colors p-2 mt-2"
+                        disabled={loading || image.isExisting}
                       >
-                        <AiOutlinePlus size={32} />
-                        <span className="mt-2 text-sm">Select Image</span>
+                        <AiOutlineClose size={18} />
                       </button>
                     )}
-                    
-                    {formik.errors.images?.[index] && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {typeof formik.errors.images?.[index] === "string" && formik.errors.images[index]}
-                      </p>
-                    )}
                   </div>
-                  
-                  {images.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeImageInput(index)}
-                      className="text-red-500 hover:text-red-700 transition-colors p-2 mt-2"
-                      disabled={loading}
-                    >
-                      <AiOutlineClose size={18} />
-                    </button>
+                  <div className="text-xs text-gray-500">
+                    {image.file?.name || (image.isExisting ? "Existing image" : "No file selected")}
+                  </div>
+                </div>
+              ))}
+              
+              {loading && (
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+              )}
+              
+              <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={addImageInput}
+                  className="flex items-center justify-center gap-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-blue-300 transition-colors w-full sm:w-auto"
+                  disabled={loading || images.length >= 5}
+                >
+                  <AiOutlinePlus />
+                  <span className="whitespace-nowrap">
+                    আরো ছবি যোগ করুন <span className="hidden sm:inline">(সর্বোচ্চ ৫টি)</span>
+                  </span>
+                </button>
+                
+                <button
+                  type="submit"
+                  className="flex items-center justify-center gap-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 disabled:bg-green-300 transition-colors w-full sm:w-auto"
+                  disabled={loading || formik.values.images.length === 0}
+                >
+                  {loading ? (
+                    <>
+                      <ImSpinner8 className="animate-spin" />
+                      <span className="whitespace-nowrap">আপলোড হচ্ছে...</span>
+                    </>
+                  ) : (
+                    <span className="whitespace-nowrap">আপলোড করুন</span>
                   )}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {image.file.name || "No file selected"}
-                </div>
+                </button>
               </div>
-            ))}
-            
-            {loading && (
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                ></div>
-              </div>
-            )}
-            
-            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4">
-  <button
-    type="button"
-    onClick={addImageInput}
-    className="flex items-center justify-center gap-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-blue-300 transition-colors w-full sm:w-auto"
-    disabled={loading || images.length >= 5}
-  >
-    <AiOutlinePlus />
-    <span className="whitespace-nowrap">
-      আরো ছবি যোগ করুন <span className="hidden sm:inline">(সর্বোচ্চ ৫টি)</span>
-    </span>
-  </button>
-  
-  <button
-    type="submit"
-    className="flex items-center justify-center gap-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 disabled:bg-green-300 transition-colors w-full sm:w-auto"
-    disabled={loading}
-  >
-    {loading ? (
-      <>
-        <ImSpinner8 className="animate-spin" />
-        <span className="whitespace-nowrap">আপলোড হচ্ছে...</span>
-      </>
-    ) : (
-      <span className="whitespace-nowrap">আপলোড করুন</span>
-    )}
-  </button>
-</div>
-            
-            {error && (
-              <p className="text-red-500 text-sm text-center py-2">
-                {error}
-              </p>
-            )}
-            
-            {success && (
-              <p className="text-green-500 text-sm text-center py-2">
-                {success}
-              </p>
-            )}
-          </div>
-        </form>
+              
+              {error && (
+                <p className="text-red-500 text-sm text-center py-2">
+                  {error}
+                </p>
+              )}
+              
+              {success && (
+                <p className="text-green-500 text-sm text-center py-2">
+                  {success}
+                </p>
+              )}
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -142,6 +142,33 @@ export const uploadProductImages = async (
     };
   }
 };
+export const getProductImages = async (productId: number) => {
+  try {
+    const { data } = await axiosInstance.get(`admin/products/${productId}/images`);
+    return {
+      success: data?.success,
+      message: data?.message,
+      data: data?.data,
+      statusCode: data?.statusCode,
+    };
+  }
+  catch (error: any) {
+    if (error instanceof axios.AxiosError && error.response?.data) {
+      return {
+        success: error?.response?.data?.success || false,
+        message: error?.response?.data?.message || "Something went wrong",
+        statusCode: error?.response?.data?.statusCode || 500,
+        data: error?.response?.data?.data || null,
+      };
+    }
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
 export const addProduct = async ({
   name,
   image,
