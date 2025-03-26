@@ -2,7 +2,7 @@ import { useState } from "react";
 import useAdminProducts from "../Hooks/useAdminProducts";
 import ImageUploadModal from "./ImageUploadModal";
 import Loading from "./Loading";
-import { publishProduct } from "../Api/product.api";
+import { publishProduct, unpublishProduct } from "../Api/product.api";
 import axios from "axios";
 import { loadingText } from "../utils/utils.variables";
 import ProductMetaModal from "./ProductMeta";
@@ -16,7 +16,7 @@ export interface Product {
 }
 
 const Products = () => {
-  const { products, error, loading } = useAdminProducts();
+  const { products, error, loading ,setReload} = useAdminProducts();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   return loading || error ? (
@@ -32,6 +32,7 @@ const Products = () => {
           {...product}
           setModalOpen={setModalOpen}
           setSelectedProduct={setSelectedProduct}
+          setReload={setReload}
         />
       ))}
       <ImageUploadModal
@@ -42,9 +43,6 @@ const Products = () => {
     </div>
   );
 };
-
-export default Products;
-
 const Product = ({
   imageUrl,
   name,
@@ -53,6 +51,7 @@ const Product = ({
   published,
   setModalOpen,
   setSelectedProduct,
+  setReload
 }: {
   imageUrl: string;
   name: string;
@@ -61,36 +60,39 @@ const Product = ({
   published: boolean;
   setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedProduct: React.Dispatch<React.SetStateAction<number | null>>;
+  setReload: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [metaModalOpen, setMetaModalOpen] = useState(false);
-  const handlePublish = async () => {
-      try {
-        setPublishing(true);
-        setError(null);
-        setSuccess(null);
-        const {success, message} = await publishProduct(productId);
-        alert(JSON.stringify({success, message}));
-        if(success){
-          setSuccess(message);
-        } else {
-          setError(message);
-        }
 
-      } catch (error) {
-        if (error instanceof axios.AxiosError && error.response?.data) {
-          setError(error?.response?.data?.message || "Something went wrong");
-        }
-        else {
-          setError("An unexpected error occurred");
-        }
-        
-      } finally{
-        setPublishing(false);
+  const handlePublish = async (publish: boolean) => {
+    try {
+      setPublishing(true);
+      setError(null);
+      setSuccess(null);
+      const { success, message } = publish 
+        ? await publishProduct(productId) 
+        : await unpublishProduct(productId);
+      
+      if (success) {
+        setSuccess(message);
+        setReload(true);
+      } else {
+        setError(message);
       }
-  }
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.data) {
+        setError(error.response.data?.message || "Something went wrong");
+      } else {
+        setError("An unexpected error occurred");
+      }
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   return (
     <div className="border rounded-lg shadow-sm bg-white p-2 flex flex-col h-full">
       <div className="relative w-full pt-[100%] mb-2">
@@ -120,19 +122,35 @@ const Product = ({
         >
           📷 আরো ছবি যোগ করুন
         </button>
-        <button  onClick={() => setMetaModalOpen(true)} className="w-full px-2 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-xs sm:text-sm">
+        <button 
+          onClick={() => setMetaModalOpen(true)} 
+          className="w-full px-2 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-xs sm:text-sm"
+        >
           অন্যান্য তথ্য যোগ করুন
         </button>
-         {
-          !published && <>
-           <button className="w-full px-2 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors duration-200 text-xs sm:text-sm" onClick={handlePublish}>
-          { publishing ? loadingText:'পাবলিশ করুন '} 
-        </button>
-      
+        
+        {!published ? (
+          <button 
+            className="w-full px-2 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors duration-200 text-xs sm:text-sm" 
+            onClick={() => handlePublish(true)}
+            disabled={publishing}
+          >
+            {publishing ? loadingText : 'পাবলিশ করুন'}
+          </button>
+        ) : (
+          <button 
+            className="w-full px-2 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 text-xs sm:text-sm" 
+            onClick={() => handlePublish(false)}
+            disabled={publishing}
+          >
+            {publishing ? loadingText : 'আনপাবলিশ করুন'}
+          </button>
+        )}
+        
         {error && <p className="text-red-500 text-xs sm:text-sm text-center p-2">{error}</p>}
-        {success && <p className="text-green-500 text-xs sm:text-sm text-center p-2">{success}</p>}</>
-         }
+        {success && <p className="text-green-500 text-xs sm:text-sm text-center p-2">{success}</p>}
       </div>
+      
       <ProductMetaModal
         isOpen={metaModalOpen}
         onClose={() => setMetaModalOpen(false)}
@@ -141,3 +159,6 @@ const Product = ({
     </div>
   );
 };
+
+export default Products
+

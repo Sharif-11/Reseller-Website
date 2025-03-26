@@ -191,14 +191,36 @@ export const uploadProductImages = async (
 export const publishProduct = async (productId: number) => {
   try {
     const { data } = await axiosInstance.post(`admin/products/${productId}/publish`);
-   alert(JSON.stringify(data)); 
     return {
       success: data?.success,
       message: data?.message,
       statusCode: data?.statusCode,
     };
   } catch (error: any) {
-    alert(JSON.stringify(error));
+    if (error instanceof axios.AxiosError && error.response?.data) {
+      return {
+        success: error?.response?.data?.success || false,
+        message: error?.response?.data?.message || "Something went wrong",
+        statusCode: error?.response?.data?.statusCode || 500,
+      };
+    }
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+    };
+  }
+}
+export const unpublishProduct = async (productId: number) => {
+  try {
+    const { data } = await axiosInstance.post(`admin/products/${productId}/unpublish`);
+    return {
+      success: data?.success,
+      message: data?.message,
+      statusCode: data?.statusCode,
+    };
+  }
+  catch (error: any) {
     if (error instanceof axios.AxiosError && error.response?.data) {
       return {
         success: error?.response?.data?.success || false,
