@@ -3,9 +3,10 @@ import useAdminProducts from "../Hooks/useAdminProducts";
 import ImageUploadModal from "./ImageUploadModal";
 import Loading from "./Loading";
 import { publishProduct, unpublishProduct } from "../Api/product.api";
+import ProductMetaModal from "./ProductMeta";
+import ProductEditModal from "./ProductEditModal";
 import axios from "axios";
 import { loadingText } from "../utils/utils.variables";
-import ProductMetaModal from "./ProductMeta";
 
 export interface Product {
   name: string;
@@ -51,7 +52,15 @@ const Product = ({
   published,
   setModalOpen,
   setSelectedProduct,
-  setReload
+  setReload,
+  category = "",
+  stockSize = "0",
+  suggestedMaxPrice = "0",
+  description = "",
+  location = "",
+  deliveryChargeInside = "0",
+  deliveryChargeOutside = "0",
+  videoUrl = ""
 }: {
   imageUrl: string;
   name: string;
@@ -61,11 +70,21 @@ const Product = ({
   setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedProduct: React.Dispatch<React.SetStateAction<number | null>>;
   setReload: React.Dispatch<React.SetStateAction<boolean>>;
+  category?: string;
+  stockSize?: string;
+  suggestedMaxPrice?: string;
+  description?: string;
+  location?: string;
+  deliveryChargeInside?: string;
+  deliveryChargeOutside?: string;
+  videoUrl?: string;
 }) => {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [metaModalOpen, setMetaModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+ 
 
   const handlePublish = async (publish: boolean) => {
     try {
@@ -91,6 +110,12 @@ const Product = ({
     } finally {
       setPublishing(false);
     }
+  };
+
+  const handleEditSuccess = () => {
+    setSuccess("পণ্য সফলভাবে আপডেট হয়েছে!");
+    setReload(true);
+    setEditModalOpen(false);
   };
 
   return (
@@ -122,11 +147,19 @@ const Product = ({
         >
           📷 আরো ছবি যোগ করুন
         </button>
+        
         <button 
           onClick={() => setMetaModalOpen(true)} 
           className="w-full px-2 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-xs sm:text-sm"
         >
           অন্যান্য তথ্য যোগ করুন
+        </button>
+        
+        <button 
+          onClick={() => setEditModalOpen(true)}
+          className="w-full px-2 py-1.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 text-xs sm:text-sm"
+        >
+          এডিট করুন
         </button>
         
         {!published ? (
@@ -155,6 +188,26 @@ const Product = ({
         isOpen={metaModalOpen}
         onClose={() => setMetaModalOpen(false)}
         productId={productId}
+      />
+      
+      <ProductEditModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        productId={productId}
+        onSuccess={handleEditSuccess}
+        initialData={{
+          name,
+          imageUrl,
+          basePrice:basePrice.toString(), // Convert to string for form handling
+          category,
+          stockSize,
+          suggestedMaxPrice,
+          description,
+          location,
+          deliveryChargeInside,
+          deliveryChargeOutside,
+          videoUrl
+        }}
       />
     </div>
   );

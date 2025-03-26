@@ -8,13 +8,13 @@ export interface ProductInfo {
   name: string;
   image: File | null;
   category: string;
-  basePrice: string;
-  stockSize: string;
-  suggestedMaxPrice: string;
+  basePrice: number;
+  stockSize: number;
+  suggestedMaxPrice: number;
   description: string;
   location: string;
-  deliveryChargeInside: string;
-  deliveryChargeOutside: string;
+  deliveryChargeInside: number;
+  deliveryChargeOutside: number;
   videoUrl: string;
 }
 
@@ -307,6 +307,58 @@ export const addProductMeta = async (productId: number, meta: { key: string; val
 export const getProductMeta = async (productId: number) => {
   try {
     const { data } = await axiosInstance.get(`admin/products/${productId}/meta`);
+    return {
+      success: data?.success,
+      message: data?.message,
+      data: data?.data,
+      statusCode: data?.statusCode,
+    };
+  } catch (error: any) {
+    if (error instanceof axios.AxiosError && error.response?.data) {
+      return {
+        success: error?.response?.data?.success || false,
+        message: error?.response?.data?.message || "Something went wrong",
+        statusCode: error?.response?.data?.statusCode || 500,
+        data: error?.response?.data?.data || null,
+      };
+    }
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+export const updateProduct = async (productId: number, productInfo: ProductInfo) => {
+  try {
+    let imageUrl = "";
+
+    // If image exists, upload it to Cloudinary and get the URL
+    if (productInfo.image) {
+      imageUrl = await uploadImageToCloudinary(productInfo.image);
+    }
+
+    const payload = {
+      name: productInfo.name,
+      imageUrl, // Cloudinary Image URL
+      category: productInfo.category,
+      basePrice: productInfo.basePrice,
+      stockSize: productInfo.stockSize,
+      suggestedMaxPrice: productInfo.suggestedMaxPrice,
+      description: productInfo.description,
+      location: productInfo.location,
+      deliveryChargeInside: productInfo.deliveryChargeInside,
+      deliveryChargeOutside: productInfo.deliveryChargeOutside,
+      videoUrl: productInfo.videoUrl,
+    };
+
+    const { data } = await axiosInstance.patch(`admin/products/${productId}`, payload, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
     return {
       success: data?.success,
       message: data?.message,

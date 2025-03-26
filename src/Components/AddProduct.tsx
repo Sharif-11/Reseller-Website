@@ -60,7 +60,15 @@ const AddProduct = () => {
     }),
     onSubmit: async (values) => {
       setError(null);
-      const { success, message } = await addProduct(values);
+      const { success, message } = await addProduct({
+        ...values,
+        basePrice: Number(values.basePrice),
+        stockSize: Number(values.stockSize),
+        suggestedMaxPrice: Number(values.suggestedMaxPrice),
+        deliveryChargeInside: Number(values.deliveryChargeInside),
+        deliveryChargeOutside: Number(values.deliveryChargeOutside),
+
+      });
       if (success) navigate("/products");
       else setError(message);
     },
