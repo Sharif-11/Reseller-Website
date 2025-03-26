@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { verifyLogin } from "../Api/auth.api";
+import Loading from "../Components/Loading";
 
 export interface User {
   userId: string;
@@ -11,42 +12,60 @@ export interface User {
   referralCode?: string | null;
   email?: string | null;
   isVerified: boolean;
-  balance: number; // Converted Decimal to number
+  balance: number;
   shopName?: string | null;
   nomineePhone?: string | null;
-  role: "Seller" | "Admin"; // Assuming Role is an enum
+  role: "Seller" | "Admin";
 }
 
 interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
+  loading: boolean;
+  error: Error | null;
 }
 
 // Create the context
-export const UserContext = createContext<UserContextType | null>(null);
+export const UserContext = createContext<UserContextType>({
+  user: null,
+  setUser: () => {},
+  loading: true,
+  error: null
+});
 
 // Provider Component
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
   useEffect(() => {
     const checkLogin = async () => {
       try {
+        setLoading(true);
         const result = await verifyLogin();
+        
         if (result?.success) {
-          setUser(result.data?.user);
+          setUser(result.data?.user || null);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error("Login verification failed:", error);
+        setError(error instanceof Error ? error : new Error('Login verification failed'));
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
     };
 
-    checkLogin(); // Call the async function inside useEffect
+    checkLogin();
   }, []);
+ if(loading) return <Loading />;
   return (
-    <UserContext.Provider value={{ user, setUser }}>
+    <UserContext.Provider value={{ user, setUser, loading, error }}>
       {children}
     </UserContext.Provider>
   );
 };
 
-// Custom hook to use the UserContext

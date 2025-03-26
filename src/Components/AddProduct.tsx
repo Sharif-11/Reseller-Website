@@ -1,12 +1,13 @@
 import { useFormik } from "formik";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+
 import * as Yup from "yup";
 import { addProduct } from "../Api/product.api";
 import { districts } from "../utils/districts";
+import { useNavigate } from "react-router-dom";
 
 const AddProduct = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null);
 
   const formik = useFormik({
@@ -89,7 +90,7 @@ const AddProduct = () => {
                 {key === "category" && "ক্যাটাগরি"}
                 {key === "basePrice" && "পাইকারি মূল্য"}
                 {key === "stockSize" && "স্টক সাইজ"}
-                {key === "suggestedMaxPrice" && "সর্বোচ্চ বিক্রয়ের সম্ভাব্য মূল্য"}
+                {key === "suggestedMaxPrice" && "সর্বোচ্চ পাইকারি মূল্য"}
                 {key === "description" && "বিবরণ"}
                 {key === "location" && "লোকেশন"}
                 {key === "deliveryChargeInside" && "inside ডেলিভারি চার্জ"}

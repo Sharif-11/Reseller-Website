@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { NavLink, Outlet } from "react-router";
+import { NavLink, Outlet } from "react-router-dom";
 
 import { ReactNode } from "react";
 import { UserContext } from "../Context/userContext";
@@ -57,7 +57,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               পণ্য যোগ করুন
             </NavLink>
             <NavLink
-            to="/products"
+            to="/admin-products"
             className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
             onClick={() => setIsSidebarOpen(false)}
           >
@@ -66,13 +66,13 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           </>
              }
               
-              <NavLink
+             {user.role==='Seller' &&  <NavLink
                 to="/orders"
                 className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 অর্ডার
-              </NavLink>
+              </NavLink>}
               {user?.isVerified && user.role==='Seller' && (
                 <NavLink
                   to="/add-referral-code"

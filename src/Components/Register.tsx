@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router";
+import { useSearchParams } from "react-router-dom";
 import OTPForm from "./OTPForm";
 import RegistrationInfo from "./RegistrationInfo";
 import OTPValidation from "./ValidateOTP";

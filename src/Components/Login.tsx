@@ -1,9 +1,10 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+
 import * as Yup from "yup";
 import { login } from "../Api/auth.api";
 import { useAuth } from "../Hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);

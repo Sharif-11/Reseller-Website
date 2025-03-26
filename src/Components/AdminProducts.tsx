@@ -16,7 +16,7 @@ export interface Product {
   published: boolean;
 }
 
-const Products = () => {
+const AdminProducts = () => {
   const { products, error, loading ,setReload} = useAdminProducts();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
@@ -213,5 +213,5 @@ const Product = ({
   );
 };
 
-export default Products
+export default AdminProducts;
 

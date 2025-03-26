@@ -1,8 +1,9 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+
 import * as Yup from "yup";
 import { forgotPassword } from "../Api/auth.api";
+import { useNavigate } from "react-router-dom";
 
 // Validation schema using Yup
 const validationSchema = Yup.object({

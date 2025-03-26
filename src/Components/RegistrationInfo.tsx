@@ -1,6 +1,6 @@
 import { useFormik } from "formik";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import districts from "../../public/zillasInfo.json"; // Importing the JSON
 import { register, RegisterInfo } from "../Api/auth.api";

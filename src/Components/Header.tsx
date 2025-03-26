@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router";
 import { logout } from "../Api/auth.api";
 import { useAuth } from "../Hooks/useAuth";
 import { loadingText } from "../utils/utils.variables";
+
+import { NavLink, useNavigate } from "react-router-dom";
 
 const Header = ({
   setIsSidebarOpen,
@@ -11,7 +12,7 @@ const Header = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const navigate =useNavigate()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { user, setUser } = useAuth();
   const toggleMenu = () => {
