@@ -175,7 +175,7 @@ const RegistrationInfo = ({
               }
               {...formik.getFieldProps("referralCode")}
               readOnly={Boolean(
-                formik.values.referralCode && formik.values.referralCode !== ""
+                referralCode && referralCode !== ""
               )}
             />
             {formik.touched.referralCode && formik.errors.referralCode && (

@@ -79,9 +79,9 @@ const AddProduct = () => {
                 {key === "name" && "পণ্যের নাম"}
                 {key === "image" && "ছবি"}
                 {key === "category" && "ক্যাটাগরি"}
-                {key === "basePrice" && "মূল্য"}
+                {key === "basePrice" && "পাইকারি মূল্য"}
                 {key === "stockSize" && "স্টক সাইজ"}
-                {key === "suggestedMaxPrice" && "প্রস্তাবিত সর্বোচ্চ মূল্য"}
+                {key === "suggestedMaxPrice" && "সর্বোচ্চ বিক্রয়ের সম্ভাব্য মূল্য"}
                 {key === "description" && "বিবরণ"}
                 {key === "location" && "লোকেশন"}
                 {key === "deliveryChargeInside" && "inside ডেলিভারি চার্জ"}

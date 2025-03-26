@@ -14,7 +14,7 @@ export interface User {
   balance: number; // Converted Decimal to number
   shopName?: string | null;
   nomineePhone?: string | null;
-  role: "Seller" | "Admin" | "Buyer"; // Assuming Role is an enum
+  role: "Seller" | "Admin"; // Assuming Role is an enum
 }
 
 interface UserContextType {
