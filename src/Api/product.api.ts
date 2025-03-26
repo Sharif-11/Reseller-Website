@@ -35,9 +35,14 @@ const uploadImageToCloudinary = async (image: File) => {
     throw new Error("Failed to upload image");
   }
 };
-export const uploadImagesToCloudinary = async (images: File[]) => {
+export const uploadImagesToCloudinary = async (
+  images: File[],
+  onProgress?: (progress: number) => void
+) => {
   try {
-    // Map each image to a upload promise
+    let completedUploads = 0;
+    const totalImages = images.length;
+    
     const uploadPromises = images.map((image) => {
       const formData = new FormData();
       formData.append("file", image);
@@ -47,23 +52,96 @@ export const uploadImagesToCloudinary = async (images: File[]) => {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const fileProgress = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            // Calculate overall progress (90% weight for Cloudinary upload)
+            const overallProgress = 
+              (completedUploads / totalImages * 90) + 
+              (fileProgress * 0.9 / totalImages);
+            onProgress?.(Math.floor(overallProgress));
+          }
+        },
+      }).then(response => {
+        completedUploads++;
+        // Update progress when each file completes
+        onProgress?.(Math.floor((completedUploads / totalImages) * 90));
+        return response;
       });
     });
 
-    // Wait for all uploads to complete
     const responses = await Promise.all(uploadPromises);
+    return responses.map(response => response.data.secure_url);
 
-    // Extract the secure URLs from the responses
-    const imageUrls = responses.map((response) => response.data.secure_url);
-
-    return imageUrls;
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(error.message);
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || error.message);
     }
+    throw new Error("Failed to upload images to Cloudinary");
   }
 };
 
+export const uploadProductImages = async (
+  productId: number,
+  images: File[],
+  onProgress?: (progress: number) => void
+) => {
+  try {
+    // Reset progress
+    onProgress?.(0);
+
+    // Upload to Cloudinary (90% of progress)
+    const imageUrls = await uploadImagesToCloudinary(images, (progress) => {
+      onProgress?.(progress);
+    });
+
+    // Upload to backend (remaining 10% of progress)
+    const { data } = await axiosInstance.post(
+      `admin/products/${productId}/images`,
+      { images: imageUrls },
+      {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const backendProgress = Math.round(
+              (progressEvent.loaded * 10) / progressEvent.total
+            );
+            onProgress?.(90 + backendProgress);
+          }
+        },
+      }
+    );
+
+    // Complete
+    onProgress?.(100);
+
+    return {
+      success: data?.success ?? true,
+      message: data?.message || "Images uploaded successfully",
+      statusCode: data?.statusCode || 200,
+      data: data?.data,
+    };
+
+  } catch (error: any) {
+    // Reset progress on error
+    onProgress?.(0);
+
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+        statusCode: error.response?.status || 500,
+      };
+    }
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Upload failed",
+      statusCode: 500,
+    };
+  }
+};
 export const addProduct = async ({
   name,
   image,
@@ -155,39 +233,7 @@ export const getAdminProducts = async () => {
     };
   }
 };
-export const uploadProductImages = async (
-  productId: number,
-  images: File[]
-) => {
-  try {
-    const imageUrls = await uploadImagesToCloudinary(images);
-    const { data } = await axiosInstance.post(
-      `admin/products/${productId}/images`,
-      {
-        images: imageUrls,
-      }
-    );
 
-    return {
-      success: data?.success,
-      message: data?.message,
-      statusCode: data?.statusCode,
-    };
-  } catch (error: any) {
-    if (error instanceof axios.AxiosError && error.response?.data) {
-      return {
-        success: error?.response?.data?.success || false,
-        message: error?.response?.data?.message || "Something went wrong",
-        statusCode: error?.response?.data?.statusCode || 500,
-      };
-    }
-    return {
-      success: false,
-      message: "An unexpected error occurred",
-      statusCode: 500,
-    };
-  }
-};
 export const publishProduct = async (productId: number) => {
   try {
     const { data } = await axiosInstance.post(`admin/products/${productId}/publish`);

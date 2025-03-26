@@ -1,6 +1,7 @@
 import { useFormik } from "formik";
 import { useState } from "react";
-import { AiOutlineClose } from "react-icons/ai";
+import { AiOutlineClose, AiOutlinePlus } from "react-icons/ai";
+import { ImSpinner8 } from "react-icons/im";
 import * as Yup from "yup";
 import { uploadProductImages } from "../Api/product.api";
 
@@ -11,9 +12,12 @@ interface ModalProps {
 }
 
 const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
-  // Ensure at least one input exists initially
   const [images, setImages] = useState<File[]>([new File([], "")]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [, setSuccess] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+
   const formik = useFormik({
     initialValues: { images: [] as File[] },
     validationSchema: Yup.object({
@@ -43,18 +47,43 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
     }),
     onSubmit: async (values) => {
       setError(null);
-      if (
-        values.images.every((img) => img instanceof File && img.name !== "")
-      ) {
-        const result = await uploadProductImages(
-          selectedProduct!,
-          values.images
-        );
-        if (result.success) {
-          onClose();
-        } else {
-          setError(result.message);
+      setSuccess(null);
+      setLoading(true);
+      setUploadProgress(0);
+    
+      try {
+        if (values.images.every((img) => img instanceof File && img.name !== "")) {
+          const result = await uploadProductImages(
+            selectedProduct!,
+            values.images,
+            (progress) => {
+              setUploadProgress(progress);
+            }
+          );
+    
+          if (result.success) {
+            setSuccess("ছবি সফলভাবে আপলোড হয়েছে!");
+            setTimeout(() => {
+              onClose();
+         // Trigger data reload
+            }, 1500); // Show success message briefly before closing
+          } else {
+            setError(result.message || "আপলোড ব্যর্থ হয়েছে");
+          }
         }
+      } catch (err) {
+        let errorMessage = "আপলোড করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।";
+        
+        if (err instanceof Error) {
+          errorMessage = err.message.includes("413")
+            ? "ছবির সাইজ খুব বড়। সর্বোচ্চ ৩MB সাইজের ছবি আপলোড করতে পারবেন।"
+            : err.message;
+        }
+    
+        setError(errorMessage);
+        setUploadProgress(0); // Reset progress on error
+      } finally {
+        setLoading(false);
       }
     },
   });
@@ -84,74 +113,103 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    isOpen && (
+    <div
+      className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center transition-opacity duration-300"
+      onClick={onClose}
+    >
       <div
-        className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center"
-        onClick={onClose}
+        className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg relative transform transition-all duration-300"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="bg-white p-6 rounded-lg w-96 shadow-lg relative"
-          onClick={(e) => e.stopPropagation()}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition-colors"
         >
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-2 right-2 text-lg"
-          >
-            <AiOutlineClose />
-          </button>
-          <h2 className="text-xl font-semibold text-center mb-4">
-            আরো ছবি যোগ করুন
-          </h2>
-          <form onSubmit={formik.handleSubmit}>
-            <div className="space-y-4">
-              {images.map((_, index) => (
-                <div key={index} className="flex items-center space-x-2">
+          <AiOutlineClose size={20} />
+        </button>
+        
+        <h2 className="text-xl font-semibold text-center mb-4">
+          আরো ছবি যোগ করুন
+        </h2>
+        
+        <form onSubmit={formik.handleSubmit}>
+          <div className="space-y-4">
+            {images.map((_, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div className="flex-1 relative">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => handleFileChange(e, index)}
-                    className="w-full border rounded-lg p-3"
+                    className="w-full border rounded-lg p-2 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors"
+                    disabled={loading}
                   />
-                  <button
-                    type="button"
-                    onClick={() => removeImageInput(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    &times;
-                  </button>
-                  {formik.errors.images &&
-                    typeof formik.errors.images === "string" && (
-                      <p className="text-red-500 text-xs">
-                        {formik.errors.images}
-                      </p>
-                    )}
+                  {formik.errors.images?.[index] && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {typeof formik.errors.images?.[index] === "string" && formik.errors.images[index]}
+                    </p>
+                  )}
                 </div>
-              ))}
-              <div className="flex justify-between">
                 <button
                   type="button"
-                  onClick={addImageInput}
-                  className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-400"
+                  onClick={() => removeImageInput(index)}
+                  className="text-red-500 hover:text-red-700 transition-colors p-2"
+                  disabled={loading}
                 >
-                  আরো ছবি যোগ করুন
-                </button>
-                <button
-                  type="submit"
-                  className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-400"
-                >
-                  আপলোড করুন
+                  &times;
                 </button>
               </div>
-              {error && (
-                <p className="text-red-500 text-xs text-center">{error}</p>
-              )}
+            ))}
+            
+            {loading && (
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+            )}
+            
+            <div className="flex justify-between pt-2">
+              <button
+                type="button"
+                onClick={addImageInput}
+                className="flex items-center gap-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-blue-300 transition-colors"
+                disabled={loading}
+              >
+                <AiOutlinePlus />
+                আরো ছবি যোগ করুন
+              </button>
+              
+              <button
+                type="submit"
+                className="flex items-center gap-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 disabled:bg-green-300 transition-colors"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <ImSpinner8 className="animate-spin" />
+                    আপলোড হচ্ছে...
+                  </>
+                ) : (
+                  "আপলোড করুন"
+                )}
+              </button>
             </div>
-          </form>
-        </div>
+            
+            {error && (
+              <p className="text-red-500 text-sm text-center py-2 animate-pulse">
+                {error}
+              </p>
+            )}
+          </div>
+        </form>
       </div>
-    )
+    </div>
   );
 };
 
