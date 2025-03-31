@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FiDownload, FiHeart } from 'react-icons/fi';
 import { FaHeart, FaSpinner } from 'react-icons/fa';
 import { getAllProducts } from '../Api/product.api';
@@ -7,8 +7,19 @@ import { getAllProducts } from '../Api/product.api';
 interface Product {
   productId: number;
   name: string;
-  basePrice: number;
   imageUrl: string;
+  basePrice: number;
+  published: boolean;
+  category: string;
+  stockSize: number;
+  suggestedMaxPrice: number;
+  description: string;
+  location: string;
+  deliveryChargeInside: number;
+  deliveryChargeOutside: number;
+  videoUrl: string;
+  images: { imageId: number; imageUrl: string }[];
+  metas: { key: string; value: string }[];
 }
 
 const FAVORITES_KEY = 'product_favorites_v2';
@@ -18,8 +29,8 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
-  const [, setHoveredProduct] = useState<number | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   // Initialize favorites from localStorage
   useEffect(() => {
@@ -106,6 +117,12 @@ const Products = () => {
     }).format(price).replace('BDT', '৳');
   };
 
+  const navigateToProductDetail = (product: Product) => {
+    navigate(`/products/${product.productId}`, {
+      state: { product }
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -132,14 +149,15 @@ const Products = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-        {products.map(product => (
+        {products.filter(p => p.published).map(product => (
           <div
             key={product.productId}
             className="relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 group"
-            onMouseEnter={() => setHoveredProduct(product.productId)}
-            onMouseLeave={() => setHoveredProduct(null)}
           >
-            <Link to={`/products/${product.productId}`} className="block">
+            <div 
+              className="cursor-pointer"
+              onClick={() => navigateToProductDetail(product)}
+            >
               <div className="aspect-square overflow-hidden">
                 <img
                   src={product.imageUrl || '/placeholder-product.jpg'}
@@ -151,7 +169,7 @@ const Products = () => {
                   }}
                 />
               </div>
-            </Link>
+            </div>
 
             <div className="p-3">
               <h3 className="text-sm font-medium text-gray-800 truncate">
@@ -159,6 +177,9 @@ const Products = () => {
               </h3>
               <p className="text-md font-bold text-gray-900 mt-1">
                 {formatPrice(product.basePrice)}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {product.stockSize > 0 ? `${product.stockSize} in stock` : 'Out of stock'}
               </p>
             </div>
 

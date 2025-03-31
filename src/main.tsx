@@ -16,6 +16,7 @@ import { UserProvider } from "./Context/userContext.tsx";
 import AdminProducts from "./Components/AdminProducts.tsx";
 import CatchAllRoute from "./Components/CatchAllRoutes.tsx";
 import Products from "./Components/Products.tsx";
+import ProductDetail from "./Components/ProductDetail.tsx";
 
 
 
@@ -79,6 +80,7 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/" element={<Home />}>
           <Route index element={<Products/>} />
           <Route path='products' element={<Products/> } />
+          <Route path='products/:productId' element={<ProductDetail/> } />
           <Route path="register" element={
             <PublicRoute>
               <Register />
