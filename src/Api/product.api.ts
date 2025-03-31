@@ -409,3 +409,26 @@ export const updateProduct = async (productId: number, productInfo: ProductInfo)
     };
   }
 }
+export const deleteProductImage = async (productId: number, imageId: number) => {
+  try {
+    const { data } = await axiosInstance.delete(`admin/products/${productId}/images/${imageId}`);
+    return {
+      success: data?.success,
+      message: data?.message,
+      statusCode: data?.statusCode,
+    };
+  } catch (error: any) {
+    if (error instanceof axios.AxiosError && error.response?.data) {
+      return {
+        success: error?.response?.data?.success || false,
+        message: error?.response?.data?.message || "Something went wrong",
+        statusCode: error?.response?.data?.statusCode || 500,
+      };
+    }
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+    };
+  }
+}

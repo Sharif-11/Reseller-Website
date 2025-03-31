@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { AiOutlineClose, AiOutlinePlus } from "react-icons/ai";
 import { ImSpinner8 } from "react-icons/im";
 import * as Yup from "yup";
-import { uploadProductImages, getProductImages } from "../Api/product.api";
+import { uploadProductImages, getProductImages, deleteProductImage } from "../Api/product.api";
 
 interface ModalProps {
   isOpen: boolean;
@@ -15,7 +15,12 @@ interface ImageWithPreview {
   file: File | null;
   preview: string;
   isExisting?: boolean;
+  imageId?: number; // For existing images from API
 }
+
+// Configurable constants
+const MAX_IMAGES = 15;
+const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
 
 const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
   const [images, setImages] = useState<ImageWithPreview[]>([
@@ -23,6 +28,7 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
   ]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -35,18 +41,27 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
       
       setFetching(true);
       try {
-        const {data:existingImages} = await getProductImages(selectedProduct);
+        const { data: existingImages } = await getProductImages(selectedProduct);
         if (existingImages.length > 0) {
-            const initialImages: ImageWithPreview[] = existingImages.map((img: { imageUrl:string }) => ({
-            file: null,
-            preview: img.imageUrl,
-            isExisting: true
-            }));
-          // Add one empty slot for new uploads
-          setImages([...initialImages, { file: null, preview: "", isExisting: false }]);
+          const initialImages: ImageWithPreview[] = existingImages.map(
+            (img: { imageUrl: string; imageId: number }) => ({
+              file: null,
+              preview: img.imageUrl,
+              isExisting: true,
+              imageId: img.imageId,
+            })
+          );
+          
+          // Add one empty slot for new uploads if we haven't reached max
+          const newImages = initialImages.length >= MAX_IMAGES 
+            ? initialImages 
+            : [...initialImages, { file: null, preview: "", isExisting: false }];
+            
+          setImages(newImages);
         }
       } catch (err) {
         console.error("Failed to fetch existing images:", err);
+        setError("Existing images could not be loaded");
       } finally {
         setFetching(false);
       }
@@ -83,7 +98,7 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
               "ফাইল সাইজ খুব বড়। 3 এমবি এর কম হতে হবে।",
               (value) =>
                 value && value instanceof File
-                  ? value.size <= 3 * 1024 * 1024
+                  ? value.size <= MAX_FILE_SIZE
                   : true
             )
             .test("fileType", "কেবল ছবি আপলোড করতে হবে।", (value) =>
@@ -123,7 +138,7 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
         
         if (err instanceof Error) {
           errorMessage = err.message.includes("413")
-            ? "ছবির সাইজ খুব বড়। সর্বোচ্চ ৩MB সাইজের ছবি আপলোড করতে পারবেন।"
+            ? `ছবির সাইজ খুব বড়। সর্বোচ্চ ${MAX_FILE_SIZE / (1024 * 1024)}MB সাইজের ছবি আপলোড করতে পারবেন।`
             : err.message;
         }
 
@@ -160,14 +175,41 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
   };
 
   const addImageInput = () => {
-    setImages([...images, { file: null, preview: "", isExisting: false }]);
+    if (images.length < MAX_IMAGES) {
+      setImages([...images, { file: null, preview: "", isExisting: false }]);
+    }
   };
 
-  const removeImageInput = (index: number) => {
-    if (images.length > 1) {
-      // Revoke the object URL to avoid memory leaks (only for non-existing images)
-      if (images[index].preview && !images[index].isExisting) {
-        URL.revokeObjectURL(images[index].preview);
+  const removeImageInput = async (index: number) => {
+    const imageToRemove = images[index];
+    
+    // If it's an existing image, delete from server first
+    if (imageToRemove.isExisting && imageToRemove.imageId) {
+      try {
+        setDeletingId(imageToRemove.imageId);
+        await deleteProductImage(selectedProduct!, imageToRemove.imageId);
+        
+        // Remove from local state after successful deletion
+        const updatedImages = images.filter((_, i) => i !== index);
+        setImages(updatedImages);
+        
+        // Update formik values if needed
+        const newFiles = updatedImages
+          .filter(img => img.file)
+          .map(img => img.file as File);
+        formik.setFieldValue("images", newFiles);
+        
+        setSuccess("Image deleted successfully");
+      } catch (err) {
+        setError("Failed to delete image");
+        console.error("Error deleting image:", err);
+      } finally {
+        setDeletingId(null);
+      }
+    } else {
+      // For non-existing images, just remove from local state
+      if (imageToRemove.preview && !imageToRemove.isExisting) {
+        URL.revokeObjectURL(imageToRemove.preview);
       }
       
       const updatedImages = images.filter((_, i) => i !== index);
@@ -184,6 +226,10 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
   const triggerFileInput = (index: number) => {
     fileInputRefs.current[index]?.click();
   };
+
+  // Calculate how many more images can be added
+  const remainingSlots = MAX_IMAGES - images.filter(img => img.isExisting).length - 
+    images.filter(img => !img.isExisting && img.file).length;
 
   if (!isOpen) return null;
 
@@ -215,8 +261,13 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
         ) : (
           <form onSubmit={formik.handleSubmit}>
             <div className="space-y-4">
+              <div className="text-sm text-gray-500 text-center">
+                {images.filter(img => img.isExisting).length} existing images | 
+                You can add up to {MAX_IMAGES} images total
+              </div>
+              
               {images.map((image, index) => (
-                <div key={index} className="space-y-2">
+                <div key={image.imageId || index} className="space-y-2">
                   <div className="flex items-start gap-4">
                     <div className="flex-1">
                       <input
@@ -255,6 +306,7 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
                           type="button"
                           onClick={() => triggerFileInput(index)}
                           className="w-full h-40 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors"
+                          disabled={loading}
                         >
                           <AiOutlinePlus size={32} />
                           <span className="mt-2 text-sm">Select Image</span>
@@ -268,19 +320,23 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
                       )}
                     </div>
                     
-                    {images.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeImageInput(index)}
-                        className="text-red-500 hover:text-red-700 transition-colors p-2 mt-2"
-                        disabled={loading || image.isExisting}
-                      >
+                    <button
+                      type="button"
+                      onClick={() => removeImageInput(index)}
+                      className="text-red-500 hover:text-red-700 transition-colors p-2 mt-2"
+                      disabled={loading || (deletingId === image.imageId)}
+                    >
+                      {deletingId === image.imageId ? (
+                        <ImSpinner8 className="animate-spin" size={18} />
+                      ) : (
                         <AiOutlineClose size={18} />
-                      </button>
-                    )}
+                      )}
+                    </button>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {image.file?.name || (image.isExisting ? "Existing image" : "No file selected")}
+                    {image.file?.name || 
+                     (image.isExisting ? "Existing image" : "No file selected")}
+                    {/* {image.isExisting && <span className="ml-2">(ID: {image.imageId})</span>} */}
                   </div>
                 </div>
               ))}
@@ -299,11 +355,11 @@ const ImageUploadModal = ({ isOpen, onClose, selectedProduct }: ModalProps) => {
                   type="button"
                   onClick={addImageInput}
                   className="flex items-center justify-center gap-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-blue-300 transition-colors w-full sm:w-auto"
-                  disabled={loading || images.length >= 5}
+                  disabled={loading || remainingSlots <= 0}
                 >
                   <AiOutlinePlus />
                   <span className="whitespace-nowrap">
-                    আরো ছবি যোগ করুন <span className="hidden sm:inline">(সর্বোচ্চ ৫টি)</span>
+                    আরো ছবি যোগ করুন ({remainingSlots} remaining)
                   </span>
                 </button>
                 
