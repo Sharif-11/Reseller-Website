@@ -48,6 +48,13 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               >
                 প্রোফাইল
               </NavLink>
+              <NavLink
+                to="/products"
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+              সকল প্রোডাক্টস
+              </NavLink>
              {
               user.role === "Admin" &&  <><NavLink
               to="/add-product"

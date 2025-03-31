@@ -6,7 +6,6 @@ import Home from "./Components/Home.tsx";
 import LoginPage from "./Components/Login.tsx";
 import Orders from "./Components/Orders.tsx";
 import PasswordReset from "./Components/PasswordReset.tsx";
-import ProductsPage from "./Components/Products.tsx";
 import Profile from "./Components/Profile.tsx";
 import Referral from "./Components/Refferal.tsx";
 import Register from "./Components/Register.tsx";
@@ -16,6 +15,7 @@ import { Navigate, Route, Routes,BrowserRouter, useLocation} from "react-router-
 import { UserProvider } from "./Context/userContext.tsx";
 import AdminProducts from "./Components/AdminProducts.tsx";
 import CatchAllRoute from "./Components/CatchAllRoutes.tsx";
+import Products from "./Components/Products.tsx";
 
 
 
@@ -77,7 +77,8 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />}>
-          <Route index element={<ProductsPage />} />
+          <Route index element={<Products/>} />
+          <Route path='products' element={<Products/> } />
           <Route path="register" element={
             <PublicRoute>
               <Register />
