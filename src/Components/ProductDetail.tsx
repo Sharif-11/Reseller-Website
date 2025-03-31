@@ -302,7 +302,7 @@ const ProductDetail = () => {
               </span>
               {product.stockSize > 0 ? (
                 <span className="px-2 py-1 bg-green-100 text-green-800 text-sm rounded">
-                  স্টকে আছে ({product.stockSize})
+                  স্টকে আছে 
                 </span>
               ) : (
                 <span className="px-2 py-1 bg-red-100 text-red-800 text-sm rounded">
