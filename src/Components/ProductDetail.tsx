@@ -16,7 +16,19 @@ interface Product {
   metas: { key: string; value: string }[];
 }
 
+interface CartItem {
+  productId: number;
+  name: string;
+  basePrice: number;
+  sellingPrice: number;
+  quantity: number;
+  imageUrl: string;
+  selectedOptions: Record<string, string>;
+  stockAvailable: boolean;
+}
+
 const FAVORITES_KEY = 'product_favorites_v2';
+const CART_ITEMS_KEY = 'cart_items_v2';
 
 const ProductDetail = () => {
   const location = useLocation();
@@ -30,10 +42,11 @@ const ProductDetail = () => {
   const [copied, setCopied] = useState(false);
   const [inputErrors, setInputErrors] = useState({
     quantity: '',
-    sellingPrice: ''
+    sellingPrice: '',
+    options: ''
   });
 
-  // ফেভারিট লোড করুন
+  // ফেভারিট এবং কার্ট আইটেম লোড করুন
   useEffect(() => {
     const savedFavorites = localStorage.getItem(FAVORITES_KEY);
     if (savedFavorites) {
@@ -94,6 +107,10 @@ const ProductDetail = () => {
 
   const handleMetaSelect = (key: string, value: string) => {
     setSelectedMeta(prev => ({ ...prev, [key]: value }));
+    // Clear options error when an option is selected
+    if (inputErrors.options) {
+      setInputErrors(prev => ({ ...prev, options: '' }));
+    }
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,6 +162,13 @@ const ProductDetail = () => {
   };
 
   const addToCart = () => {
+    // সব মেটা অপশন সিলেক্ট করা হয়েছে কিনা চেক করুন
+    const allOptionsSelected = product.metas.every(meta => selectedMeta[meta.key]);
+    if (!allOptionsSelected && product.metas.length > 0) {
+      setInputErrors(prev => ({ ...prev, options: 'সব অপশন সিলেক্ট করুন' }));
+      return;
+    }
+
     // ভ্যালিডেশন
     const quantityNum = parseFloat(quantity);
     const priceNum = parseFloat(sellingPrice);
@@ -169,19 +193,23 @@ const ProductDetail = () => {
       return;
     }
     
-    // কার্টে যোগ করুন
-    const cartItem = {
+    // কার্ট আইটেম তৈরি করুন
+    const cartItem: CartItem = {
       productId: product.productId,
       name: product.name,
+      basePrice: product.basePrice,
+      sellingPrice: priceNum,
       quantity: quantityNum,
-      price: priceNum,
       imageUrl: product.imageUrl,
-      selectedMeta: { ...selectedMeta },
+      selectedOptions: { ...selectedMeta },
       stockAvailable: product.stockSize > 0
     };
     
-    // এখানে কার্টে যোগ করার লজিক ইমপ্লিমেন্ট করুন
-    console.log('কার্টে যোগ করা হয়েছে:', cartItem);
+    // কার্টে আইটেম যোগ করুন
+    const existingCart = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]');
+    const updatedCart = [...existingCart, cartItem];
+    localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCart));
+    
     alert(`${quantityNum} × ${product.name} কার্টে যোগ করা হয়েছে (৳${priceNum} প্রতি টি)`);
   };
 
@@ -311,6 +339,9 @@ const ProductDetail = () => {
               </div>
             </div>
           ))}
+          {inputErrors.options && (
+            <p className="text-red-500 text-sm">{inputErrors.options}</p>
+          )}
 
           {/* পরিমাণ এবং বিক্রয় মূল্য */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -354,8 +385,8 @@ const ProductDetail = () => {
           {/* কার্টে যোগ করুন বাটন */}
           <button
             onClick={addToCart}
-            className={`w-full py-3 px-4 rounded-md font-medium ${!!(inputErrors.quantity || inputErrors.sellingPrice) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}
-            disabled={!!(inputErrors.quantity || inputErrors.sellingPrice)}
+            className={`w-full py-3 px-4 rounded-md font-medium ${!!(inputErrors.quantity || inputErrors.sellingPrice || inputErrors.options) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+            disabled={!!(inputErrors.quantity || inputErrors.sellingPrice || inputErrors.options)}
           >
             <div className="flex items-center justify-center gap-2">
               <FiShoppingCart />
