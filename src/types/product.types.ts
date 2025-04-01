@@ -7,6 +7,7 @@ export interface Product {
     suggestedMaxPrice: number;
     description: string;
     videoUrl: string;
+    isVerifiedProduct: boolean;
     images: { imageId: number; imageUrl: string }[];
     metas: { key: string; value: string }[];
   }

@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FiDownload, FiHeart, FiCopy, FiYoutube, FiShoppingCart } from 'react-icons/fi';
-import { FaHeart, FaSpinner } from 'react-icons/fa';
+import { FaHeart, FaSpinner, FaCheckCircle } from 'react-icons/fa';
 import { CART_ITEMS_KEY, FAVORITES_KEY } from '../utils/utils.variables';
 import { CartItem } from '../types/cart.types';
 import { Product } from '../types/product.types';
-import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs
-
-
-
-
+import { v4 as uuidv4 } from 'uuid';
 
 const ProductDetail = () => {
   const location = useLocation();
@@ -89,7 +85,6 @@ const ProductDetail = () => {
 
   const handleMetaSelect = (key: string, value: string) => {
     setSelectedMeta(prev => ({ ...prev, [key]: value }));
-    // Clear options error when an option is selected
     if (inputErrors.options) {
       setInputErrors(prev => ({ ...prev, options: '' }));
     }
@@ -99,7 +94,6 @@ const ProductDetail = () => {
     const value = e.target.value;
     setQuantity(value);
     
-    // ভ্যালিডেশন
     if (value === '') {
       setInputErrors(prev => ({ ...prev, quantity: 'পরিমাণ লিখুন' }));
       return;
@@ -123,7 +117,6 @@ const ProductDetail = () => {
     const value = e.target.value;
     setSellingPrice(value);
     
-    // ভ্যালিডেশন
     if (value === '') {
       setInputErrors(prev => ({ ...prev, sellingPrice: 'মূল্য লিখুন' }));
       return;
@@ -144,14 +137,12 @@ const ProductDetail = () => {
   };
 
   const addToCart = () => {
-    // সব মেটা অপশন সিলেক্ট করা হয়েছে কিনা চেক করুন
     const allOptionsSelected = product.metas.every(meta => selectedMeta[meta.key]);
     if (!allOptionsSelected && product.metas.length > 0) {
       setInputErrors(prev => ({ ...prev, options: 'সব অপশন সিলেক্ট করুন' }));
       return;
     }
 
-    // ভ্যালিডেশন
     const quantityNum = parseFloat(quantity);
     const priceNum = parseFloat(sellingPrice);
     
@@ -175,7 +166,6 @@ const ProductDetail = () => {
       return;
     }
     
-    // কার্ট আইটেম তৈরি করুন
     const cartItem: CartItem = {
       productId: product.productId,
       name: product.name,
@@ -184,18 +174,14 @@ const ProductDetail = () => {
       quantity: quantityNum,
       imageUrl: product.imageUrl,
       selectedOptions: { ...selectedMeta },
-      cartItemId: uuidv4() // Unique ID for the cart item
-      
+      cartItemId: uuidv4()
     };
     
-    // কার্টে আইটেম যোগ করুন
     const existingCart = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]');
     const updatedCart = [...existingCart, cartItem];
 
     localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCart));
     navigate('/cart');
-    
-   
   };
 
   if (!product) {
@@ -206,7 +192,6 @@ const ProductDetail = () => {
     );
   }
 
-  // মেটা ইনফরমেশন অর্গানাইজ করুন
   const metaInfo = product.metas.reduce<Record<string, string[]>>((acc, meta) => {
     if (!acc[meta.key]) {
       acc[meta.key] = [];
@@ -276,15 +261,31 @@ const ProductDetail = () => {
 
         {/* ডান কলাম - পণ্যের তথ্য */}
         <div className="space-y-6">
-          <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+          <div className="flex justify-between items-start">
+            <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+            {product.isVerifiedProduct ? (
+              <div className="flex items-center text-green-600">
+                <FaCheckCircle className="mr-1" />
+                <span className="text-sm"> ভেরিফাইড প্রোডাক্ট
+                </span>
+              </div>
+            ):
+              <div className="flex items-center text-red-600">
+                <span className="text-sm"> 
+                  ভেরিফাইড প্রোডাক্ট নয়
+                </span>
+              </div>
+            }
+          </div>
           
           {/* মূল্য তথ্য */}
           <div className="space-y-2">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
               <span className="text-lg font-semibold">দাম:</span>
               <span className="text-xl font-bold text-gray-900">
-                ৳{product.basePrice.toLocaleString('bn-BD')}
+                {product.basePrice}
               </span>
+              <span className="text-lg font-semibold">টাকা।</span>
               {product.stockSize > 0 ? (
                 <span className="px-2 py-1 bg-green-100 text-green-800 text-sm rounded">
                   স্টকে আছে 
@@ -296,11 +297,12 @@ const ProductDetail = () => {
               )}
             </div>
             
-            <div className="flex items-center gap-4">
-              <span className="text-lg font-semibold">সুপারিশকৃত সর্বোচ্চ মূল্য:</span>
-              <span className="text-lg text-gray-700">
-                ৳{product.suggestedMaxPrice.toLocaleString('bn-BD')}
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-semibold">প্রোডাক্টির সাজেস্টেড বিক্রয় মূল্য সর্বোচ্চ</span>
+              <span className="text-lg text-[#e5307e] font-bold ">
+                {product.suggestedMaxPrice}
               </span>
+              টাকা।
             </div>
           </div>
 
