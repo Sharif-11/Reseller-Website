@@ -1,37 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { FiDownload, FiHeart, FiCopy, FiYoutube, FiShoppingCart } from 'react-icons/fi';
 import { FaHeart, FaSpinner } from 'react-icons/fa';
+import { CART_ITEMS_KEY, FAVORITES_KEY } from '../utils/utils.variables';
+import { CartItem } from '../types/cart.types';
+import { Product } from '../types/product.types';
+import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs
 
-interface Product {
-  productId: number;
-  name: string;
-  imageUrl: string;
-  basePrice: number;
-  stockSize: number;
-  suggestedMaxPrice: number;
-  description: string;
-  videoUrl: string;
-  images: { imageId: number; imageUrl: string }[];
-  metas: { key: string; value: string }[];
-}
 
-interface CartItem {
-  productId: number;
-  name: string;
-  basePrice: number;
-  sellingPrice: number;
-  quantity: number;
-  imageUrl: string;
-  selectedOptions: Record<string, string>;
-  stockAvailable: boolean;
-}
 
-const FAVORITES_KEY = 'product_favorites_v2';
-const CART_ITEMS_KEY = 'cart_items_v2';
+
 
 const ProductDetail = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const product = location.state?.product as Product;
   
   const [favorites, setFavorites] = useState<number[]>([]);
@@ -202,15 +184,18 @@ const ProductDetail = () => {
       quantity: quantityNum,
       imageUrl: product.imageUrl,
       selectedOptions: { ...selectedMeta },
-      stockAvailable: product.stockSize > 0
+      cartItemId: uuidv4() // Unique ID for the cart item
+      
     };
     
     // কার্টে আইটেম যোগ করুন
     const existingCart = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]');
     const updatedCart = [...existingCart, cartItem];
+
     localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCart));
+    navigate('/cart');
     
-    alert(`${quantityNum} × ${product.name} কার্টে যোগ করা হয়েছে (৳${priceNum} প্রতি টি)`);
+   
   };
 
   if (!product) {
