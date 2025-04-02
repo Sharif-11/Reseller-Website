@@ -121,7 +121,7 @@ const AddProduct = () => {
               ) : key === "description" ? (
                 <textarea
                   className="w-full border rounded-lg p-3"
-                  rows={4} // Making it a larger textarea
+                  rows={16} // Making it a larger textarea
                   {...formik.getFieldProps(key)}
                 />
               ) : (

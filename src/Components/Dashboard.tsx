@@ -60,7 +60,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
                 onClick={() => setIsSidebarOpen(false)}
               >      
-            favorite প্রোডাক্টস
+            ফেভরিট প্রোডাক্টস
               </NavLink>
               <NavLink
                 to="/cart"
@@ -69,6 +69,14 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               >
               
                 কার্ট
+              </NavLink>
+              <NavLink
+                to="/add-wallet"
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+              
+                ওয়ালেট যোগ করুন
               </NavLink>
              {
               user.role === "Admin" &&  <><NavLink

@@ -188,7 +188,7 @@ const ProductEditModal = ({
                   ) : key === "description" ? (
                     <textarea
                       className="w-full border rounded-lg p-3"
-                      rows={4}
+                      rows={16}
                       {...formik.getFieldProps(key)}
                     />
                   ) : (
