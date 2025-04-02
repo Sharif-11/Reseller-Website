@@ -18,6 +18,7 @@ import CatchAllRoute from "./Components/CatchAllRoutes.tsx";
 import Products from "./Components/Products.tsx";
 import ProductDetail from "./Components/ProductDetail.tsx";
 import Cart from "./Components/Cart.tsx";
+import Favorites from "./Components/Favorites.tsx";
 
 
 
@@ -83,6 +84,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path='products' element={<Products/> } />
           <Route path='products/:productId' element={<ProductDetail/> } />
           <Route path='cart' element={<Cart/> } />
+          <Route path='favorites' element={<Favorites/> } />
           <Route path="register" element={
             <PublicRoute>
               <Register />

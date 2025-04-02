@@ -56,6 +56,13 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               সকল প্রোডাক্টস
               </NavLink>
               <NavLink
+                to="/favorites"
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                onClick={() => setIsSidebarOpen(false)}
+              >      
+            favorite প্রোডাক্টস
+              </NavLink>
+              <NavLink
                 to="/cart"
                 className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
                 onClick={() => setIsSidebarOpen(false)}

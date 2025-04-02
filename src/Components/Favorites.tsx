@@ -1,91 +1,46 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiDownload, FiHeart } from 'react-icons/fi';
-import { FaHeart, FaSpinner } from 'react-icons/fa';
-import { getAllProducts } from '../Api/product.api';
+import { FiDownload } from 'react-icons/fi';
+import { FaHeart, FaSpinner, FaRegSadTear } from 'react-icons/fa';
 import { FavoriteProduct } from '../types/product.types';
-import {  FAVORITES_KEY } from '../utils/utils.variables';
-interface Product {
-  productId: number;
-  name: string;
-  imageUrl: string;
-  basePrice: number;
-  published: boolean;
-  category: string;
-  stockSize: number;
-  suggestedMaxPrice: number;
-  description: string;
-  location: string;
-  deliveryChargeInside: number;
-  deliveryChargeOutside: number;
-  videoUrl: string;
-  images: { imageId: number; imageUrl: string }[];
-  metas: { key: string; value: string }[];
-}
+import { ITEMS_PER_PAGE, FAVORITES_KEY } from '../utils/utils.variables';
 
-
-
-const Products = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+const Favorites = () => {
+  const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
-  // Initialize favorites from localStorage
+  // Load favorites from localStorage
   useEffect(() => {
-    const savedFavorites = localStorage.getItem(FAVORITES_KEY);
-    if (savedFavorites) {
-      try {
-        const parsed = JSON.parse(savedFavorites);
-        if (Array.isArray(parsed)) {
-          setFavorites(parsed);
-        }
-      } catch (err) {
-        console.error('Error parsing favorites:', err);
-        
-      }
-    }
-  }, []);
-
-  // Save favorites to localStorage
-  // useEffect(() => {
-  //   localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-  // }, [favorites]);
-
-  // Fetch products
-  useEffect(() => {
-    const fetchProducts = async () => {
+    const loadFavorites = () => {
       try {
         setLoading(true);
-        const response = await getAllProducts();
-        setProducts(response.data);
+        const savedFavorites = localStorage.getItem(FAVORITES_KEY);
+        
+        if (savedFavorites) {
+          const parsed = JSON.parse(savedFavorites);
+          if (Array.isArray(parsed)) {
+            setFavorites(parsed);
+          }
+        }
       } catch (err) {
-        setError('Failed to load products. Please try again later.');
-        console.error('Error fetching products:', err);
+        setError('Failed to load favorites. Please try again.');
+        console.error('Error loading favorites:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    loadFavorites();
   }, []);
 
-  const toggleFavorite = (productId: number) => {
-    if (favorites.some((fav) => fav.productId === productId)) {
-      setFavorites((prev) => prev.filter((fav) => fav.productId !== productId));
-      localStorage.setItem(
-        FAVORITES_KEY,
-        JSON.stringify(favorites.filter((fav) => fav.productId !== productId))
-      );
-    } else {
-      const product = products.find((p) => p.productId === productId);
-      if (product) {
-        setFavorites((prev) => [...prev, { ...product }]);
-        localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites, { ...product }]));
-      }
-    }
+  const removeFavorite = (productId: number) => {
+    const updatedFavorites = favorites.filter(fav => fav.productId !== productId);
+    setFavorites(updatedFavorites);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));
   };
 
   const downloadImage = async (imageUrl: string, productName: string, productId: number) => {
@@ -126,17 +81,24 @@ const Products = () => {
     }).format(price).replace('BDT', '৳');
   };
 
-  const navigateToProductDetail = (product: Product) => {
+  const navigateToProductDetail = (product: FavoriteProduct) => {
     navigate(`/products/${product.productId}`, {
       state: { product }
     });
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(favorites.length / ITEMS_PER_PAGE);
+  const paginatedFavorites = favorites.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <FaSpinner className="animate-spin text-2xl text-blue-500" />
-        <span className="ml-2">Loading products...</span>
+        <span className="ml-2">Loading favorites...</span>
       </div>
     );
   }
@@ -155,10 +117,22 @@ const Products = () => {
     );
   }
 
+  if (favorites.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+        <FaRegSadTear className="text-4xl mb-4" />
+        <p className="text-xl">No favorite products yet</p>
+        <p className="text-sm mt-2">Add products to your favorites to see them here</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Your Favorite Products ({favorites.length})</h1>
+      
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-        {products.filter(p => p.published).map(product => (
+        {paginatedFavorites.map(product => (
           <div
             key={product.productId}
             className="relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 group"
@@ -187,9 +161,6 @@ const Products = () => {
               <p className="text-md font-bold text-gray-900 mt-1">
                 {formatPrice(product.basePrice)}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {product.stockSize > 0 ? `${product.stockSize} in stock` : 'Out of stock'}
-              </p>
             </div>
 
             <div className="absolute top-2 right-2 flex flex-col gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
@@ -215,36 +186,57 @@ const Products = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  toggleFavorite(product.productId);
+                  removeFavorite(product.productId);
                 }}
                 className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                aria-label={
-                  favorites.some(p => p.productId === product.productId)
-                    ? `Remove ${product.name} from favorites`
-                    : `Add ${product.name} to favorites`
-                }
-                title={favorites.some(p=> p.productId===product.productId ) ? "Remove from favorites" : "Add to favorites"}
+                aria-label={`Remove ${product.name} from favorites`}
+                title="Remove from favorites"
               >
-                {
-                favorites.some(p => p.productId === product.productId)
-                ? (
-                  <FaHeart className="text-red-500" />
-                ) : (
-                  <FiHeart className="text-gray-700 hover:text-red-500" />
-                )}
+                <FaHeart className="text-red-500" />
               </button>
             </div>
           </div>
         ))}
       </div>
 
-      {products.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No products available</p>
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-8">
+          <nav className="inline-flex rounded-md shadow">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-1 border-t border-b border-gray-300 bg-white text-sm font-medium ${
+                  currentPage === page 
+                    ? 'text-blue-600 bg-blue-50' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </nav>
         </div>
       )}
     </div>
   );
 };
 
-export default Products;
+export default Favorites;
