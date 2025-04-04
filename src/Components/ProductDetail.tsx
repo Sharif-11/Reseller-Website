@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FiDownload, FiHeart, FiCopy, FiYoutube, FiShoppingCart } from 'react-icons/fi';
-import { FaHeart, FaSpinner, FaCheckCircle } from 'react-icons/fa';
+import { FaHeart, FaSpinner } from 'react-icons/fa';
 import { CART_ITEMS_KEY, FAVORITES_KEY } from '../utils/utils.variables';
 import { CartItem } from '../types/cart.types';
 import { Product } from '../types/product.types';
