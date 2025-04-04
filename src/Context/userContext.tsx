@@ -38,27 +38,31 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    const checkLogin = async () => {
-      try {
-        setLoading(true);
-        const result = await verifyLogin();
-        
-        if (result?.success) {
-          setUser(result.data?.user || null);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Login verification failed:", error);
-        setError(error instanceof Error ? error : new Error('Login verification failed'));
+  const checkLogin = async () => {
+    if(user) return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      const result = await verifyLogin();
+      
+      if (result?.success) {
+        setUser(result.data?.user || null);
+      } else {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
-    };
-
+    } catch (error) {
+      console.error("Login verification failed:", error);
+      setError(error instanceof Error ? error : new Error('Login verification failed'));
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
     checkLogin();
   }, []);
  if(loading) return <Loading />;
