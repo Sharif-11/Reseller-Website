@@ -97,7 +97,7 @@ const AddWallet = () => {
       
       if (response.success && response.data) {
         setWallets(prev => [...prev, response.data]);
-        localStorage.setItem('wallets', JSON.stringify([...wallets, response.data]));
+        localStorage.setItem(`wallets-${user?.phoneNo}`, JSON.stringify([...wallets, response.data]));
         resetForm();
       } else {
         throw new Error(response.message || 'Failed to add wallet');
