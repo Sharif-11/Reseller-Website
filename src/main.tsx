@@ -20,6 +20,8 @@ import ProductDetail from "./Components/ProductDetail.tsx";
 import Cart from "./Components/Cart.tsx";
 import Favorites from "./Components/Favorites.tsx";
 import AddWallet from "./Components/AddWallet.tsx";
+import WithdrawRequest from "./Components/WithdrawRequest.tsx";
+import WithdrawHistory from "./Components/WithdrawHistory.tsx";
 
 
 
@@ -87,6 +89,8 @@ createRoot(document.getElementById("root")!).render(
           <Route path='cart' element={<Cart/> } />
           <Route path='favorites' element={<Favorites/> } />
           <Route path='add-wallet' element={<AddWallet/> } />
+          <Route path='request-withdraw' element={<WithdrawRequest/>} />
+          <Route path='withdraw-history' element={<WithdrawHistory/>} />
           <Route path="register" element={
             <PublicRoute>
               <Register />

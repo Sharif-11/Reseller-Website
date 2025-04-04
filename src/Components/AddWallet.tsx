@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiPlus } from 'react-icons/fi';
 import { getWalletList, addWallet } from '../Api/seller.api';
+import { useAuth } from '../Hooks/useAuth';
 
 interface Wallet {
   id: string;
@@ -10,6 +11,7 @@ interface Wallet {
 
 const AddWallet = () => {
   const [wallets, setWallets] = useState<Wallet[]>([]);
+  const {user}=useAuth()
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formData, setFormData] = useState({
     type: 'bKash' as 'bKash' | 'Nagad',
@@ -25,11 +27,17 @@ const AddWallet = () => {
   // Fetch wallets on component mount
   useEffect(() => {
     const fetchWallets = async () => {
+      const cachedWallets = localStorage.getItem(`wallets-${user?.phoneNo}`);
+      if (cachedWallets) {
+        setWallets(JSON.parse(cachedWallets));
+        return;
+      }
       try {
         setIsFetching(true);
         const response = await getWalletList();
         if (response.success && response.data) {
           setWallets(response.data);
+          localStorage.setItem(`wallets-${user?.phoneNo}`, JSON.stringify(response.data));
         } else {
           setErrors(prev => ({
             ...prev,
@@ -89,6 +97,7 @@ const AddWallet = () => {
       
       if (response.success && response.data) {
         setWallets(prev => [...prev, response.data]);
+        localStorage.setItem('wallets', JSON.stringify([...wallets, response.data]));
         resetForm();
       } else {
         throw new Error(response.message || 'Failed to add wallet');
@@ -230,9 +239,9 @@ const AddWallet = () => {
       ) : (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4">
-            {wallets.map(wallet => (
+            {wallets.map((wallet,idx) => (
               <div
-                key={wallet.id}
+                key={idx}
                 className="border border-gray-200 rounded-lg p-3 sm:p-4"
               >
                 <div className="flex items-center justify-between mb-1 sm:mb-2">

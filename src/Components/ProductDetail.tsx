@@ -263,19 +263,7 @@ const ProductDetail = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-start">
             <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
-            {product.isVerifiedProduct ? (
-              <div className="flex items-center text-green-600">
-                <FaCheckCircle className="mr-1" />
-                <span className="text-sm"> ভেরিফাইড প্রোডাক্ট
-                </span>
-              </div>
-            ):
-              <div className="flex items-center text-red-600">
-                <span className="text-sm"> 
-                  ভেরিফাইড প্রোডাক্ট নয়
-                </span>
-              </div>
-            }
+           
           </div>
           
           {/* মূল্য তথ্য */}
