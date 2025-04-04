@@ -32,6 +32,10 @@ const WithdrawHistory = () => {
   });
   const [selectedRequest, setSelectedRequest] = useState<WithdrawRequest | null>(null);
 
+  const calculateActualAmount = (amount: string, fee: string) => {
+    return (parseFloat(amount) - parseFloat(fee)).toFixed(2);
+  };
+
   const fetchWithdrawHistory = async (page = 1) => {
     try {
       setLoading(true);
@@ -94,16 +98,16 @@ const WithdrawHistory = () => {
     }
   };
 
-  const showRemarksModal = (request: WithdrawRequest) => {
+  const showDetailsModal = (request: WithdrawRequest) => {
     setSelectedRequest(request);
   };
 
-  const closeRemarksModal = () => {
+  const closeDetailsModal = () => {
     setSelectedRequest(null);
   };
 
   return (
-    <div className="px-4 py-6 max-w-4xl mx-auto">
+    <div className="px-4 py-6 max-w-6xl mx-auto">
       <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">Withdrawal History</h1>
       
       {loading ? (
@@ -130,7 +134,7 @@ const WithdrawHistory = () => {
                   </div>
                 </div>
                 
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-3 gap-2">
                   <div>
                     <p className="text-xs text-gray-500">Amount</p>
                     <p className="font-medium">{parseFloat(request.amount).toFixed(2)}৳</p>
@@ -139,15 +143,19 @@ const WithdrawHistory = () => {
                     <p className="text-xs text-gray-500">Fee</p>
                     <p className="font-medium">{parseFloat(request.transactionFee).toFixed(2)}৳</p>
                   </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Actual</p>
+                    <p className="font-medium">{calculateActualAmount(request.amount, request.transactionFee)}৳</p>
+                  </div>
                 </div>
 
-                {(request.status === 'completed' || request.status === 'rejected') && request.remarks && (
+                {(request.status === 'completed' || request.status === 'rejected') && (
                   <div className="mt-2">
                     <button 
-                      onClick={() => showRemarksModal(request)}
+                      onClick={() => showDetailsModal(request)}
                       className="text-xs text-blue-600 hover:text-blue-800"
                     >
-                      View Remarks
+                      View Details
                     </button>
                   </div>
                 )}
@@ -180,7 +188,9 @@ const WithdrawHistory = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
@@ -201,18 +211,24 @@ const WithdrawHistory = () => {
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                       {parseFloat(request.transactionFee).toFixed(2)}৳
                     </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                      {calculateActualAmount(request.amount, request.transactionFee)}৳
+                    </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
                         {getStatusBadge(request.status)}
-                        {(request.status === 'completed' || request.status === 'rejected') && request.remarks && (
+                        {(request.status === 'completed' || request.status === 'rejected') && (
                           <button 
-                            onClick={() => showRemarksModal(request)}
+                            onClick={() => showDetailsModal(request)}
                             className="text-xs text-blue-600 hover:text-blue-800"
                           >
-                            View
+                            Details
                           </button>
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.transactionId || 'N/A'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                       {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
@@ -317,7 +333,7 @@ const WithdrawHistory = () => {
         </div>
       )}
 
-      {/* Remarks Modal */}
+      {/* Details Modal */}
       {selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
@@ -328,16 +344,34 @@ const WithdrawHistory = () => {
             </div>
             
             <div className="p-4 space-y-4">
-              <div>
-                <p className="text-sm font-medium text-gray-700">Status:</p>
-                <div className="mt-1">
-                  {getStatusBadge(selectedRequest.status)}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Status:</p>
+                  <div className="mt-1">
+                    {getStatusBadge(selectedRequest.status)}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Requested At:</p>
+                  <p className="mt-1 text-gray-900">{formatDate(selectedRequest.requestedAt)}</p>
                 </div>
               </div>
 
-              <div>
-                <p className="text-sm font-medium text-gray-700">Amount:</p>
-                <p className="mt-1 text-gray-900">{parseFloat(selectedRequest.amount).toFixed(2)}৳</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Amount:</p>
+                  <p className="mt-1 text-gray-900">{parseFloat(selectedRequest.amount).toFixed(2)}৳</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Fee:</p>
+                  <p className="mt-1 text-gray-900">{parseFloat(selectedRequest.transactionFee).toFixed(2)}৳</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Actual:</p>
+                  <p className="mt-1 text-gray-900 font-medium">
+                    {calculateActualAmount(selectedRequest.amount, selectedRequest.transactionFee)}৳
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -345,11 +379,23 @@ const WithdrawHistory = () => {
                 <p className="mt-1 text-gray-900">{selectedRequest.walletName} - {selectedRequest.walletPhoneNo}</p>
               </div>
 
-              {selectedRequest.transactionId && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Transaction ID:</p>
-                  <p className="mt-1 text-gray-900">{selectedRequest.transactionId}</p>
-                </div>
+              {selectedRequest.status !== 'pending' && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Transaction ID:</p>
+                      <p className="mt-1 text-gray-900">{selectedRequest.transactionId || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Transaction Phone:</p>
+                      <p className="mt-1 text-gray-900">{selectedRequest.transactionPhoneNo || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Processed At:</p>
+                    <p className="mt-1 text-gray-900">{selectedRequest.processedAt ? formatDate(selectedRequest.processedAt) : 'N/A'}</p>
+                  </div>
+                </>
               )}
 
               {selectedRequest.remarks && (
@@ -358,23 +404,11 @@ const WithdrawHistory = () => {
                   <p className="mt-1 text-gray-900 whitespace-pre-line">{selectedRequest.remarks}</p>
                 </div>
               )}
-
-              <div>
-                <p className="text-sm font-medium text-gray-700">Requested At:</p>
-                <p className="mt-1 text-gray-900">{formatDate(selectedRequest.requestedAt)}</p>
-              </div>
-
-              {selectedRequest.processedAt && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Processed At:</p>
-                  <p className="mt-1 text-gray-900">{formatDate(selectedRequest.processedAt)}</p>
-                </div>
-              )}
             </div>
             
             <div className="p-4 border-t flex justify-end">
               <button
-                onClick={closeRemarksModal}
+                onClick={closeDetailsModal}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
               >
                 Close
