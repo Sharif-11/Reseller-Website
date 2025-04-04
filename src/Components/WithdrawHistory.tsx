@@ -18,7 +18,7 @@ interface WithdrawRequest {
   remarks: string | null;
   requestedAt: string;
   processedAt: string | null;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  status: 'pending' | 'completed' | 'rejected' | 'cancelled';
 }
 
 const WithdrawHistory = () => {
@@ -82,8 +82,8 @@ const WithdrawHistory = () => {
     const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
     
     switch (status) {
-      case 'approved':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Approved</span>;
+      case 'completed':
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>completed</span>;
       case 'rejected':
         return <span className={`${baseClasses} bg-red-100 text-red-800`}>Rejected</span>;
       case 'cancelled':

@@ -23,6 +23,7 @@ interface UserContextType {
   setUser: (user: User | null) => void;
   loading: boolean;
   error: Error | null;
+  reloadUser: () => Promise<void>; // Add reload function to context type
 }
 
 // Create the context
@@ -30,7 +31,8 @@ export const UserContext = createContext<UserContextType>({
   user: null,
   setUser: () => {},
   loading: true,
-  error: null
+  error: null,
+  reloadUser: async () => {} // Add default reload function
 });
 
 // Provider Component
@@ -38,8 +40,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
   const checkLogin = async () => {
-    if(user) return;
     const token = localStorage.getItem('token');
     if (!token) {
       setLoading(false);
@@ -62,14 +64,21 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   };
+
+  // This function can be called to manually reload user data
+  const reloadUser = async () => {
+    await checkLogin();
+  };
+
   useEffect(() => {
     checkLogin();
   }, []);
- if(loading) return <Loading />;
+
+  if (loading && !user) return <Loading />;
+
   return (
-    <UserContext.Provider value={{ user, setUser, loading, error }}>
+    <UserContext.Provider value={{ user, setUser, loading, error, reloadUser }}>
       {children}
     </UserContext.Provider>
   );
 };
-

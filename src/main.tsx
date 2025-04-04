@@ -22,6 +22,7 @@ import Favorites from "./Components/Favorites.tsx";
 import AddWallet from "./Components/AddWallet.tsx";
 import WithdrawRequest from "./Components/WithdrawRequest.tsx";
 import WithdrawHistory from "./Components/WithdrawHistory.tsx";
+import AdminWithdrawRequests from "./Components/AdminWithdrawRequest.tsx";
 
 
 
@@ -90,6 +91,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path='favorites' element={<Favorites/> } />
           <Route path='add-wallet' element={<AddWallet/> } />
           <Route path='request-withdraw' element={<WithdrawRequest/>} />
+          <Route path='admin-withdraw-request' element={<AdminWithdrawRequests/>} />
           <Route path='withdraw-history' element={<WithdrawHistory/>} />
           <Route path="register" element={
             <PublicRoute>

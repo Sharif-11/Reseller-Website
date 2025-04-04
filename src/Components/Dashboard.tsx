@@ -134,6 +134,13 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                   >
                     পণ্য সমূহ
                   </NavLink>
+                    <NavLink
+                    to="/admin-withdraw-request"
+                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded text-sm"
+                    onClick={() => setIsSidebarOpen(false)}
+                    >
+                    টাকা উত্তোলনের অনুরোধ সমূহ
+                    </NavLink>
                 </>
               )}
               

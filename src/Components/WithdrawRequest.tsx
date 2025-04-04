@@ -23,7 +23,7 @@ interface WithdrawalDetails {
 }
 
 const WithdrawRequest = () => {
-  const { user } = useAuth();
+  const { user,reloadUser } = useAuth();
   const navigate=useNavigate()
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
@@ -76,7 +76,7 @@ const WithdrawRequest = () => {
         
         if (cachedWallets) {
           setWallets(JSON.parse(cachedWallets));
-          setBalance(user?.balance || 0); 
+          
           return;
         }
 
@@ -84,7 +84,7 @@ const WithdrawRequest = () => {
         if (response.success && response.data) {
           setWallets(response.data);
           localStorage.setItem(`wallets-${user?.phoneNo}`, JSON.stringify(response.data));
-          setBalance(user?.balance || 0);
+          
         } else {
           setErrors(prev => ({
             ...prev,
@@ -104,6 +104,14 @@ const WithdrawRequest = () => {
 
     fetchData();
   }, [user?.phoneNo, user?.balance]);
+  useEffect(() => {
+     const f=async()=> await reloadUser()
+     f()
+    
+  },[])
+  useEffect(()=>{
+    setBalance(user?.balance || 0)
+  },[user])
 
   const validateForm = () => {
     let isValid = true;
