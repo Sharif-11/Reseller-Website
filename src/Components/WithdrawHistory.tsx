@@ -30,6 +30,7 @@ const WithdrawHistory = () => {
     totalPages: 1,
     totalRequests: 0
   });
+  const [selectedRequest, setSelectedRequest] = useState<WithdrawRequest | null>(null);
 
   const fetchWithdrawHistory = async (page = 1) => {
     try {
@@ -83,7 +84,7 @@ const WithdrawHistory = () => {
     
     switch (status) {
       case 'completed':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}>completed</span>;
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Completed</span>;
       case 'rejected':
         return <span className={`${baseClasses} bg-red-100 text-red-800`}>Rejected</span>;
       case 'cancelled':
@@ -91,6 +92,14 @@ const WithdrawHistory = () => {
       default:
         return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Pending</span>;
     }
+  };
+
+  const showRemarksModal = (request: WithdrawRequest) => {
+    setSelectedRequest(request);
+  };
+
+  const closeRemarksModal = () => {
+    setSelectedRequest(null);
   };
 
   return (
@@ -131,8 +140,19 @@ const WithdrawHistory = () => {
                     <p className="font-medium">{parseFloat(request.transactionFee).toFixed(2)}৳</p>
                   </div>
                 </div>
+
+                {(request.status === 'completed' || request.status === 'rejected') && request.remarks && (
+                  <div className="mt-2">
+                    <button 
+                      onClick={() => showRemarksModal(request)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      View Remarks
+                    </button>
+                  </div>
+                )}
                 
-                {request.status === 'pending' && (
+                {request.status === 'pending' ? (
                   <div className="mt-3">
                     <button
                       onClick={() => handleCancelRequest(request.withdrawId)}
@@ -141,6 +161,10 @@ const WithdrawHistory = () => {
                     >
                       {cancellingId === request.withdrawId ? 'Cancelling...' : 'Cancel Request'}
                     </button>
+                  </div>
+                ) : (
+                  <div className="mt-2 text-xs text-gray-500">
+                    Processed: {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
                   </div>
                 )}
               </div>
@@ -157,6 +181,7 @@ const WithdrawHistory = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
@@ -177,7 +202,20 @@ const WithdrawHistory = () => {
                       {parseFloat(request.transactionFee).toFixed(2)}৳
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      {getStatusBadge(request.status)}
+                      <div className="flex items-center space-x-2">
+                        {getStatusBadge(request.status)}
+                        {(request.status === 'completed' || request.status === 'rejected') && request.remarks && (
+                          <button 
+                            onClick={() => showRemarksModal(request)}
+                            className="text-xs text-blue-600 hover:text-blue-800"
+                          >
+                            View
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                       {request.status === 'pending' ? (
@@ -196,7 +234,7 @@ const WithdrawHistory = () => {
             </table>
           </div>
           
-          {/* Pagination - Works for both mobile and desktop */}
+          {/* Pagination */}
           {pagination.totalPages > 1 && (
             <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200">
               <div className="flex-1 flex justify-between sm:hidden">
@@ -276,6 +314,73 @@ const WithdrawHistory = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Remarks Modal */}
+      {selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-medium">
+                Withdrawal Request Details
+              </h2>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Status:</p>
+                <div className="mt-1">
+                  {getStatusBadge(selectedRequest.status)}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-700">Amount:</p>
+                <p className="mt-1 text-gray-900">{parseFloat(selectedRequest.amount).toFixed(2)}৳</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-700">Wallet:</p>
+                <p className="mt-1 text-gray-900">{selectedRequest.walletName} - {selectedRequest.walletPhoneNo}</p>
+              </div>
+
+              {selectedRequest.transactionId && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Transaction ID:</p>
+                  <p className="mt-1 text-gray-900">{selectedRequest.transactionId}</p>
+                </div>
+              )}
+
+              {selectedRequest.remarks && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Remarks:</p>
+                  <p className="mt-1 text-gray-900 whitespace-pre-line">{selectedRequest.remarks}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-medium text-gray-700">Requested At:</p>
+                <p className="mt-1 text-gray-900">{formatDate(selectedRequest.requestedAt)}</p>
+              </div>
+
+              {selectedRequest.processedAt && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Processed At:</p>
+                  <p className="mt-1 text-gray-900">{formatDate(selectedRequest.processedAt)}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t flex justify-end">
+              <button
+                onClick={closeRemarksModal}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
