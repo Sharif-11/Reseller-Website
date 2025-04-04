@@ -217,3 +217,67 @@ export const requestWithdraw = async ({
     };
   }
 }
+export const getWithdrawHistory = async (page: number) => {
+  try {
+    const { data } = await axiosInstance.get(`sellers/withdraw?page=${page}`);
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+export const cancelWithdrawRequest = async (withdrawId: string) => {
+  try {
+    const { data } = await axiosInstance.delete(`sellers/withdraw/${withdrawId}`);
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
