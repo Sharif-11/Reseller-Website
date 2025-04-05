@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { formatDate } from '../utils/date.utils';
-import { getAllWithdrawRequestForAdmin } from '../Api/seller.api';
-import { approveWithdrawRequestForAdmin, rejectWithdrawRequestForAdmin } from '../Api/admin.api';
+
+import { approveWithdrawRequestForAdmin, rejectWithdrawRequestForAdmin,getAllWithdrawRequestForAdmin } from '../Api/admin.api';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 interface WithdrawRequest {
@@ -22,14 +22,21 @@ interface WithdrawRequest {
   status: 'pending' | 'completed' | 'rejected';
 }
 
+interface PaginationState {
+  currentPage: number;
+  totalPages: number;
+  totalRequests: number;
+  pageSize: number;
+}
+
 const AdminWithdrawRequests = () => {
   const [requests, setRequests] = useState<WithdrawRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<WithdrawRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalRequests: 0
+  const [pagination, setPagination] = useState<Record<string, PaginationState>>({
+    pending: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
+    completed: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
+    rejected: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 }
   });
   const [selectedRequest, setSelectedRequest] = useState<WithdrawRequest | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
@@ -48,19 +55,27 @@ const AdminWithdrawRequests = () => {
     return (parseFloat(amount) - parseFloat(fee)).toFixed(2);
   };
 
-  const fetchRequests = async (page = 1) => {
+  const fetchRequests = async (page = 1, pageSize = pagination[activeTab].pageSize) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getAllWithdrawRequestForAdmin(page);
+      const response = await getAllWithdrawRequestForAdmin({
+        status: activeTab,
+        page,
+        pageSize
+      })
       
       if (response.success && response.data) {
         setRequests(response.data.requests);
-        setPagination({
-          currentPage: response.data.currentPage,
-          totalPages: response.data.totalPages,
-          totalRequests: response.data.totalRequests
-        });
+        setPagination(prev => ({
+          ...prev,
+          [activeTab]: {
+            currentPage: response.data.currentPage,
+            totalPages: response.data.totalPages,
+            totalRequests: response.data.totalRequests,
+            pageSize: response.data.pageSize
+          }
+        }));
       } else {
         setError(response.message || 'Failed to load withdrawal requests');
       }
@@ -72,12 +87,28 @@ const AdminWithdrawRequests = () => {
     }
   };
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
+  const handleReload = () => {
+    fetchRequests(pagination[activeTab].currentPage);
+  };
+
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPageSize = parseInt(e.target.value);
+    setPagination(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        pageSize: newPageSize
+      }
+    }));
+    fetchRequests(1, newPageSize);
+  };
 
   useEffect(() => {
-    let filtered = requests.filter(request => request.status === activeTab);
+    fetchRequests();
+  }, [activeTab]);
+
+  useEffect(() => {
+    let filtered = requests;
     
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -88,7 +119,7 @@ const AdminWithdrawRequests = () => {
     }
     
     setFilteredRequests(filtered);
-  }, [requests, activeTab, searchTerm]);
+  }, [requests, searchTerm]);
 
   const handleActionClick = (request: WithdrawRequest, type: 'approve' | 'reject') => {
     setSelectedRequest(request);
@@ -120,38 +151,30 @@ const AdminWithdrawRequests = () => {
     try {
       setProcessing(true);
       setError(null);
+      
+      if (!formData.transactionId) {
+        setError('Transaction ID is required');
+        return;
+      }
+
       const response = await approveWithdrawRequestForAdmin({
         id: selectedRequest.withdrawId,
         transactionId: formData.transactionId,
-        transactionPhoneNo: formData.transactionPhoneNo,
+        transactionPhoneNo: formData.transactionPhoneNo || '',
         remarks: formData.remarks
       });
 
       if (response.success) {
-        setRequests(prev => prev.map(req => 
-          req.withdrawId === selectedRequest.withdrawId 
-            ? { 
-                ...req, 
-                status: 'completed',
-                transactionId: formData.transactionId,
-                transactionPhoneNo: formData.transactionPhoneNo,
-                remarks: formData.remarks,
-                processedAt: new Date().toISOString()
-              } 
-            : req
-        ));
         closeModal();
-       
+        await fetchRequests(pagination[activeTab].currentPage);
       } else {
         setError(response.message || 'Failed to approve request');
-
       }
     } catch (err) {
       setError('Error approving withdrawal request');
       console.error('Error approving withdrawal request:', err);
     } finally {
       setProcessing(false);
-       setTimeout(() => window.location.reload(), 3000);
     }
   };
 
@@ -167,18 +190,8 @@ const AdminWithdrawRequests = () => {
       });
 
       if (response.success) {
-        setRequests(prev => prev.map(req => 
-          req.withdrawId === selectedRequest.withdrawId 
-            ? { 
-                ...req, 
-                status: 'rejected',
-                remarks: formData.remarks,
-                processedAt: new Date().toISOString()
-              } 
-            : req
-        ));
         closeModal();
-        window.location.reload();
+        await fetchRequests(pagination[activeTab].currentPage);
       } else {
         setError(response.message || 'Failed to reject request');
       }
@@ -208,9 +221,35 @@ const AdminWithdrawRequests = () => {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const currentPagination = pagination[activeTab];
+
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
-      <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">Withdrawal Requests</h1>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+        <h1 className="text-xl font-bold md:text-2xl text-center md:text-left">Withdrawal Requests</h1>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={handleReload}
+            className="flex items-center text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 mr-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Reload
+          </button>
+        </div>
+      </div>
       
       {/* Search and Filter Section */}
       <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -235,28 +274,41 @@ const AdminWithdrawRequests = () => {
           </button>
         </div>
 
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search by phone or Txn ID"
-            className="pl-8 pr-4 py-2 border rounded-md text-sm w-full md:w-64"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <svg
-            className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by phone or Txn ID"
+              className="pl-8 pr-4 py-2 border rounded-md text-sm w-full md:w-64"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </svg>
+            <svg
+              className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          
+          <select
+            value={currentPagination.pageSize}
+            onChange={handlePageSizeChange}
+            className="border rounded-md px-2 py-2 text-sm"
+          >
+            <option value="5">5 per page</option>
+            <option value="10">10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="50">50 per page</option>
+          </select>
         </div>
       </div>
 
@@ -486,25 +538,33 @@ const AdminWithdrawRequests = () => {
           </div>
           
           {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="mt-4 flex justify-between items-center">
-              <button
-                onClick={() => fetchRequests(pagination.currentPage - 1)}
-                disabled={pagination.currentPage === 1}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-sm">
-                Page {pagination.currentPage} of {pagination.totalPages}
-              </span>
-              <button
-                onClick={() => fetchRequests(pagination.currentPage + 1)}
-                disabled={pagination.currentPage === pagination.totalPages}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-              >
-                Next
-              </button>
+          {currentPagination.totalPages > 1 && (
+            <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+              <div className="text-sm text-gray-500">
+                Showing {(currentPagination.currentPage - 1) * currentPagination.pageSize + 1} to{' '}
+                {Math.min(currentPagination.currentPage * currentPagination.pageSize, currentPagination.totalRequests)} of{' '}
+                {currentPagination.totalRequests} requests
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => fetchRequests(currentPagination.currentPage - 1)}
+                  disabled={currentPagination.currentPage === 1}
+                  className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="text-sm">
+                  Page {currentPagination.currentPage} of {currentPagination.totalPages}
+                </span>
+                <button
+                  onClick={() => fetchRequests(currentPagination.currentPage + 1)}
+                  disabled={currentPagination.currentPage === currentPagination.totalPages}
+                  className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </>
@@ -544,7 +604,7 @@ const AdminWithdrawRequests = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Transaction Phone No *
+                      Transaction Phone No (Optional)
                     </label>
                     <input
                       type="text"
@@ -552,7 +612,6 @@ const AdminWithdrawRequests = () => {
                       value={formData.transactionPhoneNo}
                       onChange={handleFormChange}
                       className="w-full px-3 py-2 border rounded-md text-sm"
-                      required
                     />
                   </div>
                 </>

@@ -85,14 +85,48 @@ createRoot(document.getElementById("root")!).render(
       <Routes>
         <Route path="/" element={<Home />}>
           <Route index element={<Products/>} />
-          <Route path='products' element={<Products/> } />
-          <Route path='products/:productId' element={<ProductDetail/> } />
-          <Route path='cart' element={<Cart/> } />
-          <Route path='favorites' element={<Favorites/> } />
-          <Route path='add-wallet' element={<AddWallet/> } />
-          <Route path='request-withdraw' element={<WithdrawRequest/>} />
-          <Route path='admin-withdraw-request' element={<AdminWithdrawRequests/>} />
-          <Route path='withdraw-history' element={<WithdrawHistory/>} />
+          <Route path='products' element={
+            <SellerRoute>
+              <Products/>
+            </SellerRoute>
+           } />
+          <Route path='products/:productId' element={
+            <SellerRoute>
+              <ProductDetail/>
+            </SellerRoute>
+           } />
+          <Route path='cart' element={
+            <SellerRoute>
+              <Cart/>
+            </SellerRoute>
+           } />
+          <Route path='favorites' element={
+            <SellerRoute>
+              <Favorites/>
+            </SellerRoute>
+           } />
+          <Route path='add-wallet' element={
+            <SellerRoute>
+              <AddWallet/>
+            </SellerRoute>
+           } />
+          <Route path='request-withdraw' element={
+            <SellerRoute>
+            <WithdrawRequest/>
+            </SellerRoute>} />
+
+
+          <Route path='admin-withdraw-request' element={
+            <AdminRoute>
+              <AdminWithdrawRequests/>
+            </AdminRoute>
+          } />
+          <Route path='withdraw-history' element={
+            <SellerRoute>
+              <WithdrawHistory/>
+            </SellerRoute>
+           
+          } />
           <Route path="register" element={
             <PublicRoute>
               <Register />
