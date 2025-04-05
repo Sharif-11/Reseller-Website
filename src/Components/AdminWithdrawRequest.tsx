@@ -160,7 +160,7 @@ const AdminWithdrawRequests = () => {
       const response = await approveWithdrawRequestForAdmin({
         id: selectedRequest.withdrawId,
         transactionId: formData.transactionId,
-        transactionPhoneNo: formData.transactionPhoneNo || '',
+        transactionPhoneNo: formData.transactionPhoneNo.trim().length > 0 ? formData.transactionPhoneNo : undefined,
         remarks: formData.remarks
       });
 
@@ -169,12 +169,17 @@ const AdminWithdrawRequests = () => {
         await fetchRequests(pagination[activeTab].currentPage);
       } else {
         setError(response.message || 'Failed to approve request');
+      
+
       }
+      
     } catch (err) {
       setError('Error approving withdrawal request');
       console.error('Error approving withdrawal request:', err);
+     
     } finally {
       setProcessing(false);
+      // handleReload();
     }
   };
 

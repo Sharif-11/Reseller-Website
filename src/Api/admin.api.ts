@@ -56,14 +56,15 @@ export const approveWithdrawRequestForAdmin = async ({
   }: {
     id: string;
     transactionId: string;
-    transactionPhoneNo: string;
+    transactionPhoneNo?: string;
     remarks?: string;
 }) => {
+  
   try {
     const { data } = await axiosInstance.patch(`admin/withdraw/${id}/complete`,{
 
         transactionId,
-        transactionPhoneNo,
+        transactionPhoneNo: transactionPhoneNo ?? undefined,
         remarks
     });
     const { success, message, statusCode } = data;
