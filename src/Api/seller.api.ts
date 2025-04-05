@@ -217,11 +217,30 @@ export const requestWithdraw = async ({
     };
   }
 }
-export const getWithdrawHistory = async (page: number) => {
+export const getWithdrawHistory = async ({
+  status,
+  page = 1,
+  pageSize = 10,
+  search = ''
+}: {
+  status?: 'pending' | 'completed' | 'rejected' | 'cancelled';
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}) => {
   try {
-    const { data } = await axiosInstance.get(`sellers/withdraw?page=${page}`);
+    const { data } = await axiosInstance.get(`sellers/withdraw`, {
+      params: {
+        status,
+        page,
+        pageSize,
+        search
+      }
+    });
+    
     const { success, message, statusCode } = data;
     const responseData = data?.data;
+
     return {
       success,
       message,
@@ -240,7 +259,6 @@ export const getWithdrawHistory = async (page: number) => {
         data: responseData,
       };
     }
-    // Handle unexpected errors
     return {
       success: false,
       message: "An unexpected error occurred",
@@ -252,38 +270,6 @@ export const getWithdrawHistory = async (page: number) => {
 export const cancelWithdrawRequest = async (withdrawId: string) => {
   try {
     const { data } = await axiosInstance.delete(`sellers/withdraw/${withdrawId}`);
-    const { success, message, statusCode } = data;
-    const responseData = data?.data;
-    return {
-      success,
-      message,
-      data: responseData,
-      statusCode,
-    };
-  } catch (error) {
-    if (error instanceof AxiosError && error.response?.data) {
-      const { data } = error.response;
-      const { success, message, statusCode } = data;
-      const responseData = data?.data;
-      return {
-        success,
-        message,
-        statusCode,
-        data: responseData,
-      };
-    }
-    // Handle unexpected errors
-    return {
-      success: false,
-      message: "An unexpected error occurred",
-      statusCode: 500,
-      data: null,
-    };
-  }
-}
-export const getAllWithdrawRequestForAdmin = async (page: number) => {
-  try {
-    const { data } = await axiosInstance.get(`admin/withdraw?page=${page}`);
     const { success, message, statusCode } = data;
     const responseData = data?.data;
     return {

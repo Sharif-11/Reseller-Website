@@ -21,33 +21,53 @@ interface WithdrawRequest {
   status: 'pending' | 'completed' | 'rejected' | 'cancelled';
 }
 
+interface PaginationState {
+  currentPage: number;
+  totalPages: number;
+  totalRequests: number;
+  pageSize: number;
+}
+
 const WithdrawHistory = () => {
   const [requests, setRequests] = useState<WithdrawRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalRequests: 0
+  const [pagination, setPagination] = useState<Record<string, PaginationState>>({
+    pending: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
+    completed: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
+    rejected: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
+    
   });
   const [selectedRequest, setSelectedRequest] = useState<WithdrawRequest | null>(null);
+  const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'rejected'>('pending');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const calculateActualAmount = (amount: string, fee: string) => {
     return (parseFloat(amount) - parseFloat(fee)).toFixed(2);
   };
 
-  const fetchWithdrawHistory = async (page = 1) => {
+  const fetchWithdrawHistory = async (page = 1, pageSize = pagination[activeTab].pageSize) => {
     try {
       setLoading(true);
-      const response = await getWithdrawHistory(page);
+      const response = await getWithdrawHistory({
+        status: activeTab,
+        page,
+        pageSize,
+        search: searchTerm
+      });
       
       if (response.success && response.data) {
         setRequests(response.data.requests);
-        setPagination({
-          currentPage: response.data.currentPage,
-          totalPages: response.data.totalPages,
-          totalRequests: response.data.totalRequests
-        });
+        console.log('Fetched requests:', response.data.requests);
+        setPagination(prev => ({
+          ...prev,
+          [activeTab]: {
+            currentPage: response.data.currentPage,
+            totalPages: response.data.totalPages,
+            totalRequests: response.data.totalRequests,
+            pageSize: response.data.pageSize
+          }
+        }));
       } else {
         toast.error(response.message || 'Failed to load withdrawal history');
       }
@@ -59,9 +79,32 @@ const WithdrawHistory = () => {
     }
   };
 
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPageSize = parseInt(e.target.value);
+    setPagination(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        pageSize: newPageSize
+      }
+    }));
+    fetchWithdrawHistory(1, newPageSize);
+  };
+
   useEffect(() => {
     fetchWithdrawHistory();
-  }, []);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (searchTerm) {
+      const timer = setTimeout(() => {
+        fetchWithdrawHistory(1);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      fetchWithdrawHistory(1);
+    }
+  }, [searchTerm]);
 
   const handleCancelRequest = async (withdrawId: string) => {
     try {
@@ -73,6 +116,7 @@ const WithdrawHistory = () => {
         setRequests(prev => prev.map(req => 
           req.withdrawId === withdrawId ? { ...req, status: 'cancelled' } : req
         ));
+        fetchWithdrawHistory(pagination[activeTab].currentPage);
       } else {
         throw new Error(response.message || 'Failed to cancel request');
       }
@@ -106,27 +150,91 @@ const WithdrawHistory = () => {
     setSelectedRequest(null);
   };
 
+  const currentPagination = pagination[activeTab];
+
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
       <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">Withdrawal History</h1>
       
+      {/* Filter and Search Section */}
+      <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex border-b">
+          <button
+            className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('pending')}
+          >
+            Pending
+          </button>
+          <button
+            className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('completed')}
+          >
+            Completed
+          </button>
+          <button
+            className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'rejected' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('rejected')}
+          >
+            Rejected
+          </button>
+         
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by phone or Txn ID"
+              className="pl-8 pr-3 py-1.5 border rounded-md text-xs md:text-sm w-full md:w-64"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <svg
+              className="absolute left-2.5 top-2 h-3 w-3 md:h-4 md:w-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          
+          <select
+            value={currentPagination.pageSize}
+            onChange={handlePageSizeChange}
+            className="border rounded-md px-2 py-1.5 text-xs md:text-sm"
+          >
+            <option value="5">5 per page</option>
+            <option value="10">10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="50">50 per page</option>
+          </select>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
       ) : requests.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-500">No withdrawal requests found</p>
+          <p className="text-gray-500">No {activeTab} withdrawal requests found</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {/* Mobile View - Cards */}
-          <div className="md:hidden space-y-4 p-4">
+          <div className="md:hidden space-y-3 p-3">
             {requests.map((request) => (
-              <div key={request.withdrawId} className="border rounded-lg p-4">
+              <div key={request.withdrawId} className="border rounded-lg p-3 text-xs">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm text-gray-500">{formatDate(request.requestedAt)}</p>
+                    <p className="text-gray-500">{formatDate(request.requestedAt)}</p>
                     <h3 className="font-medium">{request.walletName} - {request.walletPhoneNo}</h3>
                   </div>
                   <div>
@@ -134,17 +242,17 @@ const WithdrawHistory = () => {
                   </div>
                 </div>
                 
-                <div className="mt-3 grid grid-cols-3 gap-2">
+                <div className="mt-2 space-y-1">
                   <div>
-                    <p className="text-xs text-gray-500">Amount</p>
+                    <p className="text-gray-500">Amount:</p>
                     <p className="font-medium">{parseFloat(request.amount).toFixed(2)}৳</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Fee</p>
+                    <p className="text-gray-500">Fee:</p>
                     <p className="font-medium">{parseFloat(request.transactionFee).toFixed(2)}৳</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Actual</p>
+                    <p className="text-gray-500">Actual:</p>
                     <p className="font-medium">{calculateActualAmount(request.amount, request.transactionFee)}৳</p>
                   </div>
                 </div>
@@ -153,7 +261,7 @@ const WithdrawHistory = () => {
                   <div className="mt-2">
                     <button 
                       onClick={() => showDetailsModal(request)}
-                      className="text-xs text-blue-600 hover:text-blue-800"
+                      className="text-blue-600 hover:text-blue-800"
                     >
                       View Details
                     </button>
@@ -165,13 +273,13 @@ const WithdrawHistory = () => {
                     <button
                       onClick={() => handleCancelRequest(request.withdrawId)}
                       disabled={cancellingId === request.withdrawId}
-                      className="w-full py-1 px-3 bg-red-50 text-red-600 rounded text-sm font-medium disabled:opacity-50"
+                      className="w-full py-1 px-2 bg-red-50 text-red-600 rounded font-medium disabled:opacity-50"
                     >
                       {cancellingId === request.withdrawId ? 'Cancelling...' : 'Cancel Request'}
                     </button>
                   </div>
                 ) : (
-                  <div className="mt-2 text-xs text-gray-500">
+                  <div className="mt-2 text-gray-500">
                     Processed: {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
                   </div>
                 )}
@@ -181,37 +289,37 @@ const WithdrawHistory = () => {
           
           {/* Desktop View - Table */}
           <div className="hidden md:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Wallet</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Fee</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Actual</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Processed</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {requests.map((request) => (
                   <tr key={request.withdrawId}>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-500">
                       {formatDate(request.requestedAt)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{request.walletName}</div>
-                      <div className="text-sm text-gray-500">{request.walletPhoneNo}</div>
+                      <div className="font-medium text-gray-900">{request.walletName}</div>
+                      <div className="text-gray-500">{request.walletPhoneNo}</div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-900">
                       {parseFloat(request.amount).toFixed(2)}৳
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-500">
                       {parseFloat(request.transactionFee).toFixed(2)}৳
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-900 font-medium">
                       {calculateActualAmount(request.amount, request.transactionFee)}৳
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
@@ -220,20 +328,20 @@ const WithdrawHistory = () => {
                         {(request.status === 'completed' || request.status === 'rejected') && (
                           <button 
                             onClick={() => showDetailsModal(request)}
-                            className="text-xs text-blue-600 hover:text-blue-800"
+                            className="text-blue-600 hover:text-blue-800"
                           >
                             Details
                           </button>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-500">
                       {request.transactionId || 'N/A'}
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 py-4 whitespace-nowrap text-gray-500">
                       {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-4 py-4 whitespace-nowrap font-medium">
                       {request.status === 'pending' ? (
                         <button
                           onClick={() => handleCancelRequest(request.withdrawId)}
@@ -251,19 +359,19 @@ const WithdrawHistory = () => {
           </div>
           
           {/* Pagination */}
-          {pagination.totalPages > 1 && (
+          {currentPagination.totalPages > 1 && (
             <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
-                  onClick={() => fetchWithdrawHistory(pagination.currentPage - 1)}
-                  disabled={pagination.currentPage === 1}
+                  onClick={() => fetchWithdrawHistory(currentPagination.currentPage - 1)}
+                  disabled={currentPagination.currentPage === 1}
                   className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
-                  onClick={() => fetchWithdrawHistory(pagination.currentPage + 1)}
-                  disabled={pagination.currentPage === pagination.totalPages}
+                  onClick={() => fetchWithdrawHistory(currentPagination.currentPage + 1)}
+                  disabled={currentPagination.currentPage === currentPagination.totalPages}
                   className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   Next
@@ -273,16 +381,16 @@ const WithdrawHistory = () => {
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-gray-700">
-                    Showing <span className="font-medium">{(pagination.currentPage - 1) * 10 + 1}</span> to{' '}
-                    <span className="font-medium">{Math.min(pagination.currentPage * 10, pagination.totalRequests)}</span> of{' '}
-                    <span className="font-medium">{pagination.totalRequests}</span> requests
+                    Showing <span className="font-medium">{(currentPagination.currentPage - 1) * currentPagination.pageSize + 1}</span> to{' '}
+                    <span className="font-medium">{Math.min(currentPagination.currentPage * currentPagination.pageSize, currentPagination.totalRequests)}</span> of{' '}
+                    <span className="font-medium">{currentPagination.totalRequests}</span> requests
                   </p>
                 </div>
                 <div>
                   <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                     <button
-                      onClick={() => fetchWithdrawHistory(pagination.currentPage - 1)}
-                      disabled={pagination.currentPage === 1}
+                      onClick={() => fetchWithdrawHistory(currentPagination.currentPage - 1)}
+                      disabled={currentPagination.currentPage === 1}
                       className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                     >
                       <span className="sr-only">Previous</span>
@@ -290,23 +398,23 @@ const WithdrawHistory = () => {
                         <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     </button>
-                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    {Array.from({ length: Math.min(5, currentPagination.totalPages) }, (_, i) => {
                       let pageNum;
-                      if (pagination.totalPages <= 5) {
+                      if (currentPagination.totalPages <= 5) {
                         pageNum = i + 1;
-                      } else if (pagination.currentPage <= 3) {
+                      } else if (currentPagination.currentPage <= 3) {
                         pageNum = i + 1;
-                      } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                        pageNum = pagination.totalPages - 4 + i;
+                      } else if (currentPagination.currentPage >= currentPagination.totalPages - 2) {
+                        pageNum = currentPagination.totalPages - 4 + i;
                       } else {
-                        pageNum = pagination.currentPage - 2 + i;
+                        pageNum = currentPagination.currentPage - 2 + i;
                       }
                       return (
                         <button
                           key={pageNum}
                           onClick={() => fetchWithdrawHistory(pageNum)}
                           className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            pageNum === pagination.currentPage
+                            pageNum === currentPagination.currentPage
                               ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                               : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                           }`}
@@ -316,8 +424,8 @@ const WithdrawHistory = () => {
                       );
                     })}
                     <button
-                      onClick={() => fetchWithdrawHistory(pagination.currentPage + 1)}
-                      disabled={pagination.currentPage === pagination.totalPages}
+                      onClick={() => fetchWithdrawHistory(currentPagination.currentPage + 1)}
+                      disabled={currentPagination.currentPage === currentPagination.totalPages}
                       className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                     >
                       <span className="sr-only">Next</span>
@@ -333,8 +441,7 @@ const WithdrawHistory = () => {
         </div>
       )}
 
-      {/* Details Modal */}
-      {selectedRequest && (
+{selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
             <div className="p-4 border-b">
