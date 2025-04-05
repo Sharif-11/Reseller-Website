@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { formatDate } from '../utils/date.utils';
 import { getAllWithdrawRequestForAdmin } from '../Api/seller.api';
 import { approveWithdrawRequestForAdmin, rejectWithdrawRequestForAdmin } from '../Api/admin.api';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 interface WithdrawRequest {
   withdrawId: string;
@@ -23,6 +24,7 @@ interface WithdrawRequest {
 
 const AdminWithdrawRequests = () => {
   const [requests, setRequests] = useState<WithdrawRequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<WithdrawRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -38,6 +40,8 @@ const AdminWithdrawRequests = () => {
   });
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'rejected'>('pending');
+  const [copied, setCopied] = useState<string | null>(null);
 
   const calculateActualAmount = (amount: string, fee: string) => {
     return (parseFloat(amount) - parseFloat(fee)).toFixed(2);
@@ -66,6 +70,15 @@ const AdminWithdrawRequests = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  useEffect(() => {
+    const filtered = requests.filter(request => request.status === activeTab);
+    setFilteredRequests(filtered);
+  }, [requests, activeTab]);
 
   const handleActionClick = (request: WithdrawRequest, type: 'approve' | 'reject') => {
     setSelectedRequest(request);
@@ -103,7 +116,7 @@ const AdminWithdrawRequests = () => {
         transactionPhoneNo: formData.transactionPhoneNo,
         remarks: formData.remarks
       });
-      window.location.reload();
+
       if (response.success) {
         setRequests(prev => prev.map(req => 
           req.withdrawId === selectedRequest.withdrawId 
@@ -118,6 +131,7 @@ const AdminWithdrawRequests = () => {
             : req
         ));
         closeModal();
+        window.location.reload();
       } else {
         setError(response.message || 'Failed to approve request');
       }
@@ -152,6 +166,7 @@ const AdminWithdrawRequests = () => {
             : req
         ));
         closeModal();
+        window.location.reload();
       } else {
         setError(response.message || 'Failed to reject request');
       }
@@ -162,10 +177,6 @@ const AdminWithdrawRequests = () => {
       setProcessing(false);
     }
   };
-
-  useEffect(() => {
-    fetchRequests();
-  }, []);
 
   const getStatusBadge = (status: string) => {
     const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
@@ -180,12 +191,40 @@ const AdminWithdrawRequests = () => {
     }
   };
 
+  const handleCopy = (text: string, field: string) => {
+    setCopied(field);
+    console.log(`Copied ${field}: ${text}`);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
       <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">Withdrawal Requests</h1>
       
+      {/* Status Tabs */}
+      <div className="flex border-b mb-4">
+        <button
+          className={`px-4 py-2 font-medium text-sm ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('pending')}
+        >
+          Pending
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm ${activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('completed')}
+        >
+          Completed
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm ${activeTab === 'rejected' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('rejected')}
+        >
+          Rejected
+        </button>
+      </div>
+
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
           {error}
         </div>
       )}
@@ -194,60 +233,108 @@ const AdminWithdrawRequests = () => {
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
-      ) : requests.length === 0 ? (
+      ) : filteredRequests.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-500">No withdrawal requests found</p>
+          <p className="text-gray-500">No {activeTab} withdrawal requests found</p>
         </div>
       ) : (
         <>
           {/* Mobile View - Cards */}
-          <div className="md:hidden space-y-4">
-            {requests.map((request) => (
-              <div key={request.withdrawId} className="border rounded-lg p-4 bg-white">
+          <div className="md:hidden space-y-3">
+            {filteredRequests.map((request) => (
+              <div key={request.withdrawId} className="border rounded-lg p-3 bg-white">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm text-gray-500">{formatDate(request.requestedAt)}</p>
-                    <h3 className="font-medium">{request.userName}</h3>
-                    <p className="text-sm text-gray-500">{request.userPhoneNo}</p>
+                    <p className="text-xs text-gray-500">{formatDate(request.requestedAt)}</p>
+                    <h3 className="text-sm font-medium">{request.userName}</h3>
+                    <p className="text-xs text-gray-500">{request.userPhoneNo}</p>
                   </div>
                   <div>
                     {getStatusBadge(request.status)}
                   </div>
                 </div>
                 
-                <div className="mt-3">
-                  <p className="text-sm font-medium">{request.walletName} - {request.walletPhoneNo}</p>
+                <div className="mt-2">
+                  <div className="flex items-center">
+                    <p className="text-xs text-gray-500 mr-1">Wallet:</p>
+                    <p className="text-xs font-medium">{request.walletName}</p>
+                  </div>
+                  <CopyToClipboard text={request.walletPhoneNo} onCopy={() => handleCopy(request.walletPhoneNo, 'wallet')}>
+                    <div className="flex items-center mt-1">
+                      <p className="text-xs text-gray-500 mr-1">Phone:</p>
+                      <p className="text-xs font-medium">{request.walletPhoneNo}</p>
+                      <span className="ml-1 text-xs text-blue-500 cursor-pointer">
+                        {copied === 'wallet' ? 'Copied!' : 'Copy'}
+                      </span>
+                    </div>
+                  </CopyToClipboard>
                 </div>
-                
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Amount</p>
-                    <p className="font-medium">{parseFloat(request.amount).toFixed(2)}৳</p>
+
+                <div className="mt-2 space-y-1">
+                  <div className="flex justify-between">
+                    <p className="text-xs text-gray-500">Amount:</p>
+                    <p className="text-xs font-medium">{parseFloat(request.amount).toFixed(2)}৳</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Fee</p>
-                    <p className="font-medium">{parseFloat(request.transactionFee).toFixed(2)}৳</p>
+                  <div className="flex justify-between">
+                    <p className="text-xs text-gray-500">Fee:</p>
+                    <p className="text-xs font-medium">{parseFloat(request.transactionFee).toFixed(2)}৳</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Actual</p>
-                    <p className="font-medium">{calculateActualAmount(request.amount, request.transactionFee)}৳</p>
+                  <div className="flex justify-between">
+                    <p className="text-xs text-gray-500">Actual:</p>
+                    <CopyToClipboard 
+                      text={calculateActualAmount(request.amount, request.transactionFee)} 
+                      onCopy={() => handleCopy(calculateActualAmount(request.amount, request.transactionFee), 'actual')}
+                    >
+                      <div className="flex items-center">
+                        <p className="text-xs font-medium">
+                          {calculateActualAmount(request.amount, request.transactionFee)}৳
+                        </p>
+                        <span className="ml-1 text-xs text-blue-500 cursor-pointer">
+                          {copied === 'actual' ? 'Copied!' : 'Copy'}
+                        </span>
+                      </div>
+                    </CopyToClipboard>
                   </div>
                 </div>
-                
-                {request.status === 'pending' && (
+
+                {request.status === 'pending' ? (
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <button
                       onClick={() => handleActionClick(request, 'approve')}
-                      className="w-full py-1 px-3 bg-green-50 text-green-600 rounded text-sm font-medium"
+                      className="w-full py-1 px-2 bg-green-50 text-green-600 rounded text-xs font-medium"
                     >
                       Approve
                     </button>
                     <button
                       onClick={() => handleActionClick(request, 'reject')}
-                      className="w-full py-1 px-3 bg-red-50 text-red-600 rounded text-sm font-medium"
+                      className="w-full py-1 px-2 bg-red-50 text-red-600 rounded text-xs font-medium"
                     >
                       Reject
                     </button>
+                  </div>
+                ) : (
+                  <div className="mt-2">
+                    <div className="text-xs text-gray-500">
+                      Processed: {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
+                    </div>
+                    {request.transactionId && (
+                      <div className="mt-1 flex items-center">
+                        <p className="text-xs text-gray-500 mr-1">Txn ID:</p>
+                        <p className="text-xs font-medium">{request.transactionId}</p>
+                      </div>
+                    )}
+                    {request.transactionPhoneNo && (
+                      <div className="mt-1 flex items-center">
+                        <p className="text-xs text-gray-500 mr-1">Txn Phone:</p>
+                        <p className="text-xs font-medium">{request.transactionPhoneNo}</p>
+                      </div>
+                    )}
+                    {request.remarks && (
+                      <div className="mt-1">
+                        <p className="text-xs text-gray-500">Remarks:</p>
+                        <p className="text-xs font-medium">{request.remarks}</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -266,11 +353,12 @@ const AdminWithdrawRequests = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {requests.map((request) => (
+                {filteredRequests.map((request) => (
                   <tr key={request.withdrawId}>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(request.requestedAt)}
@@ -281,7 +369,14 @@ const AdminWithdrawRequests = () => {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{request.walletName}</div>
-                      <div className="text-sm text-gray-500">{request.walletPhoneNo}</div>
+                      <CopyToClipboard text={request.walletPhoneNo} onCopy={() => handleCopy(request.walletPhoneNo, 'wallet')}>
+                        <div className="flex items-center">
+                          <div className="text-sm text-gray-500">{request.walletPhoneNo}</div>
+                          <span className="ml-1 text-xs text-blue-500 cursor-pointer">
+                            {copied === 'wallet' ? 'Copied!' : 'Copy'}
+                          </span>
+                        </div>
+                      </CopyToClipboard>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                       {parseFloat(request.amount).toFixed(2)}৳
@@ -290,13 +385,26 @@ const AdminWithdrawRequests = () => {
                       {parseFloat(request.transactionFee).toFixed(2)}৳
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                      {calculateActualAmount(request.amount, request.transactionFee)}৳
+                      <CopyToClipboard 
+                        text={calculateActualAmount(request.amount, request.transactionFee)} 
+                        onCopy={() => handleCopy(calculateActualAmount(request.amount, request.transactionFee), 'actual')}
+                      >
+                        <div className="flex items-center">
+                          {calculateActualAmount(request.amount, request.transactionFee)}৳
+                          <span className="ml-1 text-xs text-blue-500 cursor-pointer">
+                            {copied === 'actual' ? 'Copied!' : 'Copy'}
+                          </span>
+                        </div>
+                      </CopyToClipboard>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       {getStatusBadge(request.status)}
                     </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
+                    </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                      {request.status === 'pending' && (
+                      {request.status === 'pending' ? (
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleActionClick(request, 'approve')}
@@ -310,6 +418,27 @@ const AdminWithdrawRequests = () => {
                           >
                             Reject
                           </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {request.transactionId && (
+                            <div className="text-xs">
+                              <span className="text-gray-500">Txn ID: </span>
+                              {request.transactionId}
+                            </div>
+                          )}
+                          {request.transactionPhoneNo && (
+                            <div className="text-xs">
+                              <span className="text-gray-500">Txn Phone: </span>
+                              {request.transactionPhoneNo}
+                            </div>
+                          )}
+                          {request.remarks && (
+                            <div className="text-xs">
+                              <span className="text-gray-500">Remarks: </span>
+                              {request.remarks}
+                            </div>
+                          )}
                         </div>
                       )}
                     </td>
@@ -372,7 +501,7 @@ const AdminWithdrawRequests = () => {
                       name="transactionId"
                       value={formData.transactionId}
                       onChange={handleFormChange}
-                      className="w-full px-3 py-2 border rounded-md"
+                      className="w-full px-3 py-2 border rounded-md text-sm"
                       required
                     />
                   </div>
@@ -385,7 +514,7 @@ const AdminWithdrawRequests = () => {
                       name="transactionPhoneNo"
                       value={formData.transactionPhoneNo}
                       onChange={handleFormChange}
-                      className="w-full px-3 py-2 border rounded-md"
+                      className="w-full px-3 py-2 border rounded-md text-sm"
                       required
                     />
                   </div>
@@ -399,7 +528,7 @@ const AdminWithdrawRequests = () => {
                   name="remarks"
                   value={formData.remarks}
                   onChange={handleFormChange}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                   rows={3}
                 />
               </div>
