@@ -7,7 +7,7 @@ import OTPValidation from "./ValidateOTP";
 const Register = () => {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("ref");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [mobileNumber, setMobileNumber] = useState("01776775495");
   
   return (
