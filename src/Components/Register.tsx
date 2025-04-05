@@ -7,10 +7,11 @@ import OTPValidation from "./ValidateOTP";
 const Register = () => {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("ref");
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(2);
   const [mobileNumber, setMobileNumber] = useState("01776775495");
+  
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100">
       {page === 0 && (
         <OTPForm
           mobileNumber={mobileNumber}

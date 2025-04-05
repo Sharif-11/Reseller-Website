@@ -1,138 +1,177 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { useState } from "react";
-
 import * as Yup from "yup";
 import { login } from "../Api/auth.api";
 import { useAuth } from "../Hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { FiLogIn, FiUserPlus, FiKey } from "react-icons/fi";
 
 const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const { setUser } = useAuth();
   const navigate = useNavigate();
-  // Validation Schema using Yup
+
   const validationSchema = Yup.object().shape({
     mobileNumber: Yup.string()
-      .matches(/^01[3-9]\d{8}$/, "সঠিক মোবাইল নম্বর দিন")
+      .matches(/^01[3-9]\d{8}$/, "সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)")
       .required("মোবাইল নম্বর প্রয়োজন"),
     password: Yup.string()
       .min(6, "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে")
+      .max(16, "পাসওয়ার্ড সর্বাধিক ১৬ অক্ষরের হতে হবে")
       .required("পাসওয়ার্ড প্রয়োজন"),
   });
 
-  const handleLogin = async (values: {
-    mobileNumber: string;
-    password: string;
-  }) => {
+  const handleLogin = async (values: { mobileNumber: string; password: string }) => {
     setError(null);
-    const { mobileNumber, password } = values;
-    const result = await login({
-      phoneNo: mobileNumber,
-      password,
-    });
-    const { success, message } = result;
-    const data = result?.data;
-    if (success) {
-      localStorage.setItem("token", data?.token);
-      setUser(data?.user);
-      navigate("/");
-    } else {
-      setError(message);
+    try {
+      const result = await login({
+        phoneNo: values.mobileNumber,
+        password: values.password,
+      });
+      
+      if (result.success) {
+        localStorage.setItem("token", result.data?.token);
+        setUser(result.data?.user);
+        navigate("/");
+      } else {
+        setError(result.message || "লগইন করতে ব্যর্থ হয়েছে");
+      }
+    } catch (error) {
+      setError("একটি ত্রুটি ঘটেছে, পরে আবার চেষ্টা করুন");
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4 sm:px-0">
-      <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-md my-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-[rgb(135,89,78)] text-center mb-4 sm:mb-6">
-          লগইন করুন
-        </h1>
-        <Formik
-          initialValues={{ mobileNumber: "01776775495", password: "123456" }}
-          validationSchema={validationSchema}
-          onSubmit={handleLogin}
-        >
-          {({ isSubmitting }) => (
-            <Form>
-              {/* Mobile Number */}
-              <div className="mb-4">
-                <label
-                  htmlFor="mobileNumber"
-                  className="block text-gray-700 font-medium mb-2"
-                >
-                  মোবাইল নম্বর*
-                </label>
-                <Field
-                  id="mobileNumber"
-                  name="mobileNumber"
-                  type="text"
-                  placeholder="01XXXXXXXXX"
-                  className="w-full border border-gray-300 rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[rgb(135,89,78)] focus:outline-none"
-                />
-                <ErrorMessage
-                  name="mobileNumber"
-                  component="div"
-                  className="text-red-500 text-sm mt-1"
-                />
-              </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-gray-100 p-4">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
+        {/* Header Section */}
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-center">
+          <h1 className="text-2xl font-bold text-white flex items-center justify-center gap-2">
+            <FiLogIn className="text-2xl" />
+            লগইন করুন
+          </h1>
+        </div>
 
-              {/* Password */}
-              <div className="mb-4">
-                <label
-                  htmlFor="password"
-                  className="block text-gray-700 font-medium mb-2"
-                >
-                  পাসওয়ার্ড*
-                </label>
-                <Field
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="আপনার পাসওয়ার্ড লিখুন"
-                  className="w-full border border-gray-300 rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[rgb(135,89,78)] focus:outline-none"
-                />
-                <ErrorMessage
-                  name="password"
-                  component="div"
-                  className="text-red-500 text-sm mt-1"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-[rgb(135,89,78)] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[rgb(110,72,63)] transition"
-              >
-                {isSubmitting ? "অপেক্ষা করুন..." : "লগইন করুন"}
-              </button>
-              <p className="text-center text-[red] text-[12px] font-[600] my-[3px]">
-                {error}
-              </p>
-            </Form>
+        <div className="p-6 sm:p-8">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+              {error}
+            </div>
           )}
-        </Formik>
 
-        {/* Additional Options */}
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">
-            নতুন ব্যবহারকারী?{" "}
-            <span
-              onClick={() => navigate("/register")} // Use navigate for navigation
-              className="text-[rgb(135,89,78)] font-medium hover:underline cursor-pointer"
-            >
-              এখানে নিবন্ধন করুন
-            </span>
-          </p>
-          <p className="text-sm text-gray-600 mt-2">
-            পাসওয়ার্ড ভুলে গেছেন?{" "}
-            <span
-              onClick={() => navigate("/forgot-password")} // Use navigate for navigation
-              className="text-[rgb(135,89,78)] font-medium hover:underline cursor-pointer"
-            >
-              পাসওয়ার্ড পুনরুদ্ধার করুন
-            </span>
-          </p>
+          <Formik
+            initialValues={{ mobileNumber: "01776775495", password: "123456" }}
+            validationSchema={validationSchema}
+            onSubmit={handleLogin}
+          >
+            {({ isSubmitting, errors, touched }) => (
+              <Form className="space-y-4">
+                {/* Mobile Number Field */}
+                <div>
+                  <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                    মোবাইল নম্বর *
+                  </label>
+                  <Field
+                    id="mobileNumber"
+                    name="mobileNumber"
+                    type="text"
+                    placeholder="01XXXXXXXXX"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      errors.mobileNumber && touched.mobileNumber
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
+                  />
+                  <ErrorMessage
+                    name="mobileNumber"
+                    component="div"
+                    className="text-red-500 text-xs mt-1"
+                  />
+                </div>
+
+                {/* Password Field */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    পাসওয়ার্ড *
+                  </label>
+                  <Field
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="আপনার পাসওয়ার্ড লিখুন"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      errors.password && touched.password
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
+                  />
+                  <ErrorMessage
+                    name="password"
+                    component="div"
+                    className="text-red-500 text-xs mt-1"
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      লগইন হচ্ছে...
+                    </>
+                  ) : (
+                    <>
+                      <FiLogIn />
+                      লগইন করুন
+                    </>
+                  )}
+                </button>
+              </Form>
+            )}
+          </Formik>
+
+          {/* Additional Options */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 text-sm">
+              <button
+                onClick={() => navigate("/register")}
+                className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center justify-center gap-1"
+              >
+                <FiUserPlus />
+                নতুন একাউন্ট তৈরি করুন
+              </button>
+              <button
+                onClick={() => navigate("/forgot-password")}
+                className="text-gray-600 hover:text-gray-800 font-medium flex items-center justify-center gap-1"
+              >
+                <FiKey />
+                পাসওয়ার্ড ভুলে গেছেন?
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

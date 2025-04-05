@@ -1,7 +1,8 @@
-import { ErrorMessage, Field, Form, Formik } from "formik";
-import { useState } from "react";
+import { useFormik } from "formik";
+import { FiSend } from "react-icons/fi";
 import * as Yup from "yup";
 import { sendOtp } from "../Api/otp.api";
+import { useState } from "react";
 
 const OTPForm = ({
   mobileNumber,
@@ -9,86 +10,126 @@ const OTPForm = ({
   setPage,
 }: {
   mobileNumber: string;
-  setMobileNumber: React.Dispatch<React.SetStateAction<string>>;
-  setPage: React.Dispatch<React.SetStateAction<number>>;
+  setMobileNumber: (value: string) => void;
+  setPage: (value: number) => void;
 }) => {
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   const validationSchema = Yup.object({
     mobileNumber: Yup.string()
-      .matches(/^01\d{9}$/, "Mobile number is not valid")
-      .required("Mobile number is required"),
+      .matches(/^01[3-9]\d{8}$/, "সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)")
+      .required("মোবাইল নম্বর প্রয়োজন"),
   });
 
-  const handleSendOTP = async ({
-    mobileNumber: mobileNo,
-  }: {
-    mobileNumber: string;
-  }) => {
-    setError(null);
-    const { data, message } = await sendOtp(mobileNo);
-
-    if (data?.isVerified) {
-      setPage(2);
-    } else if (data?.sendOTP) {
-      setPage(1);
-    } else {
-      setError(message);
-    }
-    setMobileNumber(mobileNo);
-  };
+  const formik = useFormik({
+    initialValues: {
+      mobileNumber: mobileNumber,
+    },
+    validationSchema,
+    onSubmit: async (values) => {
+      setError(null);
+      setIsLoading(true);
+      try {
+        const result = await sendOtp(values.mobileNumber);
+        if (result.success) {
+          setMobileNumber(values.mobileNumber);
+          setPage(1);
+        } else {
+          setError(result.message || "OTP পাঠাতে ব্যর্থ হয়েছে");
+        }
+      } catch (error) {
+        setError("একটি ত্রুটি ঘটেছে, পরে আবার চেষ্টা করুন");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+  });
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4 sm:px-0">
-      <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-sm sm:max-w-md my-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-[rgb(135,89,78)] text-center mb-4 sm:mb-6">
-          রিসেলার রেজিস্ট্রেশন
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 text-center mb-3 sm:mb-4">
-          আপনার মোবাইলে একটি OTP কোড পাঠানো হবে, কোডটি দিয়ে রেজিস্ট্রেশন
-          সম্পূর্ণ করুন।
-        </p>
-        <Formik
-          initialValues={{ mobileNumber }}
-          validationSchema={validationSchema}
-          onSubmit={(values) => handleSendOTP(values)}
-        >
-          {({ isSubmitting }) => (
-            <Form>
-              {/* Mobile Number Input */}
-              <div className="mb-3 sm:mb-4">
-                <label
-                  htmlFor="mobile"
-                  className="block text-gray-700 font-medium mb-1 sm:mb-2"
-                >
-                  মোবাইল নম্বর*
-                </label>
-                <Field
-                  id="mobile"
-                  name="mobileNumber"
-                  type="text"
-                  placeholder="01XXXXXXXXX"
-                  className="w-full border border-gray-300 rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[rgb(135,89,78)] focus:outline-none"
-                />
-                <ErrorMessage
-                  name="mobileNumber"
-                  component="div"
-                  className="text-red-500 text-sm mt-1"
-                />
-              </div>
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full bg-[rgb(135,89,78)] text-white font-medium py-2 sm:py-3 rounded-lg hover:bg-[rgb(110,72,63)] transition"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "অপেক্ষা করুন..." : "OTP পাঠান"}
-              </button>
-              <p className="text-[red] text-center text-xs my-[3px] font-[600]">
-                {error}
-              </p>
-            </Form>
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-center text-white">
+          <h1 className="text-2xl font-bold">রেজিস্ট্রেশন শুরু করুন</h1>
+          <p className="text-indigo-100 mt-1 text-sm">
+            OTP পেতে আপনার মোবাইল নম্বর দিন
+          </p>
+        </div>
+
+        <div className="p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+              {error}
+            </div>
           )}
-        </Formik>
+
+          <form onSubmit={formik.handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="mobileNumber"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                মোবাইল নম্বর *
+              </label>
+              <input
+                id="mobileNumber"
+                name="mobileNumber"
+                type="text"
+                placeholder="01XXXXXXXXX"
+                value={formik.values.mobileNumber}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                  formik.touched.mobileNumber && formik.errors.mobileNumber
+                    ? "border-red-500"
+                    : "border-gray-300"
+                }`}
+              />
+              {formik.touched.mobileNumber && formik.errors.mobileNumber && (
+                <p className="text-red-500 text-xs mt-1">
+                  {formik.errors.mobileNumber}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  পাঠানো হচ্ছে...
+                </>
+              ) : (
+                <>
+                  <FiSend />
+                  OTP পাঠান
+                </>
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
