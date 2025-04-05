@@ -35,13 +35,13 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
         `}
           >
             <nav className="p-4 space-y-2">
-              <NavLink
+             {user?.role==='Seller' && <NavLink
                 to="/"
                 className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 হোম
-              </NavLink>
+              </NavLink>}
               <NavLink
                 to="/profile"
                 className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
@@ -49,7 +49,8 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               >
                 প্রোফাইল
               </NavLink>
-              <NavLink
+          {user?.role==='Seller' && <>
+           <NavLink
                 to="/products"
                 className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
                 onClick={() => setIsSidebarOpen(false)}
@@ -77,9 +78,10 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               >
                 ওয়ালেট যোগ করুন
               </NavLink>
+            </>}
               
               {/* Withdraw Accordion */}
-              <div className="border rounded-md overflow-hidden">
+            { user?.role==='Seller' && <div className="border rounded-md overflow-hidden">
                 <button
                   onClick={toggleWithdrawAccordion}
                   className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex justify-between items-center"
@@ -116,7 +118,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                     </NavLink>
                   </div>
                 )}
-              </div>
+              </div>}
 
               {user.role === "Admin" && (
                 <>

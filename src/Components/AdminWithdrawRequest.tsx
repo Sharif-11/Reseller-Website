@@ -151,7 +151,7 @@ const AdminWithdrawRequests = () => {
       console.error('Error approving withdrawal request:', err);
     } finally {
       setProcessing(false);
-       setTimeout(() => window.location.reload(), 2000);
+       setTimeout(() => window.location.reload(), 3000);
     }
   };
 
