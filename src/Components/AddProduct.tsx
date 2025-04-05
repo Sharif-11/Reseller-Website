@@ -76,7 +76,7 @@ const AddProduct = () => {
   });
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4 my-16">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4 py-6">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <h1 className="text-xl font-bold text-[#87594e] text-center mb-4">
           পণ্য যোগ করুন
