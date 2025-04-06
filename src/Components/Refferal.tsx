@@ -6,7 +6,7 @@ const Referral = () => {
   const { user } = useAuth();
 
   return (
-    <div className="mt-4">
+    <div >
       {user?.referralCode && user?.referralCode?.length > 0 ? (
         <ReferralDetails />
       ) : (
