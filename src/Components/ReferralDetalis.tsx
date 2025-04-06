@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useAuth } from "../Hooks/useAuth";
 import { FiCopy, FiCheck, FiShare2 } from "react-icons/fi";
 import { FaHandHoldingUsd } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export const ReferralDetails = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
 
@@ -24,96 +26,89 @@ export const ReferralDetails = () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "আমার রেফারাল লিংক",
-          text: "এই লিংক ব্যবহার করে রেজিস্টার করুন এবং আমরা উভয়েই বোনাস পাবো!",
+          title: "আমার রেফারেল লিংক",
+          text: `আমার রেফারেল কোড ${user.referralCode} ব্যবহার করে রেজিস্টার করুন`,
           url: referralLink,
         });
       } else {
         setShowShareOptions(!showShareOptions);
       }
     } catch (err) {
-      console.error("Error sharing:", err);
+      console.error("শেয়ার করতে সমস্যা:", err);
     }
   };
 
+  const navigateToPassiveIncome = () => {
+    navigate("/earnings/passive-income");
+  };
+
   return (
-    <div className="min-h-[50vh] bg-gradient-to-br from-indigo-50 to-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
+    <div className=" p-2">
+      <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-center text-white">
-          <div className="flex items-center justify-center gap-2">
-            <FaHandHoldingUsd className="text-2xl" />
-            <h1 className="text-2xl font-bold">আপনার রেফারাল সুবিধা</h1>
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-lg p-4 text-white shadow-sm mb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FaHandHoldingUsd className="text-lg" />
+              <h1 className="text-lg font-bold">রেফারেল প্রোগ্রাম</h1>
+            </div>
+           
           </div>
-          <p className="text-indigo-100 mt-1 text-sm">
-            বন্ধুদের আমন্ত্রণ করুন
+          <p className="text-indigo-100 mt-1 text-xs">
+            আপনার কোড শেয়ার করে আয় করুন
           </p>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           {/* Referral Code */}
-          <div className="text-center">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">
-              আপনার রেফারাল কোড
-            </h3>
-            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
-              <p className="text-2xl font-bold text-indigo-700 tracking-wider">
+          <div className="p-3 border-b">
+            <div className="flex justify-between items-center mb-1">
+              <h2 className="text-xs font-medium text-gray-600">আপনার রেফারেল কোড</h2>
+              
+            </div>
+            <div className="flex items-center justify-between bg-indigo-50 p-2 rounded">
+              <p className="text-sm font-bold text-indigo-800 truncate mr-2">
                 {user.referralCode}
               </p>
+              <button
+                onClick={copyToClipboard}
+                className="text-xs bg-indigo-600 text-white px-2 py-1 rounded flex items-center gap-1"
+              >
+                {copied ? <FiCheck /> : <FiCopy />}
+                {copied ? "কপি হয়েছে" : "কপি করুন"}
+              </button>
             </div>
           </div>
 
           {/* Referral Link */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">
-              রেফারাল লিংক
-            </h3>
-            <div className="flex items-stretch gap-2">
+          <div className="p-3 border-b">
+            <h2 className="text-xs font-medium text-gray-600 mb-1">শেয়ার করার লিংক</h2>
+            <div className="flex flex-col xs:flex-row gap-1">
               <input
                 type="text"
                 value={referralLink}
                 readOnly
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 truncate"
+                className="flex-1 text-xs px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-700 truncate"
               />
               <button
-                onClick={copyToClipboard}
-                className="flex items-center justify-center px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-                title="Copy to clipboard"
-              >
-                {copied ? (
-                  <FiCheck className="text-lg" />
-                ) : (
-                  <FiCopy className="text-lg" />
-                )}
-              </button>
-              <button
                 onClick={shareReferral}
-                className="flex items-center justify-center px-4 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
-                title="Share"
+                className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded flex items-center justify-center gap-1"
               >
-                <FiShare2 className="text-lg text-gray-700" />
+                <FiShare2 /> শেয়ার
               </button>
             </div>
-            {copied && (
-              <p className="text-green-600 text-xs mt-1 text-center">
-                লিংক কপি করা হয়েছে!
-              </p>
-            )}
           </div>
 
-          {/* Share Options (conditional) */}
+          {/* Share Options */}
           {showShareOptions && (
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                শেয়ার করুন
-              </h4>
-              <div className="flex gap-2">
+            <div className="p-2 bg-gray-50 border-b">
+              <div className="grid grid-cols-2 gap-1">
                 <a
                   href={`whatsapp://send?text=${encodeURIComponent(
-                    `আমার রেফারাল লিংক: ${referralLink}`
+                    `আমার রেফারেল কোড ${user.referralCode} ব্যবহার করে রেজিস্টার করুন: ${referralLink}`
                   )}`}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded text-center text-sm"
+                  className="text-xs bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded text-center"
                 >
                   WhatsApp
                 </a>
@@ -123,7 +118,7 @@ export const ReferralDetails = () => {
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-center text-sm"
+                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-center"
                 >
                   Facebook
                 </a>
@@ -131,26 +126,29 @@ export const ReferralDetails = () => {
             </div>
           )}
 
-          {/* Benefits */}
-          <div className="bg-indigo-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium text-indigo-700 mb-2">
-              রেফারাল সুবিধা
-            </h3>
-            <ul className="text-xs text-gray-700 space-y-1">
-              <li className="flex items-start gap-2">
-                <span>•</span>
-                <span>প্রতিটি সফল রেফারালের জন্য আপনি বোনাস পাবেন</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span>•</span>
-                <span>আপনার বন্ধুও পাবে বিশেষ সুবিধা</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span>•</span>
-                <span>লিমিটেড টাইম অফার</span>
-              </li>
-            </ul>
-          </div>
+          {/* CTA */}
+          {/* <div className="p-3">
+            <button
+              onClick={navigateToPassiveIncome}
+              className="w-full text-xs bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded flex items-center justify-center gap-1"
+            >
+              আপনার রেফারেল আয় দেখুন <FiArrowRight />
+            </button>
+          </div> */}
+        </div>
+
+        {/* Footer Note */}
+        <div className="mt-2 p-2 bg-white rounded-lg shadow-sm">
+          <p className="text-xs text-gray-600 text-center">
+            রেফারেল প্রোগ্রাম সম্পর্কে বিস্তারিত জানতে{" "}
+            <button 
+              onClick={navigateToPassiveIncome}
+              className="text-indigo-600 font-medium"
+            >
+              প্যাসিভ ইনকাম প্যানেল
+            </button>{" "}
+            ভিজিট করুন
+          </p>
         </div>
       </div>
     </div>
