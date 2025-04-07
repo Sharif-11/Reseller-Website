@@ -17,27 +17,34 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState('1');
   const [sellingPrice, setSellingPrice] = useState(product?.basePrice.toString() || '0');
   const [selectedMeta, setSelectedMeta] = useState<Record<string, string>>({});
+  const [selectedImage, setSelectedImage] = useState<string>(product?.imageUrl || '');
   const [copied, setCopied] = useState(false);
   const [inputErrors, setInputErrors] = useState({
     quantity: '',
     sellingPrice: '',
-    options: ''
+    options: '',
+    image: ''
   });
 
-  // ফেভারিট এবং কার্ট আইটেম লোড করুন
+  // Load favorites and set default selected image
   useEffect(() => {
     const savedFavorites = localStorage.getItem(FAVORITES_KEY);
     if (savedFavorites) {
       try {
         setFavorites(JSON.parse(savedFavorites));
       } catch (err) {
-        console.error('ফেভারিট লোড করতে সমস্যা:', err);
+        console.error('Error loading favorites:', err);
         localStorage.removeItem(FAVORITES_KEY);
       }
     }
-  }, []);
 
-  // ফেভারিট সেভ করুন
+    // Set main image as default selected image
+    if (product?.imageUrl) {
+      setSelectedImage(product.imageUrl);
+    }
+  }, [product]);
+
+  // Save favorites
   useEffect(() => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
   }, [favorites]);
@@ -71,7 +78,7 @@ const ProductDetail = () => {
         setDownloadingId(null);
       }, 100);
     } catch (error) {
-      console.error('ডাউনলোড ব্যর্থ:', error);
+      console.error('Download failed:', error);
       setDownloadingId(null);
     }
   };
@@ -90,23 +97,30 @@ const ProductDetail = () => {
     }
   };
 
+  const handleImageSelect = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    if (inputErrors.image) {
+      setInputErrors(prev => ({ ...prev, image: '' }));
+    }
+  };
+
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuantity(value);
     
     if (value === '') {
-      setInputErrors(prev => ({ ...prev, quantity: 'পরিমাণ লিখুন' }));
+      setInputErrors(prev => ({ ...prev, quantity: 'Quantity is required' }));
       return;
     }
     
     const numValue = parseFloat(value);
     if (isNaN(numValue)) {
-      setInputErrors(prev => ({ ...prev, quantity: 'সংখ্যা লিখুন' }));
+      setInputErrors(prev => ({ ...prev, quantity: 'Must be a number' }));
       return;
     }
     
     if (numValue < 1) {
-      setInputErrors(prev => ({ ...prev, quantity: 'ন্যূনতম পরিমাণ ১' }));
+      setInputErrors(prev => ({ ...prev, quantity: 'Minimum quantity is 1' }));
       return;
     }
     
@@ -118,18 +132,18 @@ const ProductDetail = () => {
     setSellingPrice(value);
     
     if (value === '') {
-      setInputErrors(prev => ({ ...prev, sellingPrice: 'মূল্য লিখুন' }));
+      setInputErrors(prev => ({ ...prev, sellingPrice: 'Price is required' }));
       return;
     }
     
     const numValue = parseFloat(value);
     if (isNaN(numValue)) {
-      setInputErrors(prev => ({ ...prev, sellingPrice: 'সংখ্যা লিখুন' }));
+      setInputErrors(prev => ({ ...prev, sellingPrice: 'Must be a number' }));
       return;
     }
     
     if (numValue < product.basePrice) {
-      setInputErrors(prev => ({ ...prev, sellingPrice: `ন্যূনতম মূল্য ৳${product.basePrice}` }));
+      setInputErrors(prev => ({ ...prev, sellingPrice: `Minimum price is ৳${product.basePrice}` }));
       return;
     }
     
@@ -139,7 +153,12 @@ const ProductDetail = () => {
   const addToCart = () => {
     const allOptionsSelected = product.metas.every(meta => selectedMeta[meta.key]);
     if (!allOptionsSelected && product.metas.length > 0) {
-      setInputErrors(prev => ({ ...prev, options: 'সব অপশন সিলেক্ট করুন' }));
+      setInputErrors(prev => ({ ...prev, options: 'Please select all options' }));
+      return;
+    }
+
+    if (!selectedImage) {
+      setInputErrors(prev => ({ ...prev, image: 'Please select an image' }));
       return;
     }
 
@@ -147,22 +166,22 @@ const ProductDetail = () => {
     const priceNum = parseFloat(sellingPrice);
     
     if (isNaN(quantityNum)) {
-      setInputErrors(prev => ({ ...prev, quantity: 'অবৈধ পরিমাণ' }));
+      setInputErrors(prev => ({ ...prev, quantity: 'Invalid quantity' }));
       return;
     }
     
     if (isNaN(priceNum)) {
-      setInputErrors(prev => ({ ...prev, sellingPrice: 'অবৈধ মূল্য' }));
+      setInputErrors(prev => ({ ...prev, sellingPrice: 'Invalid price' }));
       return;
     }
     
     if (quantityNum < 1) {
-      setInputErrors(prev => ({ ...prev, quantity: 'ন্যূনতম পরিমাণ ১' }));
+      setInputErrors(prev => ({ ...prev, quantity: 'Minimum quantity is 1' }));
       return;
     }
     
     if (priceNum < product.basePrice) {
-      setInputErrors(prev => ({ ...prev, sellingPrice: `ন্যূনতম মূল্য ৳${product.basePrice}` }));
+      setInputErrors(prev => ({ ...prev, sellingPrice: `Minimum price is ৳${product.basePrice}` }));
       return;
     }
     
@@ -172,7 +191,7 @@ const ProductDetail = () => {
       basePrice: product.basePrice,
       sellingPrice: priceNum,
       quantity: quantityNum,
-      imageUrl: product.imageUrl,
+      imageUrl: selectedImage, // Store the selected image URL
       selectedOptions: { ...selectedMeta },
       cartItemId: uuidv4()
     };
@@ -187,7 +206,7 @@ const ProductDetail = () => {
   if (!product) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">পণ্য খুঁজে পাওয়া যায়নি</p>
+        <p className="text-gray-500">Product not found</p>
       </div>
     );
   }
@@ -202,14 +221,20 @@ const ProductDetail = () => {
     return acc;
   }, {});
 
+  // Combine main image and additional images for selection
+  const allImages = [
+    { imageUrl: product.imageUrl, isMain: true },
+    ...product.images.map(img => ({ imageUrl: img.imageUrl, isMain: false }))
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* বাম কলাম - পণ্যের ছবি */}
+        {/* Left Column - Product Image */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="relative aspect-square">
             <img
-              src={product.imageUrl}
+              src={selectedImage || product.imageUrl}
               alt={product.name}
               className="w-full h-full object-contain"
               loading="lazy"
@@ -220,10 +245,10 @@ const ProductDetail = () => {
             
             <div className="absolute top-4 right-4 flex gap-2">
               <button
-                onClick={() => downloadImage(product.imageUrl, product.name, 'main')}
+                onClick={() => downloadImage(selectedImage || product.imageUrl, product.name, 'main')}
                 className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
                 disabled={downloadingId === 'main'}
-                title="ছবি ডাউনলোড করুন"
+                title="Download image"
               >
                 {downloadingId === 'main' ? (
                   <FaSpinner className="animate-spin text-blue-500" />
@@ -235,7 +260,7 @@ const ProductDetail = () => {
               <button
                 onClick={toggleFavorite}
                 className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                title={favorites.includes(product.productId) ? "ফেভারিট থেকে সরান" : "ফেভারিটে যোগ করুন"}
+                title={favorites.includes(product.productId) ? "Remove from favorites" : "Add to favorites"}
               >
                 {favorites.includes(product.productId) ? (
                   <FaHeart className="text-red-500" />
@@ -250,51 +275,78 @@ const ProductDetail = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                  title="ইউটিউব ভিডিও দেখুন"
+                  title="Watch YouTube video"
                 >
                   <FiYoutube className="text-red-600" />
                 </a>
               )}
             </div>
           </div>
+
+          {/* Image Selection */}
+          <div className="p-4 border-t">
+            <h3 className="font-medium mb-2">Select Image</h3>
+            {inputErrors.image && (
+              <p className="text-red-500 text-sm mb-2">{inputErrors.image}</p>
+            )}
+            <div className="grid grid-cols-4 gap-2">
+              {allImages.map((img, index) => (
+                <div 
+                  key={index}
+                  onClick={() => handleImageSelect(img.imageUrl)}
+                  className={`relative cursor-pointer border-2 rounded-md overflow-hidden ${selectedImage === img.imageUrl ? 'border-blue-500' : 'border-transparent'}`}
+                >
+                  <img
+                    src={img.imageUrl}
+                    alt={`${product.name} - ${index + 1}`}
+                    className="w-full h-20 object-cover"
+                  />
+                  {img.isMain && (
+                    <span className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1 rounded">
+                      Main
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* ডান কলাম - পণ্যের তথ্য */}
+        {/* Right Column - Product Info */}
         <div className="space-y-6">
           <div className="flex justify-between items-start">
             <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
-           
           </div>
           
-          {/* মূল্য তথ্য */}
+          {/* Price Info */}
           <div className="space-y-2">
             <div className="flex items-center gap-1">
-              <span className="text-lg font-semibold">দাম:</span>
+              <span className="text-lg font-semibold">Price:</span>
               <span className="text-xl font-bold text-gray-900">
                 {product.basePrice}
               </span>
-              <span className="text-lg font-semibold">টাকা।</span>
+              <span className="text-lg font-semibold">৳</span>
               {product.stockSize > 0 ? (
                 <span className="px-2 py-1 bg-green-100 text-green-800 text-sm rounded">
-                  স্টকে আছে 
+                  In Stock
                 </span>
               ) : (
                 <span className="px-2 py-1 bg-red-100 text-red-800 text-sm rounded">
-                  স্টকে নেই
+                  Out of Stock
                 </span>
               )}
             </div>
             
             <div className="flex items-center gap-1">
-              <span className="text-sm font-semibold">প্রোডাক্টির সাজেস্টেড বিক্রয় মূল্য সর্বোচ্চ</span>
-              <span className="text-lg text-[#e5307e] font-bold ">
+              <span className="text-sm font-semibold">Suggested max price:</span>
+              <span className="text-lg text-[#e5307e] font-bold">
                 {product.suggestedMaxPrice}
               </span>
-              টাকা।
+              ৳
             </div>
           </div>
 
-          {/* মেটা তথ্য */}
+          {/* Meta Info */}
           {Object.entries(metaInfo).map(([key, values]) => (
             <div key={key} className="space-y-2">
               <h3 className="font-medium capitalize">{key}</h3>
@@ -318,11 +370,11 @@ const ProductDetail = () => {
             <p className="text-red-500 text-sm">{inputErrors.options}</p>
           )}
 
-          {/* পরিমাণ এবং বিক্রয় মূল্য */}
+          {/* Quantity and Selling Price */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                পরিমাণ
+                Quantity
               </label>
               <input
                 type="text"
@@ -331,7 +383,7 @@ const ProductDetail = () => {
                 value={quantity}
                 onChange={handleQuantityChange}
                 className={`w-full px-3 py-2 border ${inputErrors.quantity ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
-                placeholder="পরিমাণ লিখুন"
+                placeholder="Enter quantity"
               />
               {inputErrors.quantity && (
                 <p className="text-red-500 text-xs mt-1">{inputErrors.quantity}</p>
@@ -340,7 +392,7 @@ const ProductDetail = () => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                বিক্রয় মূল্য (ন্যূনতম ৳{product.basePrice.toLocaleString('bn-BD')})
+                Selling Price (Min ৳{product.basePrice.toLocaleString('bn-BD')})
               </label>
               <input
                 type="text"
@@ -349,7 +401,7 @@ const ProductDetail = () => {
                 value={sellingPrice}
                 onChange={handleSellingPriceChange}
                 className={`w-full px-3 py-2 border ${inputErrors.sellingPrice ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
-                placeholder="মূল্য লিখুন"
+                placeholder="Enter price"
               />
               {inputErrors.sellingPrice && (
                 <p className="text-red-500 text-xs mt-1">{inputErrors.sellingPrice}</p>
@@ -357,54 +409,61 @@ const ProductDetail = () => {
             </div>
           </div>
 
-          {/* কার্টে যোগ করুন বাটন */}
+          {/* Add to Cart Button */}
           <button
             onClick={addToCart}
-            className={`w-full py-3 px-4 rounded-md font-medium ${!!(inputErrors.quantity || inputErrors.sellingPrice || inputErrors.options) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}
-            disabled={!!(inputErrors.quantity || inputErrors.sellingPrice || inputErrors.options)}
+            className={`w-full py-3 px-4 rounded-md font-medium ${!!(inputErrors.quantity || inputErrors.sellingPrice || inputErrors.options || inputErrors.image) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+            disabled={!!(inputErrors.quantity || inputErrors.sellingPrice || inputErrors.options || inputErrors.image)}
           >
             <div className="flex items-center justify-center gap-2">
               <FiShoppingCart />
-              <span>কার্টে যোগ করুন</span>
+              <span>Add to Cart</span>
             </div>
           </button>
 
-          {/* বিবরণ */}
+          {/* Description */}
           <div className="border-t pt-4">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium">বিবরণ</h3>
+              <h3 className="font-medium">Description</h3>
               <button
                 onClick={copyDescription}
                 className="flex items-center text-sm text-blue-600 hover:text-blue-800"
               >
                 <FiCopy className="mr-1" />
-                {copied ? 'কপি হয়েছে!' : 'কপি করুন'}
+                {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
             <p className="text-gray-700 whitespace-pre-line">
-              {product.description || 'কোন বিবরণ পাওয়া যায়নি'}
+              {product.description || 'No description available'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* অতিরিক্ত ছবি */}
+      {/* Additional Images */}
       {product.images.length > 0 && (
         <div className="mt-12">
-          <h2 className="text-xl font-bold mb-4">অতিরিক্ত ছবিসমূহ</h2>
+          <h2 className="text-xl font-bold mb-4">Additional Images</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {product.images.map((img, index) => (
-              <div key={img.imageId} className="relative group">
+              <div 
+                key={img.imageId} 
+                className="relative group cursor-pointer"
+                onClick={() => handleImageSelect(img.imageUrl)}
+              >
                 <img
                   src={img.imageUrl}
                   alt={`${product.name} - ${index + 1}`}
-                  className="w-full h-40 object-cover rounded-lg"
+                  className={`w-full h-40 object-cover rounded-lg ${selectedImage === img.imageUrl ? 'ring-2 ring-blue-500' : ''}`}
                 />
                 <button
-                  onClick={() => downloadImage(img.imageUrl, `${product.name}_${index + 1}`, `additional_${img.imageId}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadImage(img.imageUrl, `${product.name}_${index + 1}`, `additional_${img.imageId}`);
+                  }}
                   className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                   disabled={downloadingId === `additional_${img.imageId}`}
-                  title="ছবি ডাউনলোড করুন"
+                  title="Download image"
                 >
                   {downloadingId === `additional_${img.imageId}` ? (
                     <FaSpinner className="animate-spin text-blue-500" />
