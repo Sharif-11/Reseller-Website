@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { formatDate } from '../utils/date.utils';
-import { getTransactionHistory } from '../Api/seller.api';
+import { getAllTransactionHistoryForAdmin } from '../Api/admin.api';
 import { toast } from 'react-toastify';
 
 interface Transaction {
@@ -28,7 +28,7 @@ interface TransactionResponse {
   totalPages: number;
 }
 
-const BalanceStatement = () => {
+const AdminTransactionHistory = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,11 +40,16 @@ const BalanceStatement = () => {
     totalTransactions: 0
   });
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [phoneNoFilter, setPhoneNoFilter] = useState('');
 
-  const fetchTransactions = async (page: number = pagination.currentPage, pageSize: number = pagination.pageSize) => {
+  const fetchTransactions = async (page: number = 1, pageSize: number = pagination.pageSize) => {
     setLoading(true);
     try {
-      const response = await getTransactionHistory({ page, pageSize });
+      const response = await getAllTransactionHistoryForAdmin({
+        phoneNo: phoneNoFilter || undefined,
+        page,
+        pageSize
+      });
       
       if (response.success && response.data) {
         const data = response.data as TransactionResponse;
@@ -67,13 +72,19 @@ const BalanceStatement = () => {
     }
   };
 
-  // Filter transactions based on search term
+  // Filter transactions based on search term (client-side)
   useEffect(() => {
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       const filtered = transactions.filter(tx => 
-        tx.transactionId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tx.paymentMethod?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tx.reason?.toLowerCase().includes(searchTerm.toLowerCase())
+        tx.transactionId?.toLowerCase().includes(term) ||
+        tx.userId.toLowerCase().includes(term) ||
+        tx.userName.toLowerCase().includes(term) ||
+        tx.userPhoneNo.toLowerCase().includes(term) ||
+        tx.paymentMethod?.toLowerCase().includes(term) ||
+        tx.reason.toLowerCase().includes(term) ||
+        (tx.paymentPhoneNo && tx.paymentPhoneNo.toLowerCase().includes(term)) ||
+        tx.amount.toLowerCase().includes(term)
       );
       setFilteredTransactions(filtered);
     } else {
@@ -81,21 +92,10 @@ const BalanceStatement = () => {
     }
   }, [searchTerm, transactions]);
 
+  // Fetch transactions when phoneNoFilter or pagination changes
   useEffect(() => {
     fetchTransactions();
-  }, []);
-
-  const calculateBalance = () => {
-    let balance = 0;
-    transactions.forEach(tx => {
-      if (tx.type === 'Credit') {
-        balance += parseFloat(tx.amount);
-      } else {
-        balance -= parseFloat(tx.amount);
-      }
-    });
-    return balance.toFixed(2);
-  };
+  }, [phoneNoFilter, pagination.pageSize]);
 
   const getTypeBadge = (type: string) => {
     const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
@@ -113,7 +113,6 @@ const BalanceStatement = () => {
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newPageSize = parseInt(e.target.value);
     setPagination(prev => ({ ...prev, pageSize: newPageSize, currentPage: 1 }));
-    fetchTransactions(1, newPageSize);
   };
 
   const showTransactionDetails = (transaction: Transaction) => {
@@ -124,81 +123,110 @@ const BalanceStatement = () => {
     setSelectedTransaction(null);
   };
 
+  const handlePhoneNoSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Reset to first page when applying new phone filter
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+    fetchTransactions(1);
+  };
+
+//   const clearPhoneNoFilter = () => {
+//     setPhoneNoFilter('');
+//     setPagination(prev => ({ ...prev, currentPage: 1 }));
+//   };
+
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
-      <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">Balance Statement</h1>
+      <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">Transaction History</h1>
       
-      {/* Responsive Balance Summary */}
+      {/* Search and Filter Section */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div className="w-full sm:w-auto">
-            <h2 className="text-base sm:text-lg font-medium text-gray-700">Current Balance</h2>
-            <p className="text-xl sm:text-2xl font-bold">
-              {calculateBalance()}৳
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:flex sm:flex-row gap-4 w-full sm:w-auto">
-            <div className="text-center p-2 bg-green-50 rounded-lg">
-              <p className="text-xs text-gray-500">Total Credit</p>
-              <p className="text-green-600 font-medium text-sm sm:text-base">
-                {transactions
-                  .filter(tx => tx.type === 'Credit')
-                  .reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
-                  .toFixed(2)}৳
-              </p>
-            </div>
-            <div className="text-center p-2 bg-red-50 rounded-lg">
-              <p className="text-xs text-gray-500">Total Debit</p>
-              <p className="text-red-600 font-medium text-sm sm:text-base">
-                {transactions
-                  .filter(tx => tx.type === 'Debit')
-                  .reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
-                  .toFixed(2)}৳
-              </p>
-            </div>
-            <div className="text-center p-2 bg-blue-50 rounded-lg col-span-2 sm:col-span-1">
-              <p className="text-xs text-gray-500">Total Transactions</p>
-              <p className="text-blue-600 font-medium text-sm sm:text-base">
-                {transactions.length}
-              </p>
+        <form onSubmit={handlePhoneNoSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="phoneNo" className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Phone Number
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                id="phoneNo"
+                placeholder="Enter user phone number"
+                className="flex-1 px-3 py-2 border rounded-md text-sm"
+                value={phoneNoFilter}
+                onChange={(e) => setPhoneNoFilter(e.target.value)}
+              />
+             
             </div>
           </div>
-        </div>
+          
+          <div className="md:col-span-2">
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+              Search Within Results
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                id="search"
+                placeholder="Search by ID, name, amount, etc."
+                className="w-full pl-8 pr-3 py-2 border rounded-md text-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={loading}
+              />
+              <svg
+                className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+          
+          <div className="flex items-end">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Apply Filter'}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Transaction History */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {/* Search and Filter Section */}
-        <div className="p-3 md:p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Search by Transaction ID, Method, or Reason"
-              className="pl-8 pr-3 py-2 border rounded-md text-xs md:text-sm w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <svg
-              className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+        {/* Pagination Controls - Top */}
+        <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="text-sm text-gray-700">
+            {phoneNoFilter ? (
+              <span>
+                Showing transactions for: <span className="font-medium">{phoneNoFilter}</span>
+                {filteredTransactions.length > 0 && (
+                  <span> ({filteredTransactions.length} results)</span>
+                )}
+              </span>
+            ) : (
+              <span>
+                Total Transactions: <span className="font-medium">{pagination.totalTransactions}</span>
+              </span>
+            )}
           </div>
           
           <div className="flex items-center space-x-2">
             <select
               value={pagination.pageSize}
               onChange={handlePageSizeChange}
-              className="border rounded-md px-2 py-1 md:px-3 md:py-2 text-xs md:text-sm"
+              className="border rounded-md px-3 py-2 text-sm"
+              disabled={loading}
             >
               <option value="5">5 per page</option>
               <option value="10">10 per page</option>
@@ -214,31 +242,35 @@ const BalanceStatement = () => {
           </div>
         ) : filteredTransactions.length === 0 ? (
           <div className="p-6 text-center">
-            <p className="text-gray-500 text-xs md:text-sm">
-              {searchTerm ? 'No transactions match your search' : 'No transactions found'}
+            <p className="text-gray-500">
+              {searchTerm 
+                ? 'No transactions match your search criteria' 
+                : phoneNoFilter
+                  ? 'No transactions found for this phone number'
+                  : 'No transactions found'}
             </p>
           </div>
         ) : (
           <>
-            {/* Mobile View - Cards with smaller text */}
-            <div className="md:hidden space-y-2 p-2">
+            {/* Mobile View - Cards */}
+            <div className="md:hidden space-y-3 p-3">
               {filteredTransactions.map((tx) => (
                 <div 
                   key={tx.id} 
-                  className="border rounded-lg p-2 text-xs cursor-pointer hover:bg-gray-50"
+                  className="border rounded-lg p-3 text-sm cursor-pointer hover:bg-gray-50"
                   onClick={() => showTransactionDetails(tx)}
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-gray-500 text-xxs">{formatDate(tx.createdAt)}</p>
-                      <h3 className="font-medium text-xs">{tx.reason}</h3>
+                      <p className="text-gray-500 text-xs">{formatDate(tx.createdAt)}</p>
+                      <h3 className="font-medium">{tx.reason}</h3>
                     </div>
                     <div>
                       {getTypeBadge(tx.type)}
                     </div>
                   </div>
                   
-                  <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xxs">
+                  <div className="mt-2 space-y-1">
                     <div>
                       <p className="text-gray-500">Amount:</p>
                       <p className={`font-medium ${
@@ -246,6 +278,10 @@ const BalanceStatement = () => {
                       }`}>
                         {tx.type === 'Credit' ? '+' : '-'}{parseFloat(tx.amount).toFixed(2)}৳
                       </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">User:</p>
+                      <p className="font-medium">{tx.userName} ({tx.userPhoneNo})</p>
                     </div>
                     {tx.paymentMethod && (
                       <div>
@@ -255,14 +291,8 @@ const BalanceStatement = () => {
                     )}
                     {tx.transactionId && (
                       <div>
-                        <p className="text-gray-500">Transaction ID:</p>
-                        <p className="font-medium truncate">{tx.transactionId}</p>
-                      </div>
-                    )}
-                    {tx.type === 'Credit' && tx.referralLevel && (
-                      <div>
-                        <p className="text-gray-500">Referral Level:</p>
-                        <p className="font-medium">{tx.referralLevel}</p>
+                        <p className="text-gray-500">Txn ID:</p>
+                        <p className="font-medium">{tx.transactionId}</p>
                       </div>
                     )}
                   </div>
@@ -276,19 +306,24 @@ const BalanceStatement = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">User</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Type</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Reason</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Txn ID</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Details</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredTransactions.map((tx) => (
-                    <tr key={tx.id}>
+                    <tr key={tx.id} className="hover:bg-gray-50">
                       <td className="px-4 py-4 whitespace-nowrap text-gray-500">
                         {formatDate(tx.createdAt)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-gray-900">{tx.userName}</div>
+                        <div className="text-gray-500 text-xs">{tx.userPhoneNo}</div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         {getTypeBadge(tx.type)}
@@ -304,7 +339,7 @@ const BalanceStatement = () => {
                       <td className="px-4 py-4 whitespace-nowrap text-gray-500">
                         {tx.paymentMethod || 'N/A'}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-gray-500">
+                      <td className="px-4 py-4 whitespace-nowrap text-gray-500 font-mono text-xs">
                         {tx.transactionId || 'N/A'}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
@@ -323,19 +358,19 @@ const BalanceStatement = () => {
             
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="bg-gray-50 px-3 py-2 md:px-4 md:py-3 flex items-center justify-between border-t border-gray-200">
+              <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200">
                 <div className="flex-1 flex justify-between sm:hidden">
                   <button
                     onClick={() => handlePageChange(pagination.currentPage - 1)}
-                    disabled={pagination.currentPage === 1}
-                    className="relative inline-flex items-center px-3 py-1 text-xs border border-gray-300 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                    disabled={pagination.currentPage === 1 || loading}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                   >
                     Previous
                   </button>
                   <button
                     onClick={() => handlePageChange(pagination.currentPage + 1)}
-                    disabled={pagination.currentPage === pagination.totalPages}
-                    className="ml-3 relative inline-flex items-center px-3 py-1 text-xs border border-gray-300 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                    disabled={pagination.currentPage === pagination.totalPages || loading}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                   >
                     Next
                   </button>
@@ -353,7 +388,7 @@ const BalanceStatement = () => {
                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                       <button
                         onClick={() => handlePageChange(pagination.currentPage - 1)}
-                        disabled={pagination.currentPage === 1}
+                        disabled={pagination.currentPage === 1 || loading}
                         className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                       >
                         <span className="sr-only">Previous</span>
@@ -376,11 +411,12 @@ const BalanceStatement = () => {
                           <button
                             key={pageNum}
                             onClick={() => handlePageChange(pageNum)}
+                            disabled={loading}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                               pageNum === pagination.currentPage
                                 ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                            } ${loading ? 'opacity-50' : ''}`}
                           >
                             {pageNum}
                           </button>
@@ -388,7 +424,7 @@ const BalanceStatement = () => {
                       })}
                       <button
                         onClick={() => handlePageChange(pagination.currentPage + 1)}
-                        disabled={pagination.currentPage === pagination.totalPages}
+                        disabled={pagination.currentPage === pagination.totalPages || loading}
                         className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                       >
                         <span className="sr-only">Next</span>
@@ -405,31 +441,31 @@ const BalanceStatement = () => {
         )}
       </div>
 
-      {/* Transaction Details Modal - Display reference and referralLevel only for Credit type */}
+      {/* Transaction Details Modal */}
       {selectedTransaction && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
-            <div className="p-3 md:p-4 border-b">
-              <h2 className="text-base md:text-lg font-medium">Transaction Details</h2>
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b sticky top-0 bg-white z-10">
+              <h2 className="text-lg font-medium">Transaction Details</h2>
             </div>
             
-            <div className="p-3 md:p-4 space-y-3 text-xs md:text-sm">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium text-gray-700">Type:</p>
+                  <p className="text-sm font-medium text-gray-700">Type:</p>
                   <div className="mt-1">
                     {getTypeBadge(selectedTransaction.type)}
                   </div>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-700">Date:</p>
+                  <p className="text-sm font-medium text-gray-700">Date:</p>
                   <p className="mt-1 text-gray-900">{formatDate(selectedTransaction.createdAt)}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium text-gray-700">Amount:</p>
+                  <p className="text-sm font-medium text-gray-700">Amount:</p>
                   <p className={`mt-1 font-medium ${
                     selectedTransaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'
                   }`}>
@@ -437,64 +473,58 @@ const BalanceStatement = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-700">Reason:</p>
+                  <p className="text-sm font-medium text-gray-700">Reason:</p>
                   <p className="mt-1 text-gray-900">{selectedTransaction.reason}</p>
                 </div>
               </div>
 
               <div>
-                <p className="font-medium text-gray-700">Payment Method:</p>
-                <p className="mt-1 text-gray-900">{selectedTransaction.paymentMethod || 'N/A'}</p>
+                <p className="text-sm font-medium text-gray-700">User:</p>
+                <p className="mt-1 text-gray-900">{selectedTransaction.userName} ({selectedTransaction.userPhoneNo})</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium text-gray-700">Transaction ID:</p>
-                  <p className="mt-1 text-gray-900 break-words">{selectedTransaction.transactionId || 'N/A'}</p>
+                  <p className="text-sm font-medium text-gray-700">Payment Method:</p>
+                  <p className="mt-1 text-gray-900">{selectedTransaction.paymentMethod || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-700">Payment Phone:</p>
+                  <p className="text-sm font-medium text-gray-700">Payment Phone:</p>
                   <p className="mt-1 text-gray-900">{selectedTransaction.paymentPhoneNo || 'N/A'}</p>
                 </div>
               </div>
 
-              {/* Show reference only for Credit type */}
-              {selectedTransaction.type === 'Credit' && selectedTransaction.reference && (
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium text-gray-700">Reference:</p>
-                  <p className="mt-1 text-gray-900">{selectedTransaction.reference}</p>
+                  <p className="text-sm font-medium text-gray-700">Transaction ID:</p>
+                  <p className="mt-1 text-gray-900 font-mono text-sm">{selectedTransaction.transactionId || 'N/A'}</p>
                 </div>
-              )}
-
-              {/* Show referralLevel only for Credit type */}
-              {selectedTransaction.type === 'Credit' && selectedTransaction.referralLevel && (
                 <div>
-                  <p className="font-medium text-gray-700">Referral Level:</p>
-                  <p className="mt-1 text-gray-900">{selectedTransaction.referralLevel}</p>
+                 
+                </div>
+              </div>
+
+              {selectedTransaction.reference && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Reference:</p>
+                  <p className="mt-1 text-gray-900">{selectedTransaction.reference}</p>
+                  <p className="text-sm font-medium text-gray-700">Referral Level:</p>
+                  <p className="mt-1 text-gray-900">{selectedTransaction.referralLevel || 'N/A'}</p>
                 </div>
               )}
 
               {selectedTransaction.remarks && (
                 <div>
-                  <p className="font-medium text-gray-700">Remarks:</p>
-                  <p className="mt-1 text-gray-900">{selectedTransaction.remarks}</p>
+                  <p className="text-sm font-medium text-gray-700">Remarks:</p>
+                  <p className="mt-1 text-gray-900 whitespace-pre-line">{selectedTransaction.remarks}</p>
                 </div>
               )}
-              
-              <div>
-                <p className="font-medium text-gray-700">User Details:</p>
-                <div className="mt-1 p-2 bg-gray-50 rounded-md">
-                  <p className="text-gray-900">Name: {selectedTransaction.userName}</p>
-                  <p className="text-gray-900">Phone: {selectedTransaction.userPhoneNo}</p>
-                
-                </div>
-              </div>
             </div>
             
-            <div className="p-3 md:p-4 border-t flex justify-end">
+            <div className="p-4 border-t sticky bottom-0 bg-white flex justify-end">
               <button
                 onClick={closeModal}
-                className="px-3 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
               >
                 Close
               </button>
@@ -506,4 +536,4 @@ const BalanceStatement = () => {
   );
 };
 
-export default BalanceStatement;
+export default AdminTransactionHistory;
