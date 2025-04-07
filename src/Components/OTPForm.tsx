@@ -34,7 +34,11 @@ const OTPForm = ({
         const result = await sendOtp(values.mobileNumber);
         if (result.success) {
           setMobileNumber(values.mobileNumber);
-          setPage(1);
+           if(result.data.isVerified) {
+            setPage(2); // OTP verification page
+          } else {
+            setPage(1); // Registration page
+           }
         } else {
           setError(result.message || "OTP পাঠাতে ব্যর্থ হয়েছে");
         }

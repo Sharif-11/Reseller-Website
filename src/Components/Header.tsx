@@ -90,13 +90,13 @@ const Header = ({
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-2">
-            <NavLink
+           { !user && <NavLink
               to="/"
               className="text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium"
               
             >
               হোম
-            </NavLink>
+            </NavLink>}
             
             {!user ? (
               <>
@@ -287,14 +287,14 @@ const Header = ({
       {isMenuOpen && (
         <div className="md:hidden bg-gradient-to-b from-indigo-700 to-indigo-800">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <NavLink
+           {!user && <NavLink
               to="/"
               className="block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition"
               onClick={toggleMenu}
               
             >
               হোম
-            </NavLink>
+            </NavLink>}
             {!user && (
               <>
                 <NavLink

@@ -36,7 +36,7 @@ const PasswordReset = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100 flex items-start justify-center py-16 px-4">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
         {/* Header Section */}
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-center text-white">

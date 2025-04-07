@@ -107,7 +107,7 @@ const AddProduct = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100 p-0 sm:p-4 rounded-xl shadow-sm overflow-hidden">
+    <div className="min-h-screen  p-0 sm:p-4 rounded-xl shadow-sm overflow-hidden">
       <div className="w-full max-w-3xl mx-auto bg-white shadow-none sm:shadow-sm sm:rounded-xl overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-4 text-white">

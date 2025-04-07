@@ -19,7 +19,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       [key]: !prev[key]
     }));
   };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
