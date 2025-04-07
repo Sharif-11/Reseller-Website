@@ -142,6 +142,19 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                     </svg>
                     কার্ট
                   </NavLink>
+                  <NavLink
+                    to="/orders"
+                    className={({ isActive }) => `
+                      flex items-center px-4 py-3 rounded-lg transition-all
+                      ${isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'}
+                    `}
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    অর্ডার
+                  </NavLink>
 
                   {/* Withdraw Accordion */}
                   <div className="border-b border-indigo-600/30 pb-1">
@@ -201,18 +214,21 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                     )}
                   </div>
 
-                  <NavLink
-                    to="/orders"
+
+                <NavLink
+                    to="/transactions"
                     className={({ isActive }) => `
                       flex items-center px-4 py-3 rounded-lg transition-all
                       ${isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'}
                     `}
                     onClick={() => setIsSidebarOpen(false)}
                   >
+                   
                     <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18m-7 5h7" />
                     </svg>
-                    অর্ডার
+
+                    ব্যালেন্স স্টেটমেন্ট
                   </NavLink>
 
                   {user?.isVerified && (
@@ -295,8 +311,8 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 p-4 md:p-6 bg-white md:bg-transparent md:rounded-tl-lg overflow-hidden">
-            <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 h-full">
+          <main className="flex-1 w-full p-0 md:p-6 bg-white md:bg-transparent md:rounded-tl-lg overflow-hidden">
+            <div className="bg-white min-h-[calc(100vh-4rem)] md:rounded-lg md:shadow-sm p-4 md:p-6">
               {children}
             </div>
           </main>

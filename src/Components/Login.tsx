@@ -42,7 +42,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-indigo-50 to-gray-100 p-8">
+    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-indigo-50 to-gray-100 py-8 px-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Header Section */}
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-center">
@@ -60,7 +60,7 @@ const LoginPage = () => {
           )}
 
           <Formik
-            initialValues={{ mobileNumber: "01776775495", password: "123456" }}
+            initialValues={{ mobileNumber: "", password: "" }}
             validationSchema={validationSchema}
             onSubmit={handleLogin}
           >

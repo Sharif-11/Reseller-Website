@@ -8,7 +8,7 @@ const Register = () => {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("ref");
   const [page, setPage] = useState(0);
-  const [mobileNumber, setMobileNumber] = useState("01776775495");
+  const [mobileNumber, setMobileNumber] = useState("");
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100">

@@ -23,6 +23,7 @@ import AddWallet from "./Components/AddWallet.tsx";
 import WithdrawRequest from "./Components/WithdrawRequest.tsx";
 import WithdrawHistory from "./Components/WithdrawHistory.tsx";
 import AdminWithdrawRequests from "./Components/AdminWithdrawRequest.tsx";
+import BalanceStatement from "./Components/BalanceStatement.tsx";
 
 
 
@@ -113,6 +114,10 @@ createRoot(document.getElementById("root")!).render(
           <Route path='request-withdraw' element={
             <SellerRoute>
             <WithdrawRequest/>
+            </SellerRoute>} />
+          <Route path='transactions' element={
+            <SellerRoute>
+           <BalanceStatement/>
             </SellerRoute>} />
 
 

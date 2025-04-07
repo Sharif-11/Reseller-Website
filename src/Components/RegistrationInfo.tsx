@@ -58,15 +58,15 @@ const RegistrationInfo = ({
   const formik = useFormik({
     initialValues: {
       phoneNo: mobileNumber,
-      name: "Shariful Islam",
+      name: "",
       email: "",
-      shopName: "Hello Bd",
+      shopName: "",
       zilla: "",
       upazilla: "",
-      address: "nazirhat",
+      address: "",
       nomineePhone: "",
-      password: "123456",
-      confirmPassword: "123456",
+      password: "",
+      confirmPassword: "",
       referralCode: referralCode || "",
     },
     validationSchema,
@@ -102,7 +102,7 @@ const RegistrationInfo = ({
     <div className="flex items-center justify-center min-h-screen p-4">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-center text-white">
-          <h1 className="text-2xl font-bold">রেজিস্ট্রেশন সম্পন্ন করুন</h1>
+          <h1 className="text-xl font-bold">রেজিস্ট্রেশন সম্পন্ন করুন</h1>
           <p className="text-indigo-100 mt-1 text-sm">
             আপনার তথ্য প্রদান করে রেজিস্ট্রেশন সম্পন্ন করুন
           </p>

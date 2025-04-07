@@ -47,7 +47,7 @@ const OTPForm = ({
   });
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
+    <div className="flex items-start justify-center min-h-screen py-16 px-4">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-center text-white">
           <h1 className="text-2xl font-bold">রেজিস্ট্রেশন শুরু করুন</h1>
