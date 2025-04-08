@@ -1,23 +1,29 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { FiDownload, FiHeart, FiCopy, FiYoutube, FiShoppingCart } from 'react-icons/fi';
 import { FaHeart, FaSpinner } from 'react-icons/fa';
 import { CART_ITEMS_KEY, FAVORITES_KEY } from '../utils/utils.variables';
 import { CartItem } from '../types/cart.types';
 import { Product } from '../types/product.types';
 import { v4 as uuidv4 } from 'uuid';
+import { getProduct } from '../Api/seller.api';
+
 
 const ProductDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const product = location.state?.product as Product;
+  const { productId } = useParams();
+  const [product, setProduct] = useState<Product | null>(location.state?.product || null);
+  const [loading, setLoading] = useState(!location.state?.product);
   
   const [favorites, setFavorites] = useState<number[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   const [quantity, setQuantity] = useState('1');
-  const [sellingPrice, setSellingPrice] = useState(product?.basePrice.toString() || '0');
+  const [sellingPrice, setSellingPrice] = useState('0');
   const [selectedMeta, setSelectedMeta] = useState<Record<string, string>>({});
-  const [selectedImage, setSelectedImage] = useState<string>('');
+  const [selectedImage, setSelectedImage] = useState<string|null>(null);
+  const [hoveredImage, setHoveredImage] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [inputErrors, setInputErrors] = useState({
     quantity: '',
@@ -26,7 +32,32 @@ const ProductDetail = () => {
     image: ''
   });
 
-  // ফেভারিট লোড করুন এবং ডিফল্ট ইমেজ সেট করুন
+  // Fetch product if not passed via location state
+  useEffect(() => {
+    if (!location.state?.product && productId) {
+      const fetchProduct = async () => {
+        try {
+          setLoading(true);
+          const response = await getProduct(productId);
+          if (response.success && response.data) {
+            setProduct(response.data);
+            setSellingPrice(response.data.basePrice.toString());
+          } else {
+            console.error('Failed to fetch product:', response.message);
+          }
+        } catch (error) {
+          console.error('Error fetching product:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProduct();
+    } else if (location.state?.product) {
+      setSellingPrice(location.state.product.basePrice.toString());
+    }
+  }, [productId, location.state]);
+
+  // Load favorites
   useEffect(() => {
     const savedFavorites = localStorage.getItem(FAVORITES_KEY);
     if (savedFavorites) {
@@ -37,9 +68,9 @@ const ProductDetail = () => {
         localStorage.removeItem(FAVORITES_KEY);
       }
     }
-  }, [product]);
+  }, []);
 
-  // ফেভারিট সেভ করুন
+  // Save favorites
   useEffect(() => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
   }, [favorites]);
@@ -78,6 +109,26 @@ const ProductDetail = () => {
     }
   };
 
+  const downloadAllImages = async () => {
+    if (!product) return;
+    
+    setDownloadingAll(true);
+    try {
+      const allImages = [
+        { imageUrl: product.imageUrl, isMain: true },
+        ...(product.images || []).map(img => ({ imageUrl: img.imageUrl, isMain: false }))
+      ];
+
+      for (let i = 0; i < allImages.length; i++) {
+        const img = allImages[i];
+        await downloadImage(img.imageUrl, product.name, `all_${i}`);
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
   const copyDescription = () => {
     if (!product) return;
     navigator.clipboard.writeText(product.description);
@@ -92,11 +143,23 @@ const ProductDetail = () => {
     }
   };
 
-  const handleImageSelect = (imageUrl: string) => {
-    setSelectedImage(imageUrl);
+  const handleImageClick = (imageUrl: string) => {
+    if (selectedImage === imageUrl) {
+      setSelectedImage('');
+    } else {
+      setSelectedImage(imageUrl);
+    }
     if (inputErrors.image) {
       setInputErrors(prev => ({ ...prev, image: '' }));
     }
+  };
+
+  const handleImageHover = (imageUrl: string) => {
+    setHoveredImage(imageUrl);
+  };
+
+  const handleImageLeave = () => {
+    setHoveredImage('');
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,7 +200,7 @@ const ProductDetail = () => {
       return;
     }
     
-    if (numValue < product.basePrice) {
+    if (product && numValue < product.basePrice) {
       setInputErrors(prev => ({ ...prev, sellingPrice: `ন্যূনতম মূল্য ৳${product.basePrice}` }));
       return;
     }
@@ -146,13 +209,16 @@ const ProductDetail = () => {
   };
 
   const addToCart = () => {
-    const allOptionsSelected = product.metas.every(meta => selectedMeta[meta.key]);
-    if (!allOptionsSelected && product.metas.length > 0) {
+    if (!product) return;
+
+    const allOptionsSelected = (product.metas || []).every(meta => selectedMeta[meta.key]);
+    if (!allOptionsSelected && (product.metas || []).length > 0) {
       setInputErrors(prev => ({ ...prev, options: 'সব অপশন সিলেক্ট করুন' }));
       return;
     }
 
-    if (!selectedImage) {
+    const currentImage = selectedImage;
+    if (!currentImage) {
       setInputErrors(prev => ({ ...prev, image: 'একটি ইমেজ সিলেক্ট করুন' }));
       return;
     }
@@ -186,7 +252,7 @@ const ProductDetail = () => {
       basePrice: product.basePrice,
       sellingPrice: priceNum,
       quantity: quantityNum,
-      imageUrl: selectedImage,
+      imageUrl: currentImage,
       selectedOptions: { ...selectedMeta },
       cartItemId: uuidv4()
     };
@@ -198,6 +264,14 @@ const ProductDetail = () => {
     navigate('/cart');
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="text-center py-12">
@@ -206,7 +280,7 @@ const ProductDetail = () => {
     );
   }
 
-  const metaInfo = product.metas.reduce<Record<string, string[]>>((acc, meta) => {
+  const metaInfo = (product.metas || []).reduce<Record<string, string[]>>((acc, meta) => {
     if (!acc[meta.key]) {
       acc[meta.key] = [];
     }
@@ -219,7 +293,7 @@ const ProductDetail = () => {
   // প্রধান ইমেজ এবং অতিরিক্ত ইমেজ একসাথে করুন
   const allImages = [
     { imageUrl: product.imageUrl, isMain: true },
-    ...product.images.map(img => ({ imageUrl: img.imageUrl, isMain: false }))
+    ...(product.images || []).map(img => ({ imageUrl: img.imageUrl, isMain: false }))
   ];
 
   return (
@@ -229,7 +303,7 @@ const ProductDetail = () => {
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="relative aspect-square">
             <img
-              src={selectedImage || product.imageUrl}
+              src={hoveredImage || selectedImage || product.imageUrl}
               alt={product.name}
               className="w-full h-full object-contain"
               loading="lazy"
@@ -240,7 +314,7 @@ const ProductDetail = () => {
             
             <div className="absolute top-4 right-4 flex gap-2">
               <button
-                onClick={() => downloadImage(selectedImage || product.imageUrl, product.name, 'main')}
+                onClick={() => downloadImage(hoveredImage || selectedImage || product.imageUrl, product.name, 'main')}
                 className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
                 disabled={downloadingId === 'main'}
                 title="ছবি ডাউনলোড করুন"
@@ -280,7 +354,28 @@ const ProductDetail = () => {
 
           {/* ইমেজ সিলেকশন */}
           <div className="p-4 border-t">
-            <h3 className="font-medium mb-2">ইমেজ সিলেক্ট করুন</h3>
+            <div className="flex justify-between items-center mb-2 text-xs">
+              <h3 className="font-medium text-xs">ইমেজ সিলেক্ট করুন</h3>
+              {allImages.length > 1 && (
+                <button
+                  onClick={downloadAllImages}
+                  disabled={downloadingAll}
+                  className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {downloadingAll ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-1" />
+                      ডাউনলোড হচ্ছে...
+                    </>
+                  ) : (
+                    <>
+                      <FiDownload className="mr-1 text-xs" />
+                      সব ছবি ডাউনলোড
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             {inputErrors.image && (
               <p className="text-red-500 text-sm mb-2">{inputErrors.image}</p>
             )}
@@ -288,15 +383,34 @@ const ProductDetail = () => {
               {allImages.map((img, index) => (
                 <div 
                   key={index}
-                  onClick={() => handleImageSelect(img.imageUrl)}
-                  className={`relative cursor-pointer border-2 rounded-md overflow-hidden ${selectedImage === img.imageUrl ? 'border-blue-500' : 'border-transparent'}`}
+                  onClick={() => handleImageClick(img.imageUrl)}
+                  onMouseEnter={() => handleImageHover(img.imageUrl)}
+                  onMouseLeave={handleImageLeave}
+                  className={`relative cursor-pointer border-2 rounded-md overflow-hidden ${
+                    selectedImage === img.imageUrl ? 'border-blue-500' : 'border-transparent'
+                  }`}
                 >
                   <img
                     src={img.imageUrl}
                     alt={`${product.name} - ${index + 1}`}
                     className="w-full h-20 object-cover"
                   />
-                
+                  <div className="absolute inset-0 flex items-start top-0 justify-end opacity-0 hover:opacity-100 bg-black bg-opacity-30 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadImage(img.imageUrl, product.name, `thumb_${index}`);
+                      }}
+                      className="p-1 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+                      title="ছবি ডাউনলোড করুন"
+                    >
+                      {downloadingId === `thumb_${index}` ? (
+                        <FaSpinner className="animate-spin text-blue-500 text-xs" />
+                      ) : (
+                        <FiDownload className="text-gray-700 text-xs" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
