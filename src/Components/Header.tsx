@@ -90,16 +90,15 @@ const Header = ({
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-2">
-           { !user && <NavLink
+        {! user ?    (
+           <>
+           <NavLink
               to="/"
               className="text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium"
               
             >
               হোম
-            </NavLink>}
-            
-            {!user ? (
-              <>
+            </NavLink>
                 <NavLink
                   to="/login"
                   className="text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium"
@@ -114,7 +113,8 @@ const Header = ({
                 >
                   রেজিস্ট্রেশন
                 </NavLink>
-              </>
+          </>
+            
             ) : (
               <>
                 {/* Balance Display */}
@@ -284,20 +284,18 @@ const Header = ({
       </div>
 
       {/* Mobile Menu Overlay */}
-      {isMenuOpen && (
+      {isMenuOpen && !user && (
         <div className="md:hidden bg-gradient-to-b from-indigo-700 to-indigo-800">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-           {!user && <NavLink
+           <NavLink
               to="/"
               className="block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition"
               onClick={toggleMenu}
               
             >
               হোম
-            </NavLink>}
-            {!user && (
-              <>
-                <NavLink
+            </NavLink>
+             <NavLink
                   to="/login"
                   className="block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition"
                   onClick={toggleMenu}
@@ -313,8 +311,8 @@ const Header = ({
                 >
                   রেজিস্ট্রেশন
                 </NavLink>
-              </>
-            )}
+         
+          
           </div>
         </div>
       )}
