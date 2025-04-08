@@ -57,17 +57,16 @@ const BalanceStatement = () => {
           totalTransactions: data.totalTransactions
         });
       } else {
-        toast.error(response.message || 'Failed to load transactions');
+        toast.error(response.message || 'Transactions লোড করতে ব্যর্থ হয়েছে');
       }
     } catch (error) {
-      toast.error('An error occurred while fetching transactions');
-      console.error('Error fetching transactions:', error);
+      toast.error('Transactions আনতে সমস্যা হয়েছে');
+      console.error('Transactions fetch error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter transactions based on search term
   useEffect(() => {
     if (searchTerm) {
       const filtered = transactions.filter(tx => 
@@ -101,8 +100,8 @@ const BalanceStatement = () => {
     const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
     
     return type === 'Credit' 
-      ? <span className={`${baseClasses} bg-green-100 text-green-800`}>Credit</span>
-      : <span className={`${baseClasses} bg-red-100 text-red-800`}>Debit</span>;
+      ? <span className={`${baseClasses} bg-green-100 text-green-800`}>ক্রেডিট</span>
+      : <span className={`${baseClasses} bg-red-100 text-red-800`}>ডেবিট</span>;
   };
 
   const handlePageChange = (newPage: number) => {
@@ -126,20 +125,20 @@ const BalanceStatement = () => {
 
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
-      <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">Balance Statement</h1>
+      <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">ব্যালেন্স স্টেটমেন্ট</h1>
       
-      {/* Responsive Balance Summary */}
+      {/* ব্যালেন্স সারাংশ */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="w-full sm:w-auto">
-            <h2 className="text-base sm:text-lg font-medium text-gray-700">Current Balance</h2>
+            <h2 className="text-base sm:text-lg font-medium text-gray-700">বর্তমান ব্যালেন্স</h2>
             <p className="text-xl sm:text-2xl font-bold">
               {calculateBalance()}৳
             </p>
           </div>
           <div className="grid grid-cols-2 sm:flex sm:flex-row gap-4 w-full sm:w-auto">
             <div className="text-center p-2 bg-green-50 rounded-lg">
-              <p className="text-xs text-gray-500">Total Credit</p>
+              <p className="text-xs text-gray-500">মোট ক্রেডিট</p>
               <p className="text-green-600 font-medium text-sm sm:text-base">
                 {transactions
                   .filter(tx => tx.type === 'Credit')
@@ -148,7 +147,7 @@ const BalanceStatement = () => {
               </p>
             </div>
             <div className="text-center p-2 bg-red-50 rounded-lg">
-              <p className="text-xs text-gray-500">Total Debit</p>
+              <p className="text-xs text-gray-500">মোট ডেবিট</p>
               <p className="text-red-600 font-medium text-sm sm:text-base">
                 {transactions
                   .filter(tx => tx.type === 'Debit')
@@ -157,7 +156,7 @@ const BalanceStatement = () => {
               </p>
             </div>
             <div className="text-center p-2 bg-blue-50 rounded-lg col-span-2 sm:col-span-1">
-              <p className="text-xs text-gray-500">Total Transactions</p>
+              <p className="text-xs text-gray-500">মোট লেনদেন</p>
               <p className="text-blue-600 font-medium text-sm sm:text-base">
                 {transactions.length}
               </p>
@@ -166,14 +165,14 @@ const BalanceStatement = () => {
         </div>
       </div>
 
-      {/* Transaction History */}
+      {/* লেনদেনের ইতিহাস */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {/* Search and Filter Section */}
+        {/* সার্চ এবং ফিল্টার সেকশন */}
         <div className="p-3 md:p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3">
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Search by Transaction ID, Method, or Reason"
+              placeholder="Transaction ID, Method বা Reason দিয়ে খুঁজুন"
               className="pl-8 pr-3 py-2 border rounded-md text-xs md:text-sm w-full"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -200,10 +199,10 @@ const BalanceStatement = () => {
               onChange={handlePageSizeChange}
               className="border rounded-md px-2 py-1 md:px-3 md:py-2 text-xs md:text-sm"
             >
-              <option value="5">5 per page</option>
-              <option value="10">10 per page</option>
-              <option value="20">20 per page</option>
-              <option value="50">50 per page</option>
+              <option value="5">পৃষ্ঠায় ৫টি</option>
+              <option value="10">পৃষ্ঠায় ১০টি</option>
+              <option value="20">পৃষ্ঠায় ২০টি</option>
+              <option value="50">পৃষ্ঠায় ৫০টি</option>
             </select>
           </div>
         </div>
@@ -215,12 +214,12 @@ const BalanceStatement = () => {
         ) : filteredTransactions.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-gray-500 text-xs md:text-sm">
-              {searchTerm ? 'No transactions match your search' : 'No transactions found'}
+              {searchTerm ? 'আপনার সার্চের সাথে মিলে এমন কোনো লেনদেন পাওয়া যায়নি' : 'কোনো লেনদেন পাওয়া যায়নি'}
             </p>
           </div>
         ) : (
           <>
-            {/* Mobile View - Cards with smaller text */}
+            {/* মোবাইল ভিউ - কার্ড */}
             <div className="md:hidden space-y-2 p-2">
               {filteredTransactions.map((tx) => (
                 <div 
@@ -240,7 +239,7 @@ const BalanceStatement = () => {
                   
                   <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xxs">
                     <div>
-                      <p className="text-gray-500">Amount:</p>
+                      <p className="text-gray-500">পরিমাণ:</p>
                       <p className={`font-medium ${
                         tx.type === 'Credit' ? 'text-green-600' : 'text-red-600'
                       }`}>
@@ -249,7 +248,7 @@ const BalanceStatement = () => {
                     </div>
                     {tx.paymentMethod && (
                       <div>
-                        <p className="text-gray-500">Method:</p>
+                        <p className="text-gray-500">পদ্ধতি:</p>
                         <p className="font-medium">{tx.paymentMethod}</p>
                       </div>
                     )}
@@ -261,7 +260,7 @@ const BalanceStatement = () => {
                     )}
                     {tx.type === 'Credit' && tx.referralLevel && (
                       <div>
-                        <p className="text-gray-500">Referral Level:</p>
+                        <p className="text-gray-500">রেফারেল লেভেল:</p>
                         <p className="font-medium">{tx.referralLevel}</p>
                       </div>
                     )}
@@ -270,18 +269,18 @@ const BalanceStatement = () => {
               ))}
             </div>
             
-            {/* Desktop View - Table */}
+            {/* ডেস্কটপ ভিউ - টেবিল */}
             <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">তারিখ</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">ধরণ</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">পরিমাণ</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">কারণ</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">পদ্ধতি</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">বিস্তারিত</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -312,7 +311,7 @@ const BalanceStatement = () => {
                           onClick={() => showTransactionDetails(tx)}
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                         >
-                          View
+                          দেখুন
                         </button>
                       </td>
                     </tr>
@@ -321,7 +320,7 @@ const BalanceStatement = () => {
               </table>
             </div>
             
-            {/* Pagination */}
+            {/* প্যাজিনেশন */}
             {pagination.totalPages > 1 && (
               <div className="bg-gray-50 px-3 py-2 md:px-4 md:py-3 flex items-center justify-between border-t border-gray-200">
                 <div className="flex-1 flex justify-between sm:hidden">
@@ -330,23 +329,23 @@ const BalanceStatement = () => {
                     disabled={pagination.currentPage === 1}
                     className="relative inline-flex items-center px-3 py-1 text-xs border border-gray-300 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                   >
-                    Previous
+                    পূর্ববর্তী
                   </button>
                   <button
                     onClick={() => handlePageChange(pagination.currentPage + 1)}
                     disabled={pagination.currentPage === pagination.totalPages}
                     className="ml-3 relative inline-flex items-center px-3 py-1 text-xs border border-gray-300 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                   >
-                    Next
+                    পরবর্তী
                   </button>
                 </div>
                 
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-gray-700">
-                      Showing <span className="font-medium">{(pagination.currentPage - 1) * pagination.pageSize + 1}</span> to{' '}
-                      <span className="font-medium">{Math.min(pagination.currentPage * pagination.pageSize, pagination.totalTransactions)}</span> of{' '}
-                      <span className="font-medium">{pagination.totalTransactions}</span> transactions
+                      দেখানো হচ্ছে <span className="font-medium">{(pagination.currentPage - 1) * pagination.pageSize + 1}</span> থেকে{' '}
+                      <span className="font-medium">{Math.min(pagination.currentPage * pagination.pageSize, pagination.totalTransactions)}</span> পর্যন্ত, মোট{' '}
+                      <span className="font-medium">{pagination.totalTransactions}</span> টি লেনদেন
                     </p>
                   </div>
                   <div>
@@ -405,31 +404,31 @@ const BalanceStatement = () => {
         )}
       </div>
 
-      {/* Transaction Details Modal - Display reference and referralLevel only for Credit type */}
+      {/* লেনদেনের বিস্তারিত মোডাল */}
       {selectedTransaction && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
             <div className="p-3 md:p-4 border-b">
-              <h2 className="text-base md:text-lg font-medium">Transaction Details</h2>
+              <h2 className="text-base md:text-lg font-medium">লেনদেনের বিস্তারিত</h2>
             </div>
             
             <div className="p-3 md:p-4 space-y-3 text-xs md:text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="font-medium text-gray-700">Type:</p>
+                  <p className="font-medium text-gray-700">ধরণ:</p>
                   <div className="mt-1">
                     {getTypeBadge(selectedTransaction.type)}
                   </div>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-700">Date:</p>
+                  <p className="font-medium text-gray-700">তারিখ:</p>
                   <p className="mt-1 text-gray-900">{formatDate(selectedTransaction.createdAt)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="font-medium text-gray-700">Amount:</p>
+                  <p className="font-medium text-gray-700">পরিমাণ:</p>
                   <p className={`mt-1 font-medium ${
                     selectedTransaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'
                   }`}>
@@ -437,13 +436,13 @@ const BalanceStatement = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-700">Reason:</p>
+                  <p className="font-medium text-gray-700">কারণ:</p>
                   <p className="mt-1 text-gray-900">{selectedTransaction.reason}</p>
                 </div>
               </div>
 
               <div>
-                <p className="font-medium text-gray-700">Payment Method:</p>
+                <p className="font-medium text-gray-700">পেমেন্ট পদ্ধতি:</p>
                 <p className="mt-1 text-gray-900">{selectedTransaction.paymentMethod || 'N/A'}</p>
               </div>
 
@@ -453,40 +452,39 @@ const BalanceStatement = () => {
                   <p className="mt-1 text-gray-900 break-words">{selectedTransaction.transactionId || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-700">Payment Phone:</p>
+                  <p className="font-medium text-gray-700">পেমেন্ট ফোন:</p>
                   <p className="mt-1 text-gray-900">{selectedTransaction.paymentPhoneNo || 'N/A'}</p>
                 </div>
               </div>
 
-              {/* Show reference only for Credit type */}
+              {/* ক্রেডিট টাইপের জন্য রেফারেন্স দেখানো */}
               {selectedTransaction.type === 'Credit' && selectedTransaction.reference && (
                 <div>
-                  <p className="font-medium text-gray-700">Reference:</p>
+                  <p className="font-medium text-gray-700">রেফারেন্স:</p>
                   <p className="mt-1 text-gray-900">{selectedTransaction.reference}</p>
                 </div>
               )}
 
-              {/* Show referralLevel only for Credit type */}
+              {/* ক্রেডিট টাইপের জন্য রেফারেল লেভেল দেখানো */}
               {selectedTransaction.type === 'Credit' && selectedTransaction.referralLevel && (
                 <div>
-                  <p className="font-medium text-gray-700">Referral Level:</p>
+                  <p className="font-medium text-gray-700">রেফারেল লেভেল:</p>
                   <p className="mt-1 text-gray-900">{selectedTransaction.referralLevel}</p>
                 </div>
               )}
 
               {selectedTransaction.remarks && (
                 <div>
-                  <p className="font-medium text-gray-700">Remarks:</p>
+                  <p className="font-medium text-gray-700">মন্তব্য:</p>
                   <p className="mt-1 text-gray-900">{selectedTransaction.remarks}</p>
                 </div>
               )}
               
               <div>
-                <p className="font-medium text-gray-700">User Details:</p>
+                <p className="font-medium text-gray-700">ব্যবহারকারীর তথ্য:</p>
                 <div className="mt-1 p-2 bg-gray-50 rounded-md">
-                  <p className="text-gray-900">Name: {selectedTransaction.userName}</p>
-                  <p className="text-gray-900">Phone: {selectedTransaction.userPhoneNo}</p>
-                
+                  <p className="text-gray-900">নাম: {selectedTransaction.userName}</p>
+                  <p className="text-gray-900">ফোন: {selectedTransaction.userPhoneNo}</p>
                 </div>
               </div>
             </div>
@@ -496,7 +494,7 @@ const BalanceStatement = () => {
                 onClick={closeModal}
                 className="px-3 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
               >
-                Close
+                বন্ধ করুন
               </button>
             </div>
           </div>

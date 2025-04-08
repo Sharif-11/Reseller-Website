@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingCart, FiTrash2, FiArrowLeft, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiShoppingCart, FiTrash2, FiArrowLeft, FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi';
 import { CART_ITEMS_KEY } from '../utils/utils.variables';
 import { CartItem } from '../types/cart.types';
 
@@ -8,6 +8,7 @@ const Cart = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<number | null>(null);
+  const [showInstructionModal, setShowInstructionModal] = useState(false);
 
   // Load cart items from localStorage
   useEffect(() => {
@@ -60,12 +61,23 @@ const Cart = () => {
     setTimeout(() => setIsUpdating(null), 300);
   };
 
+  const handleOrderClick = () => {
+    setShowInstructionModal(true);
+  };
+
+  const handleConfirmOrder = () => {
+    setShowInstructionModal(false);
+    // Here you can add logic to proceed with the order
+    // For example, redirect to checkout page
+    window.location.href = '/checkout';
+  };
+
   // Calculation functions
   const calculateSubtotal = () => cartItems.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0);
   const calculateTotalItems = () => cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const calculateProfit = (item: CartItem) => (item.sellingPrice - item.basePrice) * item.quantity;
-  const calculateTotalProfit = () => cartItems.reduce((sum, item) => sum + (item.sellingPrice - item.basePrice) * item.quantity, 0);
-  const calculateTotalBasePrice = () => cartItems.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
+  // const calculateTotalProfit = () => cartItems.reduce((sum, item) => sum + (item.sellingPrice - item.basePrice) * item.quantity, 0);
+  // const calculateTotalBasePrice = () => cartItems.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
 
   if (isLoading) {
     return (
@@ -98,6 +110,46 @@ const Cart = () => {
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+      {/* Instruction Modal */}
+      {showInstructionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
+              <h3 className="text-lg font-bold">অর্ডার নির্দেশনা</h3>
+              <button 
+                onClick={() => setShowInstructionModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+            
+            <div className="p-4 text-sm space-y-3">
+            <p>১. নতুন বিক্রেতাদের জন্য প্রথম ১টি অর্ডারের ডেলিভারি ফি আগাম পরিশোধ বাধ্যতামূলক।</p>
+            <p>২. ডেলিভারি কর্মী উপস্থিত থাকা অবস্থাতেই পণ্য পরীক্ষা করে নিতে হবে - কোনো ত্রুটি পাওয়া গেলে সাথে সাথে রিটার্ন করতে হবে।</p>
+            <p>৩. ডেলিভারি কর্মী চলে যাওয়ার পর পণ্য ফেরত বা বদল করতে চাইলে অতিরিক্ত ডেলিভারি চার্জ দিতে হবে।</p>
+              
+            
+            </div>
+
+            <div className="p-4 border-t flex justify-end space-x-3 sticky bottom-0 bg-white text-xs">
+              <button
+                onClick={() => setShowInstructionModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                বাতিল
+              </button>
+              <button
+                onClick={handleConfirmOrder}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                শর্তে রাজি হয়ে অর্ডার কনফার্ম করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center mb-4 sm:mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 ml-2 sm:ml-4">আপনার কার্ট</h1>
       </div>
@@ -236,37 +288,18 @@ const Cart = () => {
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-600">মূল মূল্য:</span>
-                <span className="text-gray-900">৳{calculateTotalBasePrice().toLocaleString('bn-BD')}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">সাবটোটাল:</span>
+                <span className="text-gray-600">সর্বমোট পণ্যের দাম:</span>
                 <span className="text-gray-900">৳{calculateSubtotal().toLocaleString('bn-BD')}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">মোট লাভ:</span>
-                <span className="text-green-600 font-medium">
-                  ৳{calculateTotalProfit().toLocaleString('bn-BD')}
-                </span>
-              </div>
-
-              <div className="border-t pt-3 sm:pt-4">
-                <div className="flex justify-between font-medium text-gray-900">
-                  <span>মোট:</span>
-                  <span>৳{calculateSubtotal().toLocaleString('bn-BD')}</span>
-                </div>
               </div>
             </div>
 
             <div className="mt-4 sm:mt-6 space-y-3 sm:space-y-4">
-              <Link
-                to="/checkout"
+              <button
+                onClick={handleOrderClick}
                 className="block w-full py-2 sm:py-3 px-4 rounded-md bg-green-600 hover:bg-green-700 text-white font-medium text-center transition-colors text-sm sm:text-base"
               >
-                অর্ডার সম্পন্ন করুন
-              </Link>
+                অর্ডার করুন
+              </button>
 
               <Link
                 to="/products"

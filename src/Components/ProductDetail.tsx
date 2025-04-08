@@ -17,7 +17,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState('1');
   const [sellingPrice, setSellingPrice] = useState(product?.basePrice.toString() || '0');
   const [selectedMeta, setSelectedMeta] = useState<Record<string, string>>({});
-  const [selectedImage, setSelectedImage] = useState<string>(product?.imageUrl || '');
+  const [selectedImage, setSelectedImage] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [inputErrors, setInputErrors] = useState({
     quantity: '',
@@ -36,11 +36,6 @@ const ProductDetail = () => {
         console.error('ফেভারিট লোড করতে সমস্যা:', err);
         localStorage.removeItem(FAVORITES_KEY);
       }
-    }
-
-    // প্রধান ইমেজ ডিফল্ট হিসেবে সেট করুন
-    if (product?.imageUrl) {
-      setSelectedImage(product.imageUrl);
     }
   }, [product]);
 
@@ -301,11 +296,7 @@ const ProductDetail = () => {
                     alt={`${product.name} - ${index + 1}`}
                     className="w-full h-20 object-cover"
                   />
-                  {img.isMain && (
-                    <span className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1 rounded">
-                      প্রধান
-                    </span>
-                  )}
+                
                 </div>
               ))}
             </div>

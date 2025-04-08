@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { getWithdrawHistory, cancelWithdrawRequest } from '../Api/seller.api';
 import { toast } from 'react-toastify';
 import { formatDate } from '../utils/date.utils';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
 interface WithdrawRequest {
@@ -166,12 +165,12 @@ const WithdrawHistory = () => {
     }));
   };
 
-  const handleDateChange = (date: Date | null, field: 'startDate' | 'endDate') => {
-    setSearchFilters(prev => ({
-      ...prev,
-      [field]: date
-    }));
-  };
+  // const handleDateChange = (date: Date | null, field: 'startDate' | 'endDate') => {
+  //   setSearchFilters(prev => ({
+  //     ...prev,
+  //     [field]: date
+  //   }));
+  // };
 
   useEffect(() => {
     fetchWithdrawHistory();
@@ -317,30 +316,7 @@ const WithdrawHistory = () => {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">তারিখের রেঞ্জ</label>
-                <div className="flex gap-2">
-                  <DatePicker
-                    selected={searchFilters.startDate}
-                    onChange={(date) => handleDateChange(date, 'startDate')}
-                    selectsStart
-                    startDate={searchFilters.startDate}
-                    endDate={searchFilters.endDate}
-                    placeholderText="শুরুর তারিখ"
-                    className="w-full px-3 py-1.5 border rounded-md text-sm"
-                  />
-                  <DatePicker
-                    selected={searchFilters.endDate}
-                    onChange={(date) => handleDateChange(date, 'endDate')}
-                    selectsEnd
-                    startDate={searchFilters.startDate}
-                    endDate={searchFilters.endDate}
-                    minDate={searchFilters.startDate || undefined}
-                    placeholderText="শেষ তারিখ"
-                    className="w-full px-3 py-1.5 border rounded-md text-sm"
-                  />
-                </div>
-              </div>
+            
             </div>
             
             <div className="flex justify-end gap-2 mt-4">
