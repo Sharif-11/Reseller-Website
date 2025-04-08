@@ -25,6 +25,7 @@ import WithdrawHistory from "./Components/WithdrawHistory.tsx";
 import AdminWithdrawRequests from "./Components/AdminWithdrawRequest.tsx";
 import BalanceStatement from "./Components/BalanceStatement.tsx";
 import AdminTransactionHistory from "./Components/AdminTransactionHistory.tsx";
+import Checkout from "./Components/Checkout.tsx";
 
 
 
@@ -135,6 +136,12 @@ createRoot(document.getElementById("root")!).render(
           <Route path='withdraw-history' element={
             <SellerRoute>
               <WithdrawHistory/>
+            </SellerRoute>
+           
+          } />
+          <Route path='checkout' element={
+            <SellerRoute>
+            <Checkout/>
             </SellerRoute>
            
           } />

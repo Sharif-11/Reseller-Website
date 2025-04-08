@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FiShoppingCart, FiTrash2, FiArrowLeft, FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi';
 import { CART_ITEMS_KEY } from '../utils/utils.variables';
 import { CartItem } from '../types/cart.types';
 
 const Cart = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<number | null>(null);
@@ -67,9 +68,10 @@ const Cart = () => {
 
   const handleConfirmOrder = () => {
     setShowInstructionModal(false);
+    navigate('/checkout', { state: { cartItems } });
     // Here you can add logic to proceed with the order
     // For example, redirect to checkout page
-    window.location.href = '/checkout';
+   
   };
 
   // Calculation functions
