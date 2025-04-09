@@ -57,12 +57,13 @@ const WithdrawHistory = () => {
     endDate: null,
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  const [requestToCancel, setRequestToCancel] = useState<WithdrawRequest | null>(null);
 
   const calculateActualAmount = (amount: string, fee: string) => {
     return (parseFloat(amount) - parseFloat(fee)).toFixed(2);
   };
 
-  // ব্যাকেন্ড থেকে ডেটা ফেচ করুন (শুধু স্ট্যাটাস এবং পেজিনেশন)
   const fetchWithdrawHistory = async (page = 1, pageSize = pagination[activeTab].pageSize) => {
     try {
       setLoading(true);
@@ -74,7 +75,7 @@ const WithdrawHistory = () => {
       
       if (response.success && response.data) {
         setAllRequests(response.data.requests);
-        setFilteredRequests(response.data.requests); // প্রথমে সব ডেটা সেট করুন
+        setFilteredRequests(response.data.requests);
         setPagination(prev => ({
           ...prev,
           [activeTab]: {
@@ -95,7 +96,6 @@ const WithdrawHistory = () => {
     }
   };
 
-  // ফিল্টার প্রয়োগ করুন (ফ্রন্টএন্ডে)
   const applyFilters = () => {
     let filtered = [...allRequests];
 
@@ -133,7 +133,6 @@ const WithdrawHistory = () => {
     setFilteredRequests(filtered);
   };
 
-  // ফিল্টার রিসেট করুন
   const resetFilters = () => {
     setSearchFilters({
       phoneNo: '',
@@ -165,13 +164,6 @@ const WithdrawHistory = () => {
     }));
   };
 
-  // const handleDateChange = (date: Date | null, field: 'startDate' | 'endDate') => {
-  //   setSearchFilters(prev => ({
-  //     ...prev,
-  //     [field]: date
-  //   }));
-  // };
-
   useEffect(() => {
     fetchWithdrawHistory();
   }, [activeTab, pagination[activeTab].pageSize]);
@@ -198,7 +190,19 @@ const WithdrawHistory = () => {
       toast.error((error as Error).message || 'Error cancelling withdrawal request');
     } finally {
       setCancellingId(null);
+      setShowCancelConfirmation(false);
+      setRequestToCancel(null);
     }
+  };
+
+  const openCancelConfirmation = (request: WithdrawRequest) => {
+    setRequestToCancel(request);
+    setShowCancelConfirmation(true);
+  };
+
+  const closeCancelConfirmation = () => {
+    setShowCancelConfirmation(false);
+    setRequestToCancel(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -390,7 +394,7 @@ const WithdrawHistory = () => {
                 {request.status === 'pending' ? (
                   <div className="mt-3">
                     <button
-                      onClick={() => handleCancelRequest(request.withdrawId)}
+                      onClick={() => openCancelConfirmation(request)}
                       disabled={cancellingId === request.withdrawId}
                       className="w-full py-1 px-2 bg-red-50 text-red-600 rounded font-medium disabled:opacity-50"
                     >
@@ -463,7 +467,7 @@ const WithdrawHistory = () => {
                     <td className="px-4 py-4 whitespace-nowrap font-medium">
                       {request.status === 'pending' ? (
                         <button
-                          onClick={() => handleCancelRequest(request.withdrawId)}
+                          onClick={() => openCancelConfirmation(request)}
                           disabled={cancellingId === request.withdrawId}
                           className="text-red-600 hover:text-red-900 disabled:opacity-50"
                         >
@@ -639,6 +643,64 @@ const WithdrawHistory = () => {
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
               >
                 বন্ধ করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ক্যান্সেল কনফার্মেশন মোডাল */}
+      {showCancelConfirmation && requestToCancel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-medium text-red-600">
+                উত্তোলন অনুরোধ বাতিল করুন
+              </h2>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <p className="text-gray-700">
+                আপনি কি নিশ্চিতভাবে এই উত্তোলন অনুরোধটি বাতিল করতে চান?
+              </p>
+              
+              <div className="bg-red-50 p-3 rounded-md">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      পরিমাণ: {parseFloat(requestToCancel.amount).toFixed(2)}৳
+                    </h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>
+                        ওয়ালেট: {requestToCancel.walletName} - {requestToCancel.walletPhoneNo}
+                      </p>
+                      <p className="mt-1">
+                        তারিখ: {formatDate(requestToCancel.requestedAt)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 border-t flex justify-end gap-3">
+              <button
+                onClick={closeCancelConfirmation}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                বাতিল করুন
+              </button>
+              <button
+                onClick={() => handleCancelRequest(requestToCancel.withdrawId)}
+                disabled={cancellingId === requestToCancel.withdrawId}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+              >
+                {cancellingId === requestToCancel.withdrawId ? 'বাতিল করা হচ্ছে...' : 'নিশ্চিত করুন'}
               </button>
             </div>
           </div>

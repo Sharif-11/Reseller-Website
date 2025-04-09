@@ -5,6 +5,7 @@ import { FaHeart, FaSpinner } from 'react-icons/fa';
 import { getAllProducts } from '../Api/product.api';
 import { FavoriteProduct } from '../types/product.types';
 import {  FAVORITES_KEY } from '../utils/utils.variables';
+import Loading from './Loading';
 interface Product {
   productId: number;
   name: string;
@@ -135,8 +136,7 @@ const Products = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <FaSpinner className="animate-spin text-2xl text-blue-500" />
-        <span className="ml-2">Loading products...</span>
+        <Loading/>
       </div>
     );
   }
@@ -158,7 +158,7 @@ const Products = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-        {products.filter(p => p.published).map(product => (
+        {products?.filter(p => p.published).map(product => (
           <div
             key={product.productId}
             className="relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 group"
@@ -238,7 +238,7 @@ const Products = () => {
         ))}
       </div>
 
-      {products.length === 0 && !loading && (
+      {products?.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-gray-500">No products available</p>
         </div>
