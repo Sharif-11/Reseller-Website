@@ -116,7 +116,6 @@ const Checkout = () => {
       senderWallet: '',
       comments: '',
       needsPayment: false,
-      paidDeliveryCharge: 0,
     },
     validationSchema,
     onSubmit: async (values) => {
@@ -132,7 +131,6 @@ const Checkout = () => {
             transactionId: values.transactionId,
             senderWallet: values.senderWallet,
             requiredAmount: amountToPay,
-            paidAmount: values.paidDeliveryCharge,
           } : null
         };
         
@@ -182,7 +180,7 @@ const Checkout = () => {
             needsPayment = false;
           } else {
             needsPayment = true;
-            paymentAmount = deliveryCharge - (currentBalance - negativeLimit);
+            paymentAmount = deliveryCharge - currentBalance;
           }
         }
       } else {
@@ -509,40 +507,7 @@ const Checkout = () => {
                     </div>
 
                     {/* প্রদত্ত ডেলিভারি চার্জ */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        প্রদত্ত ডেলিভারি চার্জ*
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <span className="whitespace-nowrap">৳</span>
-                        <input
-                          type="number"
-                          className={`w-full px-4 py-3 border rounded-lg ${
-                            formik.touched.paidDeliveryCharge && formik.errors.paidDeliveryCharge 
-                              ? "border-red-500" 
-                              : "border-gray-300"
-                          }`}
-                          {...formik.getFieldProps("paidDeliveryCharge")}
-                          value={formik.values.paidDeliveryCharge || ''}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value) || 0;
-                            formik.setFieldValue("paidDeliveryCharge", value);
-                          }}
-                          min={amountToPay}
-                        />
-                      </div>
-                      {formik.touched.paidDeliveryCharge && formik.errors.paidDeliveryCharge && (
-                        <p className="text-red-500 text-xs mt-1">{formik.errors.paidDeliveryCharge}</p>
-                      )}
-                      <p className="text-gray-500 text-xs mt-1">
-                        ন্যূনতম পরিশোধযোগ্য: ৳{amountToPay.toLocaleString('bn-BD')}
-                        {formik.values.paidDeliveryCharge > amountToPay && (
-                          <span className="text-green-600 ml-2">
-                            (অতিরিক্ত প্রদত্ত: ৳{(formik.values.paidDeliveryCharge - amountToPay).toLocaleString('bn-BD')})
-                          </span>
-                        )}
-                      </p>
-                    </div>
+                   
 
                     {/* এডমিন ওয়ালেট নির্বাচন */}
                     <div className="mb-4">
@@ -786,7 +751,7 @@ const Checkout = () => {
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <h3 className="text-sm font-medium text-blue-800 mb-2">ডেলিভারি নির্দেশিকা</h3>
                   <ul className="text-xs text-blue-700 space-y-1 list-disc pl-4">
-                    <li>ডেলিভারি সময়সীমা: ২-৫ কার্যদিবস</li>
+                    
                     <li>প্রথম অর্ডারের ক্ষেত্রে ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
                     <li>ডেলিভারি কর্মী উপস্থিত থাকা অবস্থায় পণ্য পরীক্ষা করে নিন</li>
                   </ul>
