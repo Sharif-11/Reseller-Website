@@ -181,3 +181,122 @@ export const getAllTransactionHistoryForAdmin = async ({
     };
   }
 }
+export const addAdminWallet = async ({
+  walletName,
+  walletPhoneNo
+} :{
+  walletName:string;
+  walletPhoneNo:string;
+})=>{
+  
+  try {
+    
+    const { data } = await axiosInstance.post(`admin/wallets`, {
+      walletName,
+      walletPhoneNo
+    });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+export const deleteAdminWallet = async ({
+  walletId}:{
+  walletId:number;
+})=>{
+  try {
+    
+    const { data } = await axiosInstance.delete(`admin/wallets/${walletId}`);
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+    
+  }
+}
+export const getAllAdminWallets = async ()=>{
+  
+  try {
+    
+    const { data } = await axiosInstance.get(`admin/wallets`);
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+
+
+  } catch (error) {
+    
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+
+}

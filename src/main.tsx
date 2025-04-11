@@ -26,6 +26,7 @@ import AdminWithdrawRequests from "./Components/AdminWithdrawRequest.tsx";
 import BalanceStatement from "./Components/BalanceStatement.tsx";
 import AdminTransactionHistory from "./Components/AdminTransactionHistory.tsx";
 import Checkout from "./Components/Checkout.tsx";
+import AdminWalletManagement from "./Components/AdminWallet.tsx";
 
 
 
@@ -112,6 +113,11 @@ createRoot(document.getElementById("root")!).render(
             <SellerRoute>
               <AddWallet/>
             </SellerRoute>
+           } />
+          <Route path='add-admin-wallets' element={
+            <AdminRoute>
+              <AdminWalletManagement/>
+            </AdminRoute>
            } />
           <Route path='request-withdraw' element={
             <SellerRoute>

@@ -1,6 +1,14 @@
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { verifyLogin } from "../Api/auth.api";
 import Loading from "../Components/Loading";
+export interface Wallet {
+  walletId: number;
+  userId: string;
+  userName: string;
+  userPhoneNo: string;
+  walletName: string;
+  walletPhoneNo: string;
+}
 
 export interface User {
   userId: string;
@@ -16,6 +24,7 @@ export interface User {
   shopName?: string | null;
   nomineePhone?: string | null;
   role: "Seller" | "Admin";
+  wallets?:Wallet[]; // Optional property for wallets
 }
 
 interface UserContextType {
