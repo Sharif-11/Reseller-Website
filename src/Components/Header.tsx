@@ -38,7 +38,7 @@ const Header = ({
  
 
   return (
-    <header className="bg-gradient-to-r from-indigo-700 to-indigo-800 sticky top-0 z-50 shadow-lg">
+    <header className="bg-gradient-to-r from-indigo-700 to-indigo-800 sticky top-0 z-50 shadow-lg" id="home">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Mobile Menu Button */}
@@ -92,27 +92,25 @@ const Header = ({
           <div className="hidden md:flex items-center space-x-2">
         {! user ?    (
            <>
-           <NavLink
-              to="/"
+           <a href="/#home"
+              
               className="text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium"
               
             >
               হোম
-            </NavLink>
-                <NavLink
-                  to="/login"
+            </a>
+            <a href='/login#login'       
                   className="text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium"
                   
                 >
                   লগইন
-                </NavLink>
-                <NavLink
-                  to="/register"
+            </a>
+            <a href="/register#register"
                   className="text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium"
                   
                 >
                   রেজিস্ট্রেশন
-                </NavLink>
+                </a>
           </>
             
             ) : (

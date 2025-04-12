@@ -248,3 +248,137 @@ const Products = () => {
 };
 
 export default Products;
+
+
+
+export const PublicProducts = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  // Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const response = await getAllProducts();
+        setProducts(response.data.filter((p: Product) => p.published));
+      } catch (err) {
+        setError('পণ্য লোড করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।');
+        console.error('পণ্য লোড করতে সমস্যা:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('bn-BD', {
+      style: 'currency',
+      currency: 'BDT',
+      minimumFractionDigits: 0
+    }).format(price).replace('BDT', '৳');
+  };
+
+  const navigateToProductDetail = (product: Product) => {
+    navigate(`/products/${product.productId}`, {
+      state: { product }
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loading/>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12 text-red-500">
+        {error}
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          আবার চেষ্টা করুন
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8" >
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">আমাদের জনপ্রিয় পণ্য সমূহ</h2>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            সেরা মানের পণ্য সংগ্রহ করুন আমাদের কাছ থেকে
+          </p>
+        </div>
+
+        {/* Products Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+          {products.map(product => (
+            <div
+              key={product.productId}
+              className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group cursor-pointer"
+              onClick={() => navigateToProductDetail(product)}
+            >
+              {/* Product Image */}
+              <div className="relative aspect-square overflow-hidden">
+                <img
+                  src={product.imageUrl || '/placeholder-product.jpg'}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/placeholder-product.jpg';
+                  }}
+                />
+                
+                {/* Stock Status */}
+                <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-medium ${
+                  product.stockSize > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {product.stockSize > 0 ? 'স্টকে আছে' : 'স্টকে নেই'}
+                </div>
+              </div>
+
+              {/* Product Info */}
+              <div className="p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-2">
+                  {product.name}
+                </h3>
+                <p className="text-md font-bold text-blue-600 mb-2">
+                  {formatPrice(product.basePrice)}
+                </p>
+                
+                {/* Category */}
+                {product.category && (
+                  <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
+                    {product.category}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {products.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">কোন পণ্য পাওয়া যায়নি</p>
+          </div>
+        )}
+
+     
+      </div>
+    </div>
+  );
+};
+

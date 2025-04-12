@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import OTPForm from "./OTPForm";
 import RegistrationInfo from "./RegistrationInfo";
 import OTPValidation from "./ValidateOTP";
+import Footer from "./Footer";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -11,7 +12,7 @@ const Register = () => {
   const [mobileNumber, setMobileNumber] = useState("");
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100">
+    <div className="pt-4" id='register'>
       {page === 0 && (
         <OTPForm
           mobileNumber={mobileNumber}
@@ -28,6 +29,7 @@ const Register = () => {
           referralCode={referralCode}
         />
       )}
+      <Footer/>
     </div>
   );
 };

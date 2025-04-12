@@ -16,7 +16,6 @@ import { UserProvider } from "./Context/userContext.tsx";
 import AdminProducts from "./Components/AdminProducts.tsx";
 import CatchAllRoute from "./Components/CatchAllRoutes.tsx";
 import Products from "./Components/Products.tsx";
-import ProductDetail from "./Components/ProductDetail.tsx";
 import Cart from "./Components/Cart.tsx";
 import Favorites from "./Components/Favorites.tsx";
 import AddWallet from "./Components/AddWallet.tsx";
@@ -27,6 +26,9 @@ import BalanceStatement from "./Components/BalanceStatement.tsx";
 import AdminTransactionHistory from "./Components/AdminTransactionHistory.tsx";
 import Checkout from "./Components/Checkout.tsx";
 import AdminWalletManagement from "./Components/AdminWallet.tsx";
+import LandingPage from "./Components/LandingPage.tsx";
+import PublicProductDetails from "./Components/ProductDetailPublic.tsx";
+import ProductDetailDecider from "./Components/ProductDetailDecider.tsx";
 
 
 
@@ -88,16 +90,17 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />}>
-          <Route index element={<Products/>} />
+          <Route index element={<LandingPage/>} />
+          <Route path='product-detail/:productId' element={<PublicProductDetails/>} />
           <Route path='products' element={
-            <SellerRoute>
+           
               <Products/>
-            </SellerRoute>
+       
            } />
           <Route path='products/:productId' element={
-            <SellerRoute>
-              <ProductDetail/>
-            </SellerRoute>
+           
+              <ProductDetailDecider/>
+            
            } />
           <Route path='cart' element={
             <SellerRoute>

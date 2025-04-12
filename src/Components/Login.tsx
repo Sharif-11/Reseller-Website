@@ -5,6 +5,7 @@ import { login } from "../Api/auth.api";
 import { useAuth } from "../Hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { FiLogIn, FiUserPlus, FiKey } from "react-icons/fi";
+import Footer from "./Footer";
 
 const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +43,8 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-indigo-50 to-gray-100 py-8 px-4">
+   <>
+    <div className="flex items-start justify-center py-8 px-4" id="login">
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Header Section */}
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-center">
@@ -175,6 +177,8 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
+    <Footer/>
+    </>
   );
 };
 

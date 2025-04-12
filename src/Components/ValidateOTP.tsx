@@ -64,7 +64,7 @@ const OTPValidation = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100 flex items-start justify-center py-16 px-4">
+    <div className=" flex items-start justify-center py-16 px-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-sm overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-4 text-center text-white">
