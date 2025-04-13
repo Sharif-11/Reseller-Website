@@ -33,6 +33,7 @@ import SellerHomeDashboard from "./Components/SellersAdminDashboard.tsx";
 import SupportCenter from "./Components/SupportCenter.tsx";
 import FAQSection from "./Components/FAQ.tsx";
 import SupportTicket from "./Components/SupportTicket.tsx";
+import SalesGuidelines from "./Components/SalesGuideline.tsx";
 
 
 
@@ -42,7 +43,7 @@ const PublicRoute = ({ children }: { children: JSX.Element }) => {
 
   if (user) {
     // If user is logged in, check if they were redirected from another route
-    const from = location.state?.from?.pathname || "/profile";
+    const from = location.state?.from?.pathname || "/home";
     return <Navigate to={from} replace />;
   }
 
@@ -94,7 +95,7 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />}>
-          <Route index element={<LandingPage/>} />
+          <Route index element={<PublicRoute><LandingPage/></PublicRoute>} />
           <Route path="home" element={<SellerRoute><SellerHomeDashboard/></SellerRoute>} />
           <Route path='product-detail/:productId' element={<PublicProductDetails/>} />
           <Route path='products' element={
@@ -115,6 +116,11 @@ createRoot(document.getElementById("root")!).render(
           <Route path='support' element={
             <SellerRoute>
               <SupportCenter/>
+            </SellerRoute>
+           } />
+          <Route path='selling-guide' element={
+            <SellerRoute>
+              <SalesGuidelines/>
             </SellerRoute>
            } />
           <Route path='faq' element={

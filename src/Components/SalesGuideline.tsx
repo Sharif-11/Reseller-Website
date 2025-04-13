@@ -1,0 +1,99 @@
+import { FaBox, FaPhone, FaShieldAlt, FaHandshake } from 'react-icons/fa';
+
+const SalesGuidelines = () => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 my-6 border border-gray-200">
+      <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200 flex items-center">
+        <FaHandshake className="mr-2 text-indigo-600" />
+        রিসেলার বিডি - বিক্রয় নির্দেশিকা
+      </h2>
+
+      <div className="space-y-6">
+        {/* Order Section */}
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
+            <FaBox className="mr-2" />
+            অর্ডার সংক্রান্ত নিয়মাবলী
+          </h3>
+          <ul className="space-y-3 text-gray-700 pl-2">
+            <li className="flex items-start">
+              <span className="text-blue-600 mr-2">•</span>
+              <span>
+                <strong>অর্ডার গ্রহণ:</strong> ফেসবুক বা অন্য সোশ্যাল মিডিয়া থেকে অর্ডার নেওয়ার পর <strong>অবশ্যই</strong> কাস্টমারের ফোনে কল করে নিশ্চিত করবেন। এতে ফেক অর্ডার কমবে।
+              </span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-blue-600 mr-2">•</span>
+              <span>
+                <strong>ডেলিভারি চার্জ:</strong> ফেক অর্ডার রোধ করতে কাস্টমারের কাছ থেকে <strong>ডেলিভারি চার্জ আগাম নেওয়ার চেষ্টা করবেন</strong>। প্রাপ্ত ডেলিভারি চার্জ অবশ্যই আমাদের পেমেন্ট করে অর্ডার প্লেস করবেন।
+              </span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-blue-600 mr-2">•</span>
+              <span>
+                <strong>অর্ডার যাচাইকরণ:</strong> যারা ডেলিভারি চার্জ দিবেন না, তাদের অর্ডার আমাদের অফিস থেকে কল করে ভেরিফাই করা হবে। ডেলিভারি চার্জ নিয়েও যারা পেমেন্ট করবেন না, তাদের বিরুদ্ধে ব্যবস্থা নেওয়া হবে।
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Account Security Section */}
+        <div className="bg-green-50 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold text-green-800 mb-3 flex items-center">
+            <FaShieldAlt className="mr-2" />
+            অ্যাকাউন্ট নিরাপত্তা
+          </h3>
+          <ul className="space-y-3 text-gray-700 pl-2">
+            <li className="flex items-start">
+              <span className="text-green-600 mr-2">•</span>
+              <span>
+                <strong>পাসওয়ার্ড শেয়ার নিষিদ্ধ:</strong> কোন অবস্থাতেই আপনার অ্যাকাউন্টের পাসওয়ার্ড অন্য কাউকে দিবেন না। অ্যাকাউন্ট খোলার পর <strong>অবিলম্বে</strong> নগদ/বিকাশ নাম্বার যুক্ত করে ফেলুন।
+              </span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-green-600 mr-2">•</span>
+              <span>
+                <strong>ফ্রী মেম্বারশিপ:</strong> রিসেলার বিডি-তে কাজ করতে বা সেলার কোড পেতে <strong>কোন ফী বা টাকার প্রয়োজন নেই</strong>। কাউকে টাকা দিবেন না বা নিবেন না।
+              </span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-green-600 mr-2">•</span>
+              <span>
+                <strong>সমস্যা সমাধান:</strong> কোন সমস্যা হলে সাথে সাথে রিসেলার বিডি সাপোর্টে যোগাযোগ করবেন।
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        {/* General Advice */}
+        <div className="bg-yellow-50 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold text-yellow-800 mb-3 flex items-center">
+            <FaPhone className="mr-2" />
+            সাধারণ পরামর্শ
+          </h3>
+          <div className="text-gray-700 space-y-2">
+            <p className="flex items-start">
+              <span className="text-yellow-600 mr-2">•</span>
+              <span>টিম লিডাররা এই গাইডলাইন সকল মেম্বারের সাথে শেয়ার করবেন</span>
+            </p>
+            <p className="flex items-start">
+              <span className="text-yellow-600 mr-2">•</span>
+              <span>এই নিয়মগুলো মেনে চললে রিটার্ন কম আসবে এবং আপনার আয় বাড়বে</span>
+            </p>
+            <p className="flex items-start">
+              <span className="text-yellow-600 mr-2">•</span>
+              <span>কোন প্রশ্ন থাকলে আমাদের সাপোর্ট টিমের সাথে যোগাযোগ করুন</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="text-center mt-6 text-sm text-gray-500 border-t pt-4">
+          <p>এই নির্দেশিকা মেনে কাজ করলে রিসেলার বিডি প্লাটফর্মে আপনার ব্যবসা সফল হবে</p>
+          <p className="font-medium text-indigo-600 mt-1">- রিসেলার বিডি টিম</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SalesGuidelines;

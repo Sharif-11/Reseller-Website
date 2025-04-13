@@ -29,7 +29,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           {/* Sidebar */}
           <aside
             className={`
-              fixed md:static w-64 min-h-[calc(100vh-4rem)] bg-gradient-to-b from-indigo-700 to-indigo-800
+              fixed md:static w-64 min-h-[calc(100vh-0rem)] bg-gradient-to-b from-indigo-700 to-indigo-800
               text-white shadow-xl transform transition-transform duration-300 ease-in-out
               ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
               z-40 flex flex-col

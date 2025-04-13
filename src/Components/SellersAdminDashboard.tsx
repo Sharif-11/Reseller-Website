@@ -66,7 +66,7 @@ const SellerHomeDashboard = () => {
         {/* Announcement Bar with Moving Text */}
         <div className="bg-indigo-600 text-white rounded-lg mb-6 overflow-hidden">
           <div className="flex items-center p-3">
-            <FaBullhorn className="text-xl mr-3 flex-shrink-0" />
+            <FaBullhorn className="text-xl md:text-md mr-3 flex-shrink-0" />
             <div className="whitespace-nowrap overflow-hidden">
               <div className="inline-block animate-marquee">
                 {announcements.map((announcement, index) => (
