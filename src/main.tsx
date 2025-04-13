@@ -29,6 +29,10 @@ import AdminWalletManagement from "./Components/AdminWallet.tsx";
 import LandingPage from "./Components/LandingPage.tsx";
 import PublicProductDetails from "./Components/ProductDetailPublic.tsx";
 import ProductDetailDecider from "./Components/ProductDetailDecider.tsx";
+import SellerHomeDashboard from "./Components/SellersAdminDashboard.tsx";
+import SupportCenter from "./Components/SupportCenter.tsx";
+import FAQSection from "./Components/FAQ.tsx";
+import SupportTicket from "./Components/SupportTicket.tsx";
 
 
 
@@ -91,6 +95,7 @@ createRoot(document.getElementById("root")!).render(
       <Routes>
         <Route path="/" element={<Home />}>
           <Route index element={<LandingPage/>} />
+          <Route path="home" element={<SellerRoute><SellerHomeDashboard/></SellerRoute>} />
           <Route path='product-detail/:productId' element={<PublicProductDetails/>} />
           <Route path='products' element={
            
@@ -105,6 +110,21 @@ createRoot(document.getElementById("root")!).render(
           <Route path='cart' element={
             <SellerRoute>
               <Cart/>
+            </SellerRoute>
+           } />
+          <Route path='support' element={
+            <SellerRoute>
+              <SupportCenter/>
+            </SellerRoute>
+           } />
+          <Route path='faq' element={
+            <SellerRoute>
+              <FAQSection/>
+            </SellerRoute>
+           } />
+          <Route path='support-ticket' element={
+            <SellerRoute>
+              <SupportTicket/>
             </SellerRoute>
            } />
           <Route path='favorites' element={
@@ -126,7 +146,7 @@ createRoot(document.getElementById("root")!).render(
             <SellerRoute>
             <WithdrawRequest/>
             </SellerRoute>} />
-          <Route path='transactions' element={
+          <Route path='balance-statement' element={
             <SellerRoute>
            <BalanceStatement/>
             </SellerRoute>} />
