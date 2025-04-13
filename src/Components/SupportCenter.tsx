@@ -9,7 +9,7 @@ const SupportCenter = () => {
       icon: <FaPhone className="text-xl md:text-2xl text-blue-600" />,
       details: '09638755704',
       action: 'কল করতে ক্লিক করুন',
-      link: 'tel:09638777888',
+      link: 'tel:09638755704',
       bgColor: 'bg-blue-50 hover:bg-blue-100'
     },
     {
