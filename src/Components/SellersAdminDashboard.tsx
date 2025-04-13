@@ -4,7 +4,7 @@ import { useAuth } from '../Hooks/useAuth';
 
 const SellerHomeDashboard = () => {
   // Sample balance data (negative for demo)
-  const {user}=useAuth()
+  const {user} = useAuth()
   const currentBalance = user?.balance || 0; // Example balance, replace with actual data
   
   // Announcements data
@@ -31,6 +31,22 @@ const SellerHomeDashboard = () => {
       url: '/balance-statement'
     },
     {
+      title: 'সাপোর্ট সেন্টার',
+      icon: <FaHeadset className="text-3xl text-red-600" />,
+      url: '/support'
+    },
+    {
+      title: 'সাধারণ প্রশ্ন',
+      icon: <FaQuestionCircle className="text-3xl text-indigo-600" />,
+      url: '/faq'
+    },
+    {
+      title: 'সেলার ড্যাশবোর্ড',
+      icon: <FaBoxOpen className="text-3xl text-blue-600" />,
+      url: '/seller-dashboard',
+      upcoming: true
+    },
+    {
       title: 'সাপোর্ট টিকেট',
       icon: <FaTicketAlt className="text-3xl text-orange-600" />,
       url: '/support-ticket',
@@ -42,16 +58,6 @@ const SellerHomeDashboard = () => {
       url: '/passive-income',
       upcoming: true
     },
-    {
-      title: 'সাপোর্ট সেন্টার',
-      icon: <FaHeadset className="text-3xl text-red-600" />,
-      url: '/support'
-    },
-    {
-      title: 'সাধারণ প্রশ্ন',
-      icon: <FaQuestionCircle className="text-3xl text-indigo-600" />,
-      url: '/faq'
-    }
   ];
 
   return (
@@ -97,48 +103,43 @@ const SellerHomeDashboard = () => {
           </div>
         )}
 
-        {/* Quick Links Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Quick Links Grid - Updated to show 3 columns on mobile */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2 md:gap-4">
           {quickLinks.map((link, index) => (
-            <NavLink
-              key={index}
-              to={link.url}
-              className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 p-4 md:p-6 flex flex-col items-center text-center border border-gray-100 hover:border-blue-200 relative ${
-                link.upcoming ? 'opacity-80' : ''
-              }`}
-            >
-              {link.upcoming && (
-                <span className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+            link.upcoming ? (
+              // Upcoming feature (not clickable)
+              <div
+                key={index}
+                className="bg-white rounded-lg shadow-sm p-2 md:p-4 flex flex-col items-center text-center border border-gray-100 relative opacity-80"
+              >
+                <span className="absolute top-1 right-1 bg-yellow-100 text-yellow-800 text-[8px] px-1 py-0.5 rounded-full">
                   শীঘ্রই আসছে
                 </span>
-              )}
-              <div className={`mb-3 md:mb-4 p-3 ${link.upcoming ? 'bg-gray-100' : 'bg-blue-50'} rounded-full`}>
-                {link.icon}
+                <div className="mb-2 p-2 bg-gray-100 rounded-full">
+                  {link.icon}
+                </div>
+                <h3 className="text-xs font-semibold text-gray-800 mb-1 line-clamp-2">
+                  {link.title}
+                </h3>
+                <span className="mt-1 text-gray-500 text-[10px] font-medium">
+                  শীঘ্রই আসছে
+                </span>
               </div>
-              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-2">
-                {link.title}
-              </h3>
-              {/* <p className="text-sm md:text-base text-gray-600">
-                {link.title} দেখুন এবং ব্যবস্থাপনা করুন
-              </p> */}
-              <span className="mt-3 text-blue-600 text-sm font-medium flex items-center">
-                বিস্তারিত দেখুন
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 ml-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </span>
-            </NavLink>
+            ) : (
+              // Available feature (entire box is clickable)
+              <NavLink
+                key={index}
+                to={link.url}
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 p-2 md:p-4 flex flex-col items-center text-center border border-gray-100 hover:border-blue-200 relative group"
+              >
+                <div className="mb-2 p-2 bg-blue-50 rounded-full group-hover:bg-blue-100 transition-colors">
+                  {link.icon}
+                </div>
+                <h3 className="text-xs font-semibold text-gray-800 mb-1 line-clamp-2">
+                  {link.title}
+                </h3>
+              </NavLink>
+            )
           ))}
         </div>
 

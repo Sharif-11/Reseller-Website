@@ -1,4 +1,5 @@
 import { FaQuestionCircle } from 'react-icons/fa';
+import { NavLink } from 'react-router-dom';
 
 const FAQSection = () => {
   const faqs = [
@@ -83,8 +84,8 @@ const FAQSection = () => {
               <h3 className="text-lg font-semibold text-indigo-800">আরো সাহায্য প্রয়োজন?</h3>
               <p className="text-indigo-600">আমাদের সাপোর্ট টিম আপনার জন্য সবসময় প্রস্তুত</p>
             </div>
-            <a
-              href="/support"
+            <NavLink
+              to="/support"
               className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors inline-flex items-center"
             >
               সাপোর্ট সেন্টারে যান
@@ -102,7 +103,7 @@ const FAQSection = () => {
                   d="M9 5l7 7-7 7"
                 />
               </svg>
-            </a>
+            </NavLink>
           </div>
         </div>
       </div>
