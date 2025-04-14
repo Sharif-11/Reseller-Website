@@ -31,7 +31,7 @@ const Header = ({
     if (success) {
       localStorage.removeItem("token");
       if (setUser) setUser(null);
-      navigate("/login");
+      navigate("/");
     }
     setLoading(false);
   };
@@ -98,6 +98,13 @@ const Header = ({
               
             >
               হোম
+            </a>
+           <a href="/about-us#about-us"
+              
+              className="text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium"
+              
+            >
+              আমাদের সম্পর্কে
             </a>
             <a href='/login#login'       
                   className="text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium"
@@ -286,15 +293,23 @@ const Header = ({
         <div className="md:hidden bg-gradient-to-b from-indigo-700 to-indigo-800">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
            <NavLink
-              to="/"
+              to="/#home"
               className="block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition"
               onClick={toggleMenu}
               
             >
               হোম
             </NavLink>
+           <NavLink
+              to="/about-us#about-us"
+              className="block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition"
+              onClick={toggleMenu}
+              
+            >
+              আমাদের সম্পর্কে
+            </NavLink>
              <NavLink
-                  to="/login"
+                  to="/login#login"
                   className="block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition"
                   onClick={toggleMenu}
                   
@@ -302,7 +317,7 @@ const Header = ({
                   লগইন
                 </NavLink>
                 <NavLink
-                  to="/register"
+                  to="/register#register"
                   className="block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition"
                   onClick={toggleMenu}
                   

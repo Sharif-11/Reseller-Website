@@ -83,7 +83,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     checkLogin();
   }, []);
 
-  if (loading && !user) return <Loading />;
+  if (loading) return <Loading />;
 
   return (
     <UserContext.Provider value={{ user, setUser, loading, error, reloadUser }}>

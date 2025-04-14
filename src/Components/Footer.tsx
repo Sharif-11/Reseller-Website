@@ -1,4 +1,4 @@
-import { FaFacebook, FaInstagram, FaLinkedin, FaTwitter, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaPhoneAlt } from 'react-icons/fa';
 
 const Footer = () => {
   return (
@@ -12,7 +12,7 @@ const Footer = () => {
             <p className="mb-4">
               বাংলাদেশের নির্ভরযোগ্য ড্রপশিপিং ও রিসেলিং প্ল্যাটফর্ম
             </p>
-            <div className="flex space-x-4">
+            {/* <div className="flex space-x-4">
               <a href="#" className="text-gray-300 hover:text-blue-400 transition">
                 <FaFacebook size={20} />
               </a>
@@ -25,7 +25,7 @@ const Footer = () => {
               <a href="#" className="text-gray-300 hover:text-blue-400 transition">
                 <FaTwitter size={20} />
               </a>
-            </div>
+            </div> */}
           </div>
 
           {/* Quick Links */}
@@ -33,8 +33,8 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4 border-b border-blue-400 pb-2">দ্রুত লিংক</h4>
             <ul className="space-y-2">
               <li><a href="/about" className="hover:text-blue-400 transition">আমাদের সম্পর্কে</a></li>
-              <li><a href="/products" className="hover:text-blue-400 transition">পণ্য সমূহ</a></li>
-              <li><a href="/how-it-works" className="hover:text-blue-400 transition">কিভাবে কাজ করে</a></li>
+              <li><a href="#products" className="hover:text-blue-400 transition">পণ্য সমূহ</a></li>
+              <li><a href="#how-it-works" className="hover:text-blue-400 transition">কিভাবে কাজ করে</a></li>
               <li><a href="/faq" className="hover:text-blue-400 transition">সচরাচর প্রশ্ন</a></li>
             </ul>
           </div>
@@ -56,16 +56,16 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-start">
                 <FaPhoneAlt className="mt-1 mr-3 text-blue-400" />
-                <span>+৮৮০ ১৩XX XXX XXX</span>
+                <span>09638755704</span>
               </li>
-              <li className="flex items-start">
+              {/* <li className="flex items-start">
                 <FaEnvelope className="mt-1 mr-3 text-blue-400" />
                 <span>support@resellerbd.com</span>
               </li>
               <li className="flex items-start">
                 <FaMapMarkerAlt className="mt-1 mr-3 text-blue-400" />
                 <span>রোড নং ১২, মোহাম্মদপুর, ঢাকা, বাংলাদেশ</span>
-              </li>
+              </li> */}
             </ul>
           </div>
         </div>

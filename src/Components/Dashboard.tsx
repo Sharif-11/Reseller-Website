@@ -25,14 +25,14 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       <Header setIsSidebarOpen={setIsSidebarOpen} />
 
       {user ? (
-        <div className="flex">
+        <div className="flex h-full">
           {/* Sidebar */}
           <aside
             className={`
-              fixed md:static w-64 min-h-[calc(100vh-0rem)] bg-gradient-to-b from-indigo-700 to-indigo-800
+              fixed md:relative w-64 bg-gradient-to-b from-indigo-700 to-indigo-800
               text-white shadow-xl transform transition-transform duration-300 ease-in-out
               ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-              z-40 flex flex-col
+              z-40 flex flex-col h-[calc(100vh-64px)] md:h-auto
             `}
           >
             <div className="p-4 border-b border-indigo-600">
@@ -288,7 +288,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                     <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
-                    অ্যাডমিন ওয়ালেটস 
+                    অ্যাডমিন ওয়ালেটস 
                   </NavLink>
                   <NavLink
                     to="/admin-withdraw-request"
@@ -333,19 +333,19 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 </svg>
                 পাসওয়ার্ড পরিবর্তন
               </NavLink>
-              { user?.role==='Seller' &&  <NavLink
-                to="/support-ticket"
-                className={({ isActive }) => `
-                  flex items-center px-4 py-3 rounded-lg transition-all
-                  ${isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'}
-                `}
-                onClick={() => setIsSidebarOpen(false)}
-                >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18m-7 5h7" />
-                </svg>
-                সাপোর্ট টিকিট
-                </NavLink>}
+              {user?.role === 'Seller' && (
+                <div className="relative">
+                  <div className="flex items-center px-4 py-3 rounded-lg text-indigo-100 opacity-80">
+                    <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18m-7 5h7" />
+                    </svg>
+                    সাপোর্ট টিকিট
+                    <span className="absolute top-2 right-4 bg-yellow-100 text-yellow-800 text-[8px] px-1 py-0.5 rounded-full">
+                      শীঘ্রই আসছে
+                    </span>
+                  </div>
+                </div>
+              )}
             </nav>
           </aside>
 

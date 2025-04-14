@@ -33,7 +33,9 @@ const LoginPage = () => {
       if (result.success) {
         localStorage.setItem("token", result.data?.token);
         setUser(result.data?.user);
-        navigate("/");
+        // const role= result.data?.user?.role;
+        // navigate(role === "Admin" ? "/profile" : "/cart", { replace: true });
+        
       } else {
         setError(result.message || "লগইন করতে ব্যর্থ হয়েছে");
       }

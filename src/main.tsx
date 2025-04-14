@@ -34,16 +34,19 @@ import SupportCenter from "./Components/SupportCenter.tsx";
 import FAQSection from "./Components/FAQ.tsx";
 import SupportTicket from "./Components/SupportTicket.tsx";
 import SalesGuidelines from "./Components/SalesGuideline.tsx";
+import AboutUs from "./Components/AboutUs.tsx";
 
 
 
 const PublicRoute = ({ children }: { children: JSX.Element }) => {
   const { user } = useAuth();
-  const location = useLocation();
+  // const location = useLocation();
 
   if (user) {
-    // If user is logged in, check if they were redirected from another route
-    const from = location.state?.from?.pathname || "/home";
+    const role= user.role;
+  
+    const from =  (role==='Seller'? '/home' : '/profile') ;
+   
     return <Navigate to={from} replace />;
   }
 
@@ -96,6 +99,7 @@ createRoot(document.getElementById("root")!).render(
       <Routes>
         <Route path="/" element={<Home />}>
           <Route index element={<PublicRoute><LandingPage/></PublicRoute>} />
+          <Route path="about-us" element={<PublicRoute><AboutUs/></PublicRoute>} />
           <Route path="home" element={<SellerRoute><SellerHomeDashboard/></SellerRoute>} />
           <Route path='product-detail/:productId' element={<PublicProductDetails/>} />
           <Route path='products' element={
@@ -124,9 +128,9 @@ createRoot(document.getElementById("root")!).render(
             </SellerRoute>
            } />
           <Route path='faq' element={
-            <SellerRoute>
+            <PublicRoute>
               <FAQSection/>
-            </SellerRoute>
+            </PublicRoute>
            } />
           <Route path='support-ticket' element={
             <SellerRoute>

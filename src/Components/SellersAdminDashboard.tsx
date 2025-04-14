@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../Hooks/useAuth';
 
 const SellerHomeDashboard = () => {
+
   // Sample balance data (negative for demo)
   const {user} = useAuth()
   const currentBalance = user?.balance || 0; // Example balance, replace with actual data
