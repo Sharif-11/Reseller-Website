@@ -128,9 +128,9 @@ createRoot(document.getElementById("root")!).render(
             </SellerRoute>
            } />
           <Route path='faq' element={
-            <PublicRoute>
+         
               <FAQSection/>
-            </PublicRoute>
+          
            } />
           <Route path='support-ticket' element={
             <SellerRoute>
