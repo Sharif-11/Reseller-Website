@@ -10,7 +10,7 @@ import districts from '../../public/zillasInfo.json';
 import { useAuth } from '../Hooks/useAuth';
 import { dhakaDeliveryCharge, negativeLimit, outsideDhakaDeliveryCharge } from '../utils/config.utils';
 import { Wallet } from '../Context/userContext';
-import { getAdminWallets } from '../Api/seller.api';
+import { getAdminWallets, getWalletList } from '../Api/seller.api';
 
 interface CartItem {
   productId: number;
@@ -31,14 +31,26 @@ const Checkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [adminWallets, setAdminWallets] = useState<Wallet[]>(user?.wallets || []);
+  const [sellerWallets, setSellerWallets] = useState<Wallet[]>(user?.wallets || []);
   const [amountToPay, setAmountToPay] = useState(0);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [paymentFormFilled, setPaymentFormFilled] = useState(false);
+  const [showManualWalletInput, setShowManualWalletInput] = useState(false);
 
   // Cart items and price calculation
   const cartItems = location.state?.cartItems as CartItem[] || [];
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + (item.sellingPrice * item.quantity), 0);
+
+  // Calculate extra delivery charge based on product count
+  const calculateExtraDeliveryCharge = (productCount: number) => {
+    if (productCount <= 3) return 0;
+    if (productCount === 4) return 10;
+    
+    // For 5+ products: 10 tk for the 4th product + 5 tk for every 2 additional products
+    const additionalProducts = productCount - 4;
+    return 10 + Math.floor(additionalProducts / 2) * 5;
+  };
 
   // Fetch admin wallets
   const fetchAdminWallets = async () => {
@@ -54,8 +66,23 @@ const Checkout = () => {
     }
   }
 
+  // Fetch seller wallets
+  const fetchSellerWallets = async () => {
+    try {
+      const { success, message, data } = await getWalletList();
+      if (success) {
+        setSellerWallets(data);
+      } else {
+        console.error(message);
+      }
+    } catch (error) {
+      console.error('Error fetching seller wallets:', error);
+    }
+  }
+
   useEffect(() => {
     fetchAdminWallets();
+    fetchSellerWallets();
   }, []);
 
   // Form validation schema
@@ -89,6 +116,10 @@ const Checkout = () => {
         .matches(/^01\d{9}$/, "সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)")
         .required("আপনার ওয়ালেট নাম্বার দিন"),
     }),
+    senderWalletType: Yup.string().when('needsPayment', {
+      is: true,
+      then: () => Yup.string().required("ওয়ালেট টাইপ নির্বাচন করুন"),
+    }),
   });
 
   const formik = useFormik({
@@ -101,6 +132,7 @@ const Checkout = () => {
       adminWalletId: 0,
       transactionId: '',
       senderWallet: '',
+      senderWalletType: '',
       comments: '',
       needsPayment: false,
       paymentMethod: '',
@@ -109,15 +141,22 @@ const Checkout = () => {
     onSubmit: async (values) => {
       setIsSubmitting(true);
       try {
+        const baseDeliveryCharge = values.zilla.toLowerCase().includes('dhaka') 
+          ? dhakaDeliveryCharge 
+          : outsideDhakaDeliveryCharge;
+        const extraDeliveryCharge = calculateExtraDeliveryCharge(totalItems);
+        const totalDeliveryCharge = baseDeliveryCharge + extraDeliveryCharge;
+
         const orderData = {
           customer: values,
           products: cartItems,
-          totalAmount: subtotal + (values.zilla.toLowerCase().includes('dhaka') ? dhakaDeliveryCharge : outsideDhakaDeliveryCharge),
+          totalAmount: subtotal + totalDeliveryCharge,
           paymentInfo: values.needsPayment ? {
             adminWalletId: values.adminWalletId,
             method: values.paymentMethod,
             transactionId: values.transactionId,
             senderWallet: values.senderWallet,
+            senderWalletType: values.senderWalletType,
             requiredAmount: amountToPay,
           } : null
         };
@@ -148,9 +187,21 @@ const Checkout = () => {
     const selectedWallet = adminWallets.find(w => w.walletId === walletId);
     if (selectedWallet) {
       formik.setFieldValue("adminWalletId", walletId);
-    
       formik.setFieldValue("paymentMethod", selectedWallet.walletName);
+      formik.setFieldValue("senderWalletType", selectedWallet.walletName);
+      formik.setFieldValue("transactionId", "");
+      formik.setFieldValue("senderWallet", "");
+      formik.setFieldTouched("adminWalletId", true);
+      
+      // Reset manual input when admin wallet changes
+      setShowManualWalletInput(false);
     }
+  };
+
+  // Handle seller wallet selection
+  const handleSellerWalletSelect = (walletPhoneNo: string) => {
+    formik.setFieldValue("senderWallet", walletPhoneNo);
+    formik.setFieldTouched("senderWallet", true);
   };
 
   // Check payment requirements before confirming order
@@ -165,37 +216,42 @@ const Checkout = () => {
         return;
       }
 
-      const deliveryCharge = formik.values.zilla.toLowerCase().includes('dhaka') ? dhakaDeliveryCharge : outsideDhakaDeliveryCharge;
+      const baseDeliveryCharge = formik.values.zilla.toLowerCase().includes('dhaka') 
+        ? dhakaDeliveryCharge 
+        : outsideDhakaDeliveryCharge;
+      const extraDeliveryCharge = calculateExtraDeliveryCharge(totalItems);
+      const totalDeliveryCharge = baseDeliveryCharge + extraDeliveryCharge;
+
       const currentBalance = user?.balance || 0;
       let needsPayment = false;
       let paymentAmount = 0;
 
       if (!user?.isVerified) {
         // Unverified user
-        if (currentBalance >= deliveryCharge) {
+        if (currentBalance >= totalDeliveryCharge) {
           needsPayment = false;
         } else {
           needsPayment = true;
-          paymentAmount = deliveryCharge - currentBalance;
+          paymentAmount = totalDeliveryCharge - currentBalance;
         }
       } else {
         // Verified user
         if (currentBalance >= 0) {
-          if (currentBalance >= deliveryCharge) {
+          if (currentBalance >= totalDeliveryCharge) {
             needsPayment = false;
           } else {
-            const remainingAfterCharge = currentBalance - deliveryCharge;
+            const remainingAfterCharge = currentBalance - totalDeliveryCharge;
             if (remainingAfterCharge >= negativeLimit) {
               needsPayment = false;
             } else {
               needsPayment = true;
-              paymentAmount = deliveryCharge - currentBalance;
+              paymentAmount = totalDeliveryCharge - currentBalance;
             }
           }
         } else {
           // Negative balance (for both user types)
           needsPayment = true;
-          paymentAmount = deliveryCharge + Math.abs(currentBalance);
+          paymentAmount = totalDeliveryCharge + Math.abs(currentBalance);
         }
       }
 
@@ -206,17 +262,31 @@ const Checkout = () => {
       if (!needsPayment) {
         // If no payment needed, submit directly
         formik.handleSubmit();
-      } else if (paymentFormFilled) {
-        // If payment form was already filled, submit now
-        formik.handleSubmit();
       } else {
-        // Scroll to payment section if payment is needed
-        setTimeout(() => {
-          const paymentSection = document.getElementById('payment-section');
-          if (paymentSection) {
-            paymentSection.scrollIntoView({ behavior: 'smooth' });
+        // For payment needed case, first validate wallet selection
+        formik.validateField('adminWalletId').then(() => {
+          if (formik.errors.adminWalletId) {
+            // Show error if wallet not selected
+            setFormErrors(['অনুগ্রহ করে একটি এডমিন ওয়ালেট নির্বাচন করুন']);
+            setTimeout(() => {
+              const paymentSection = document.getElementById('payment-section');
+              if (paymentSection) {
+                paymentSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            }, 100);
+          } else if (paymentFormFilled) {
+            // If payment form was already filled, submit now
+            formik.handleSubmit();
+          } else {
+            // Scroll to payment section if payment is needed
+            setTimeout(() => {
+              const paymentSection = document.getElementById('payment-section');
+              if (paymentSection) {
+                paymentSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            }, 100);
           }
-        }, 100);
+        });
       }
     });
   };
@@ -231,6 +301,12 @@ const Checkout = () => {
       setPaymentFormFilled(isPaymentFormValid);
     }
   }, [formik.values, formik.errors, showPaymentForm]);
+
+  // Filter seller wallets by selected admin wallet type
+  const filteredSellerWallets = sellerWallets.filter(
+    wallet => wallet.walletName.toLowerCase() === 
+             (adminWallets.find(w => w.walletId === formik.values.adminWalletId)?.walletName.toLowerCase()
+  ))
 
   // Empty cart handling
   if (cartItems.length === 0) {
@@ -252,11 +328,13 @@ const Checkout = () => {
   }
 
   // Delivery charge calculation
-  const deliveryCharge = formik.values.zilla.toLowerCase().includes('dhaka') ? dhakaDeliveryCharge : outsideDhakaDeliveryCharge;
+  const baseDeliveryCharge = formik.values.zilla.toLowerCase().includes('dhaka') 
+    ? dhakaDeliveryCharge 
+    : outsideDhakaDeliveryCharge;
+  const extraDeliveryCharge = calculateExtraDeliveryCharge(totalItems);
+  const deliveryCharge = baseDeliveryCharge + extraDeliveryCharge;
   const totalAmount = subtotal + deliveryCharge;
   const userBalance = user?.balance || 0;
-
-  // Selected admin wallet info
 
   return (
     <div className="min-h-screen bg-gray-50 py-4 px-4 sm:px-6">
@@ -320,7 +398,14 @@ const Checkout = () => {
             
             <div className="flex justify-between items-center">
               <span className="text-gray-600">ডেলিভারি চার্জ:</span>
-              <span className="text-gray-900">৳{deliveryCharge.toLocaleString('bn-BD')}</span>
+              <div className="text-right">
+                <span className="text-gray-900">৳{baseDeliveryCharge.toLocaleString('bn-BD')}</span>
+                {extraDeliveryCharge > 0 && (
+                  <span className="text-xs text-gray-500 block">
+                    + অতিরিক্ত ৳{extraDeliveryCharge.toLocaleString('bn-BD')}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-between border-t pt-2 font-medium">
@@ -339,6 +424,20 @@ const Checkout = () => {
                 পরিশোধ করতে হবে: ৳{amountToPay.toLocaleString('bn-BD')}
               </p>
             )}
+          </div>
+
+          {/* Delivery guidelines - Mobile */}
+          <div className="mt-4 lg:hidden">
+            <div className="bg-blue-50 p-2 rounded-lg">
+              <h3 className="text-xs font-medium text-blue-800 mb-1">ডেলিভারি নির্দেশিকা</h3>
+              <ul className="text-xs text-blue-700 space-y-1 list-disc pl-4">
+                <li>প্রথম অর্ডারের ক্ষেত্রে ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
+                <li>ডেলিভারি কর্মী উপস্থিত থাকা অবস্থায় পণ্য পরীক্ষা করে নিন</li>
+                <li>৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</li>
+                <li>৪র্থ পণ্যের জন্য অতিরিক্ত ৳১০</li>
+                <li>এরপর প্রতি ২টি পণ্যের জন্য অতিরিক্ত ৳৫</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -496,6 +595,11 @@ const Checkout = () => {
                         ? 'ঢাকা শহরের জন্য: ৳80' 
                         : 'ঢাকার বাইরের জন্য: ৳130'}
                     </p>
+                    {totalItems > 3 && (
+                      <p className="text-sm mt-1">
+                        অতিরিক্ত চার্জ: {totalItems}টি পণ্যের জন্য ৳{extraDeliveryCharge.toLocaleString('bn-BD')}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -519,7 +623,7 @@ const Checkout = () => {
 
                     {/* Admin wallets */}
                     <div className="bg-blue-50 p-3 rounded-lg mb-3">
-                      <h4 className="text-sm font-medium text-blue-800 mb-2">এডমিন ওয়ালেট নম্বরসমূহ</h4>
+                      {/* <h4 className="text-sm font-medium text-blue-800 mb-2">এডমিন ওয়ালেট নম্বরসমূহ*</h4> */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {adminWallets.map((wallet) => (
                           <div 
@@ -536,6 +640,9 @@ const Checkout = () => {
                           </div>
                         ))}
                       </div>
+                      <p className="text-xs text-blue-500 mt-2">
+                        উপরের বিকাশ অথবা নগদ  নম্বরে পেমেন্ট করতে পারবেন।
+                      </p>
                       {formik.touched.adminWalletId && formik.errors.adminWalletId && (
                         <p className="text-red-500 text-xs mt-1">{formik.errors.adminWalletId}</p>
                       )}
@@ -553,6 +660,68 @@ const Checkout = () => {
                       </div>
                     )}
 
+                    {/* Seller wallet selection */}
+                    <div className="mb-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        আপনার {formik.values.paymentMethod || 'ওয়ালেট'} মোবাইল নম্বর নির্বাচন করুন*
+                        </label>
+                      
+                      {!showManualWalletInput && (
+                        <>
+                          <div className="space-y-2 mb-2">
+                            {filteredSellerWallets.map((wallet) => (
+                              <div
+                                key={wallet.walletId}
+                                className={`border rounded p-2 cursor-pointer text-sm ${
+                                  formik.values.senderWallet === wallet.walletPhoneNo
+                                    ? 'border-green-500 bg-green-50'
+                                    : 'border-gray-200'
+                                }`}
+                                onClick={() => handleSellerWalletSelect(wallet.walletPhoneNo)}
+                              >
+                                <p className="font-medium">{wallet.walletName}</p>
+                                <p className="text-xs">{wallet.walletPhoneNo}</p>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={() => setShowManualWalletInput(true)}
+                            className="text-xs text-blue-600 hover:text-blue-800"
+                          >
+                            + নতুন ওয়ালেট নম্বর যোগ করুন
+                          </button>
+                        </>
+                      )}
+
+                      {showManualWalletInput && (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                              formik.touched.senderWallet && formik.errors.senderWallet 
+                                ? "border-red-500" 
+                                : "border-gray-300"
+                            }`}
+                            {...formik.getFieldProps("senderWallet")}
+                            placeholder={`আপনার ${formik.values.paymentMethod} নম্বর`}
+                          />
+                          {formik.touched.senderWallet && formik.errors.senderWallet && (
+                            <p className="text-red-500 text-xs mt-1">{formik.errors.senderWallet}</p>
+                          )}
+                          
+                          <button
+                            type="button"
+                            onClick={() => setShowManualWalletInput(false)}
+                            className="text-xs text-gray-600 hover:text-gray-800"
+                          >
+                            ← আমার ওয়ালেট থেকে নির্বাচন করুন
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Transaction ID */}
                     <div className="mb-3">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -564,32 +733,16 @@ const Checkout = () => {
                           formik.touched.transactionId && formik.errors.transactionId 
                             ? "border-red-500" 
                             : "border-gray-300"
-                        }`}
+                        } ${!formik.values.adminWalletId ? 'bg-gray-100' : ''}`}
                         {...formik.getFieldProps("transactionId")}
                         placeholder="TX123456789"
+                        disabled={!formik.values.adminWalletId}
                       />
                       {formik.touched.transactionId && formik.errors.transactionId && (
                         <p className="text-red-500 text-xs mt-1">{formik.errors.transactionId}</p>
                       )}
-                    </div>
-
-                    {/* Sender wallet */}
-                    <div className="mb-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        আপনার {formik.values.paymentMethod} নাম্বার*
-                      </label>
-                      <input
-                        type="text"
-                        className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                          formik.touched.senderWallet && formik.errors.senderWallet 
-                            ? "border-red-500" 
-                            : "border-gray-300"
-                        }`}
-                        {...formik.getFieldProps("senderWallet")}
-                        placeholder="01XXXXXXXXX"
-                      />
-                      {formik.touched.senderWallet && formik.errors.senderWallet && (
-                        <p className="text-red-500 text-xs mt-1">{formik.errors.senderWallet}</p>
+                      {!formik.values.adminWalletId && (
+                        <p className="text-gray-500 text-xs mt-1">প্রথমে একটি এডমিন ওয়ালেট নির্বাচন করুন</p>
                       )}
                     </div>
 
@@ -695,21 +848,26 @@ const Checkout = () => {
                   </div>
                 ))}
               </div>
-
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">মোট পণ্য:</span>
                   <span className="text-gray-900">{totalItems} টি</span>
                 </div>
-
                 <div className="flex justify-between">
                   <span className="text-gray-600">পণ্যের মূল্য:</span>
                   <span className="text-gray-900">৳{subtotal.toLocaleString('bn-BD')}</span>
                 </div>
-
+                
                 <div className="flex justify-between">
                   <span className="text-gray-600">ডেলিভারি চার্জ:</span>
-                  <span className="text-gray-900">৳{deliveryCharge.toLocaleString('bn-BD')}</span>
+                  <div className="text-right">
+                    <span className="text-gray-900">৳{baseDeliveryCharge.toLocaleString('bn-BD')}</span>
+                    {extraDeliveryCharge > 0 && (
+                      <span className="text-xs text-gray-500 block">
+                        + অতিরিক্ত ৳{extraDeliveryCharge.toLocaleString('bn-BD')}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex justify-between border-t pt-2 font-medium">
@@ -717,36 +875,40 @@ const Checkout = () => {
                   <span>৳{totalAmount.toLocaleString('bn-BD')}</span>
                 </div>
               </div>
-
-              {/* Balance info */}
-              <div className="mt-4 p-2 bg-yellow-50 rounded-lg">
-                <p className="text-xs font-medium text-yellow-800">
-                  আপনার ব্যালেন্স: ৳{userBalance.toLocaleString('bn-BD')}
-                 
-                </p>
-                {showPaymentForm && (
-                  <p className="text-xs text-red-600 mt-1">
-                    পরিশোধ করতে হবে: ৳{amountToPay.toLocaleString('bn-BD')}
+                
+                
+                {/* Balance info */}
+                <div className="mt-3 p-2 bg-yellow-50 rounded-lg">
+                  <p className="text-xs text-yellow-800">
+                    আপনার ব্যালেন্স: ৳{userBalance.toLocaleString('bn-BD')}
                   </p>
-                )}
-              </div>
-
-              {/* Delivery guidelines */}
-              <div className="mt-4">
-                <div className="bg-blue-50 p-2 rounded-lg">
-                  <h3 className="text-xs font-medium text-blue-800 mb-1">ডেলিভারি নির্দেশিকা</h3>
-                  <ul className="text-xs text-blue-700 space-y-1 list-disc pl-4">
-                    <li>প্রথম অর্ডারের ক্ষেত্রে ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
-                    <li>ডেলিভারি কর্মী উপস্থিত থাকা অবস্থায় পণ্য পরীক্ষা করে নিন</li>
-                  </ul>
+                  {formik.values.needsPayment && (
+                    <p className="text-xs text-red-600 mt-1">
+                      পরিশোধ করতে হবে: ৳{amountToPay.toLocaleString('bn-BD')}
+                    </p>
+                  )}
+                </div>
+                  
+                  
+                  {/* Delivery guidelines - Desktop */}
+                  <div className="mt-4 hidden lg:block">
+                    <div className="bg-blue-50 p-2 rounded-lg">
+                      <h3 className="text-xs font-medium text-blue-800 mb-1">ডেলিভারি নির্দেশিকা</h3>
+                      <ul className="text-xs text-blue-700 space-y-1 list-disc pl-4">
+                        <li>প্রথম অর্ডারের ক্ষেত্রে ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
+                        <li>ডেলিভারি কর্মী উপস্থিত থাকা অবস্থায় পণ্য পরীক্ষা করে নিন</li>
+                        <li>৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</li>
+                        <li>৪র্থ পণ্যের জন্য অতিরিক্ত ৳১০</li>
+                        <li>এরপর প্রতি ২টি পণ্যের জন্য অতিরিক্ত ৳৫</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+   
   );
 };
-
 export default Checkout;
