@@ -142,30 +142,50 @@ const Checkout = () => {
     onSubmit: async (values) => {
       setIsSubmitting(true);
       try {
-        const baseDeliveryCharge = values.zilla.toLowerCase().includes('dhaka') 
-          ? dhakaDeliveryCharge 
-          : outsideDhakaDeliveryCharge;
-        const extraDeliveryCharge = calculateExtraDeliveryCharge(totalItems);
-        const totalDeliveryCharge = baseDeliveryCharge + extraDeliveryCharge;
+      
+       
 
-        const orderData = {
-          customer: values,
-          products: cartItems,
-          totalAmount: subtotal + totalDeliveryCharge,
-          paymentInfo: values.needsPayment ? {
-            adminWalletId: values.adminWalletId,
-            method: values.paymentMethod,
-            transactionId: values.transactionId,
-            senderWallet: values.senderWallet,
-            senderWalletType: values.senderWalletType,
-            requiredAmount: amountToPay,
-          } : null
-        };
-        
+        // const orderData = {
+        //   customer: values,
+        //   products: cartItems,
+        //   totalAmount: subtotal + totalDeliveryCharge,
+        //   paymentInfo: values.needsPayment ? {
+        //     adminWalletId: values.adminWalletId,
+        //     method: values.paymentMethod,
+        //     transactionId: values.transactionId,
+        //     senderWallet: values.senderWallet,
+        //     senderWalletType: values.senderWalletType,
+        //     requiredAmount: amountToPay,
+        //   } : null
+        // };
+        const orderData={
+
+          customerName: values.customerName,
+          customerPhoneNo: values.customerPhone,
+          customerZilla: values.zilla,
+          customerUpazilla: values.upazilla,
+          deliveryAddress: values.deliveryAddress,
+          comments: values.comments,
+
+          products: cartItems.map(item => ({
+            productId: item.productId,
+            productImage: item.imageUrl,
+            productQuantity: item.quantity,
+            productSellingPrice: item.sellingPrice,
+            selectedOptions: item.selectedOptions,
+
+          })),
+
+          isDeliveryChargePaidBySeller: values.needsPayment,
+          deliveryChargePaidBySeller: values.needsPayment ? amountToPay : null,
+          transactionId: values.transactionId,
+          sellerWalletName: values.senderWalletType,
+          sellerWalletPhoneNo: values.senderWallet,
+          adminWalletId: values.adminWalletId,
+
+        }
         console.log('Order data:', orderData);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        navigate('/order-success', { state: { orderData } });
+        alert(JSON.stringify(orderData));
       } catch (error) {
         console.error('Order submission error:', error);
         setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।']);
@@ -736,7 +756,7 @@ const Checkout = () => {
                             : "border-gray-300"
                         } ${!formik.values.adminWalletId ? 'bg-gray-100' : ''}`}
                         {...formik.getFieldProps("transactionId")}
-                        placeholder="TX123456789"
+                        placeholder="ট্রানজেকশন আইডি দিন"
                         disabled={!formik.values.adminWalletId}
                       />
                       {formik.touched.transactionId && formik.errors.transactionId && (
