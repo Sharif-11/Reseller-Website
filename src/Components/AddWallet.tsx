@@ -41,11 +41,6 @@ const AddWallet = () => {
   // Fetch wallets on component mount
   useEffect(() => {
     const fetchWallets = async () => {
-      const cachedWallets = localStorage.getItem(`wallets-${user?.phoneNo}`);
-      if (cachedWallets) {
-        setWallets(JSON.parse(cachedWallets));
-        return;
-      }
       try {
         setIsFetching(true);
         const response = await getWalletList();

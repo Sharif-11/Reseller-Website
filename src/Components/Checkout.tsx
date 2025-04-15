@@ -26,11 +26,11 @@ interface CartItem {
 const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user,reloadUser } = useAuth();
   const [upazillas, setUpazillas] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [adminWallets, setAdminWallets] = useState<Wallet[]>(user?.wallets || []);
+  const [adminWallets, setAdminWallets] = useState<Wallet[]>([]);
   const [sellerWallets, setSellerWallets] = useState<Wallet[]>(user?.wallets || []);
   const [amountToPay, setAmountToPay] = useState(0);
   const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -83,6 +83,7 @@ const Checkout = () => {
   useEffect(() => {
     fetchAdminWallets();
     fetchSellerWallets();
+    reloadUser();
   }, []);
 
   // Form validation schema
@@ -742,7 +743,7 @@ const Checkout = () => {
                         <p className="text-red-500 text-xs mt-1">{formik.errors.transactionId}</p>
                       )}
                       {!formik.values.adminWalletId && (
-                        <p className="text-gray-500 text-xs mt-1">প্রথমে একটি এডমিন ওয়ালেট নির্বাচন করুন</p>
+                        <p className="text-red-500 text-xs mt-1">প্রথমে একটি এডমিন ওয়ালেট নির্বাচন করুন</p>
                       )}
                     </div>
 

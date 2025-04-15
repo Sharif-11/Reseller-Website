@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../Hooks/useAuth';
-import { getWalletList, requestWithdraw } from '../Api/seller.api';
+import {  requestWithdraw } from '../Api/seller.api';
 import { calculateWithdrawal } from '../utils/withdraw.utils';
 import { useNavigate } from 'react-router-dom';
+import { verifyLogin } from '../Api/auth.api';
 
 interface Wallet {
   walletId: number;
@@ -23,8 +24,8 @@ interface WithdrawalDetails {
 }
 
 const WithdrawRequest = () => {
-  const { user,reloadUser } = useAuth();
   const navigate=useNavigate()
+  const {setUser} = useAuth()
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
   const [amount, setAmount] = useState('');
@@ -72,25 +73,19 @@ const WithdrawRequest = () => {
     const fetchData = async () => {
       try {
         setIsFetching(true);
-        const cachedWallets = localStorage.getItem(`wallets-${user?.phoneNo}`);
-        
-        if (cachedWallets) {
-          setWallets(JSON.parse(cachedWallets));
-          
-          return;
-        }
-
-        const response = await getWalletList();
-        if (response.success && response.data) {
-          setWallets(response.data);
-          localStorage.setItem(`wallets-${user?.phoneNo}`, JSON.stringify(response.data));
-          
-        } else {
+         const {success, message, data:{user}} = await verifyLogin()
+        if(success){
+          setUser(user)
+          setBalance(user.balance)
+          setWallets(user.wallets || []);
+        }else{
           setErrors(prev => ({
             ...prev,
-            form: response.message || 'ডেটা লোড করতে সমস্যা হয়েছে'
+            form: message || 'ডেটা লোড করতে সমস্যা হয়েছে'
           }));
         }
+
+       
       } catch (error) {
         setErrors(prev => ({
           ...prev,
@@ -103,15 +98,9 @@ const WithdrawRequest = () => {
     };
 
     fetchData();
-  }, [user?.phoneNo, user?.balance]);
-  useEffect(() => {
-     const f=async()=> await reloadUser()
-     f()
-    
-  },[])
-  useEffect(()=>{
-    setBalance(user?.balance || 0)
-  },[user])
+  }, []);
+
+  
 
   const validateForm = () => {
     let isValid = true;

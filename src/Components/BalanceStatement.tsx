@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { formatDate } from '../utils/date.utils';
 import { getTransactionHistory } from '../Api/seller.api';
 import { toast } from 'react-toastify';
+import { useAuth } from '../Hooks/useAuth';
 
 interface Transaction {
   id: number;
@@ -29,6 +30,7 @@ interface TransactionResponse {
 }
 
 const BalanceStatement = () => {
+  const { reloadUser } = useAuth(); // Assuming you have a useAuth hook to get user info
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,6 +84,7 @@ const BalanceStatement = () => {
 
   useEffect(() => {
     fetchTransactions();
+    reloadUser(); // Reload user data when component mounts
   }, []);
 
   const calculateBalance = () => {

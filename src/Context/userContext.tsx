@@ -75,8 +75,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // This function can be called to manually reload user data
-  const reloadUser = async () => {
-    await checkLogin();
+  const reloadUser= async ()  => {
+    try{
+      const result = await verifyLogin();
+      if (result?.success) {
+        setUser(result.data?.user || null);
+      }
+    } catch (error) {
+      console.error("Error reloading user data:", error);
+    }
   };
 
   useEffect(() => {
