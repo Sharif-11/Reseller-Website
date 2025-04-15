@@ -10,7 +10,9 @@ import districts from '../../public/zillasInfo.json';
 import { useAuth } from '../Hooks/useAuth';
 import { dhakaDeliveryCharge, negativeLimit, outsideDhakaDeliveryCharge } from '../utils/config.utils';
 import { Wallet } from '../Context/userContext';
-import { getAdminWallets, getWalletList } from '../Api/seller.api';
+import { createOrder, getAdminWallets, getWalletList } from '../Api/seller.api';
+import { OrderData } from '../types/order.types';
+import { CART_ITEMS_KEY } from '../utils/utils.variables';
 
 interface CartItem {
   productId: number;
@@ -48,7 +50,13 @@ const Checkout = () => {
     
     // For 5+ products: 10 tk for the 4th product + 5 tk for every 2 additional products
     const additionalProducts = productCount - 4;
-    return 10 + Math.floor(additionalProducts / 2) * 5;
+    let temp=0;
+    if (additionalProducts % 2 === 0) {
+      temp = additionalProducts / 2 * 5;
+    } else {
+      temp = (additionalProducts - 1) / 2 * 5;
+    }
+    return 10 + temp;
   };
 
   // Fetch admin wallets
@@ -141,7 +149,7 @@ const Checkout = () => {
     onSubmit: async (values) => {
       setIsSubmitting(true);
       try {
-        const orderData = {
+        const orderData:OrderData = {
           customerName: values.customerName,
           customerPhoneNo: values.customerPhone,
           customerZilla: values.zilla,
@@ -158,14 +166,20 @@ const Checkout = () => {
           })),
 
           isDeliveryChargePaidBySeller: values.needsPayment,
-          deliveryChargePaidBySeller: values.needsPayment ? amountToPay : null,
+          deliveryChargePaidBySeller: values.needsPayment ? amountToPay : undefined,
           transactionId: values.transactionId,
           sellerWalletName: values.senderWalletType,
           sellerWalletPhoneNo: values.senderWallet,
           adminWalletId: values.adminWalletId,
         };
-        console.log('Order data:', orderData);
-        alert(JSON.stringify(orderData));
+      const {success, message} = await createOrder(orderData);
+      if (success) {
+          localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([]));
+          navigate('/orders', { state: { orderSuccess: true } });
+        } else {
+          setFormErrors([message]);
+          // alert(message);
+        }
       } catch (error) {
         console.error('Order submission error:', error);
         setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।']);
@@ -446,15 +460,7 @@ const Checkout = () => {
 
             <div className="p-4">
               {/* Error messages */}
-              {formErrors.length > 0 && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  {formErrors.map((error, index) => (
-                    <p key={index} className="text-red-600 text-sm flex items-center">
-                      <FiX className="mr-1" /> {error}
-                    </p>
-                  ))}
-                </div>
-              )}
+           
 
               <form onSubmit={formik.handleSubmit} className="space-y-4">
                 {/* Customer phone */}
@@ -749,7 +755,15 @@ const Checkout = () => {
                     placeholder="অর্ডার সম্পর্কে কোন অতিরিক্ত নির্দেশিকা থাকলে লিখুন"
                   />
                 </div>
-
+                {formErrors.length > 0 && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  {formErrors.map((error, index) => (
+                    <p key={index} className="text-red-600 text-sm flex items-center">
+                      <FiX className="mr-1" /> {error}
+                    </p>
+                  ))}
+                </div>
+              )}
                 {/* Submit button */}
                 <div className="pt-3">
                   <button
