@@ -26,7 +26,7 @@ interface CartItem {
 const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user,reloadUser } = useAuth();
+  const { user, reloadUser } = useAuth();
   const [upazillas, setUpazillas] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -35,7 +35,6 @@ const Checkout = () => {
   const [amountToPay, setAmountToPay] = useState(0);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [paymentFormFilled, setPaymentFormFilled] = useState(false);
-  const [showManualWalletInput, setShowManualWalletInput] = useState(false);
 
   // Cart items and price calculation
   const cartItems = location.state?.cartItems as CartItem[] || [];
@@ -142,24 +141,7 @@ const Checkout = () => {
     onSubmit: async (values) => {
       setIsSubmitting(true);
       try {
-      
-       
-
-        // const orderData = {
-        //   customer: values,
-        //   products: cartItems,
-        //   totalAmount: subtotal + totalDeliveryCharge,
-        //   paymentInfo: values.needsPayment ? {
-        //     adminWalletId: values.adminWalletId,
-        //     method: values.paymentMethod,
-        //     transactionId: values.transactionId,
-        //     senderWallet: values.senderWallet,
-        //     senderWalletType: values.senderWalletType,
-        //     requiredAmount: amountToPay,
-        //   } : null
-        // };
-        const orderData={
-
+        const orderData = {
           customerName: values.customerName,
           customerPhoneNo: values.customerPhone,
           customerZilla: values.zilla,
@@ -173,7 +155,6 @@ const Checkout = () => {
             productQuantity: item.quantity,
             productSellingPrice: item.sellingPrice,
             selectedOptions: item.selectedOptions,
-
           })),
 
           isDeliveryChargePaidBySeller: values.needsPayment,
@@ -182,8 +163,7 @@ const Checkout = () => {
           sellerWalletName: values.senderWalletType,
           sellerWalletPhoneNo: values.senderWallet,
           adminWalletId: values.adminWalletId,
-
-        }
+        };
         console.log('Order data:', orderData);
         alert(JSON.stringify(orderData));
       } catch (error) {
@@ -213,16 +193,7 @@ const Checkout = () => {
       formik.setFieldValue("transactionId", "");
       formik.setFieldValue("senderWallet", "");
       formik.setFieldTouched("adminWalletId", true);
-      
-      // Reset manual input when admin wallet changes
-      setShowManualWalletInput(false);
     }
-  };
-
-  // Handle seller wallet selection
-  const handleSellerWalletSelect = (walletPhoneNo: string) => {
-    formik.setFieldValue("senderWallet", walletPhoneNo);
-    formik.setFieldTouched("senderWallet", true);
   };
 
   // Check payment requirements before confirming order
@@ -326,8 +297,8 @@ const Checkout = () => {
   // Filter seller wallets by selected admin wallet type
   const filteredSellerWallets = sellerWallets.filter(
     wallet => wallet.walletName.toLowerCase() === 
-             (adminWallets.find(w => w.walletId === formik.values.adminWalletId)?.walletName.toLowerCase()
-  ))
+             (adminWallets.find(w => w.walletId === formik.values.adminWalletId)?.walletName.toLowerCase() || '')
+  );
 
   // Empty cart handling
   if (cartItems.length === 0) {
@@ -452,7 +423,7 @@ const Checkout = () => {
             <div className="bg-blue-50 p-2 rounded-lg">
               <h3 className="text-xs font-medium text-blue-800 mb-1">ডেলিভারি নির্দেশিকা</h3>
               <ul className="text-xs text-blue-700 space-y-1 list-disc pl-4">
-                <li>প্রথম অর্ডারের ক্ষেত্রে ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
+                <li>ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
                 <li>ডেলিভারি কর্মী উপস্থিত থাকা অবস্থায় পণ্য পরীক্ষা করে নিন</li>
                 <li>৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</li>
                 <li>৪র্থ পণ্যের জন্য অতিরিক্ত ৳১০</li>
@@ -643,108 +614,98 @@ const Checkout = () => {
                     </div>
 
                     {/* Admin wallets */}
-                    <div className="bg-blue-50 p-3 rounded-lg mb-3">
-                      {/* <h4 className="text-sm font-medium text-blue-800 mb-2">এডমিন ওয়ালেট নম্বরসমূহ*</h4> */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        
+                      </label>
+                      <div className="space-y-2">
                         {adminWallets.map((wallet) => (
                           <div 
                             key={wallet.walletId} 
-                            className={`border rounded p-2 cursor-pointer text-sm ${
+                            className={`flex items-center p-3 border rounded-lg cursor-pointer ${
                               formik.values.adminWalletId === wallet.walletId
-                                ? 'border-blue-500 bg-blue-100'
-                                : 'border-blue-200'
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200'
                             }`}
                             onClick={() => handleAdminWalletSelect(wallet.walletId)}
                           >
-                            <p className="font-medium">{wallet.walletName}</p>
-                            <p className="text-xs">{wallet.walletPhoneNo}</p>
+                            <input
+                              type="radio"
+                              id={`wallet-${wallet.walletId}`}
+                              name="adminWallet"
+                              checked={formik.values.adminWalletId === wallet.walletId}
+                              onChange={() => handleAdminWalletSelect(wallet.walletId)}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                            />
+                            <label htmlFor={`wallet-${wallet.walletId}`} className="ml-3 block">
+                              <span className="block text-sm font-medium text-gray-900">
+                                {wallet.walletName}
+                              </span>
+                              <span className="block text-xs text-gray-500">
+                                {wallet.walletPhoneNo}
+                              </span>
+                            </label>
                           </div>
                         ))}
+                        <p className="text-[8px] text-blue-500 mt-1 font-bold">
+                          {`উপরের বিকাশ অথবা নগদ মোবাইল নাম্বারে  ${amountToPay} টাকা পাঠিয়ে দিন।`}
+                        </p>
                       </div>
-                      <p className="text-xs text-blue-500 mt-2">
-                        উপরের বিকাশ অথবা নগদ  নম্বরে পেমেন্ট করতে পারবেন।
-                      </p>
                       {formik.touched.adminWalletId && formik.errors.adminWalletId && (
                         <p className="text-red-500 text-xs mt-1">{formik.errors.adminWalletId}</p>
                       )}
                     </div>
 
-                    {/* Auto-selected payment method */}
-                    {formik.values.paymentMethod && (
-                      <div className="mb-3 p-2 bg-gray-100 rounded-lg">
-                        <p className="text-sm">
-                          <span className="font-medium">পেমেন্ট মেথড:</span> {formik.values.paymentMethod}
-                        </p>
-                        <p className="text-xs text-gray-600 mt-1">
-                          আপনাকে {formik.values.paymentMethod} এর মাধ্যমে পেমেন্ট করতে হবে
-                        </p>
-                      </div>
-                    )}
-
                     {/* Seller wallet selection */}
-                    <div className="mb-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                        আপনার {formik.values.paymentMethod || 'ওয়ালেট'} মোবাইল নম্বর নির্বাচন করুন*
-                        </label>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        আপনার {formik.values.paymentMethod || 'ওয়ালেট'} নম্বর*
+                      </label>
                       
-                      {!showManualWalletInput && (
-                        <>
-                          <div className="space-y-2 mb-2">
-                            {filteredSellerWallets.map((wallet) => (
-                              <div
-                                key={wallet.walletId}
-                                className={`border rounded p-2 cursor-pointer text-sm ${
-                                  formik.values.senderWallet === wallet.walletPhoneNo
-                                    ? 'border-green-500 bg-green-50'
-                                    : 'border-gray-200'
-                                }`}
-                                onClick={() => handleSellerWalletSelect(wallet.walletPhoneNo)}
-                              >
-                                <p className="font-medium">{wallet.walletName}</p>
-                                <p className="text-xs">{wallet.walletPhoneNo}</p>
-                              </div>
-                            ))}
-                          </div>
-                          
-                          <button
-                            type="button"
-                            onClick={() => setShowManualWalletInput(true)}
-                            className="text-xs text-blue-600 hover:text-blue-800"
-                          >
-                            + নতুন ওয়ালেট নম্বর যোগ করুন
-                          </button>
-                        </>
+                      <select
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                          formik.touched.senderWallet && formik.errors.senderWallet 
+                            ? "border-red-500" 
+                            : "border-gray-300"
+                        }`}
+                        value={formik.values.senderWallet}
+                        onChange={(e) => {
+                          if (e.target.value === "manual") {
+                            formik.setFieldValue("senderWallet", "");
+                          } else {
+                            formik.setFieldValue("senderWallet", e.target.value);
+                          }
+                        }}
+                      >
+                        <option value="">নির্বাচন করুন</option>
+                        {filteredSellerWallets.map((wallet) => (
+                          <option key={wallet.walletId} value={wallet.walletPhoneNo}>
+                            {wallet.walletName} - {wallet.walletPhoneNo}
+                          </option>
+                        ))}
+                        <option value="manual">নতুন নম্বর দিন</option>
+                      </select>
+                      
+                      {(formik.values.senderWallet === "" || formik.values.senderWallet === "manual") && (
+                        <input
+                          type="text"
+                          className={`w-full px-3 py-2 border rounded-lg text-sm mt-2 ${
+                            formik.touched.senderWallet && formik.errors.senderWallet 
+                              ? "border-red-500" 
+                              : "border-gray-300"
+                          }`}
+                          placeholder={`আপনার ${formik.values.paymentMethod} নম্বর`}
+                          {...formik.getFieldProps("senderWallet")}
+                        />
                       )}
-
-                      {showManualWalletInput && (
-                        <div className="space-y-2">
-                          <input
-                            type="text"
-                            className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                              formik.touched.senderWallet && formik.errors.senderWallet 
-                                ? "border-red-500" 
-                                : "border-gray-300"
-                            }`}
-                            {...formik.getFieldProps("senderWallet")}
-                            placeholder={`আপনার ${formik.values.paymentMethod} নম্বর`}
-                          />
-                          {formik.touched.senderWallet && formik.errors.senderWallet && (
-                            <p className="text-red-500 text-xs mt-1">{formik.errors.senderWallet}</p>
-                          )}
-                          
-                          <button
-                            type="button"
-                            onClick={() => setShowManualWalletInput(false)}
-                            className="text-xs text-gray-600 hover:text-gray-800"
-                          >
-                            ← আমার ওয়ালেট থেকে নির্বাচন করুন
-                          </button>
-                        </div>
+                      
+                      {formik.touched.senderWallet && formik.errors.senderWallet && (
+                        <p className="text-red-500 text-xs mt-1">{formik.errors.senderWallet}</p>
                       )}
                     </div>
 
                     {/* Transaction ID */}
-                    <div className="mb-3">
+                    <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         ট্রানজেকশন আইডি*
                       </label>
@@ -890,7 +851,7 @@ const Checkout = () => {
                     )}
                   </div>
                 </div>
-
+                    
                 <div className="flex justify-between border-t pt-2 font-medium">
                   <span>সর্বমোট:</span>
                   <span>৳{totalAmount.toLocaleString('bn-BD')}</span>
@@ -916,7 +877,7 @@ const Checkout = () => {
                     <div className="bg-blue-50 p-2 rounded-lg">
                       <h3 className="text-xs font-medium text-blue-800 mb-1">ডেলিভারি নির্দেশিকা</h3>
                       <ul className="text-xs text-blue-700 space-y-1 list-disc pl-4">
-                        <li>প্রথম অর্ডারের ক্ষেত্রে ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
+                        <li>ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
                         <li>ডেলিভারি কর্মী উপস্থিত থাকা অবস্থায় পণ্য পরীক্ষা করে নিন</li>
                         <li>৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</li>
                         <li>৪র্থ পণ্যের জন্য অতিরিক্ত ৳১০</li>
@@ -932,4 +893,5 @@ const Checkout = () => {
    
   );
 };
+
 export default Checkout;
