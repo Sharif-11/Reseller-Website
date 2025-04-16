@@ -17,7 +17,7 @@ export interface OrderData  {
     products: OrderProduct[];
     isDeliveryChargePaidBySeller: boolean;
     deliveryChargePaidBySeller?: number;
-    transactionId: string;
+    transactionId?: string;
     sellerWalletName: string;
     sellerWalletPhoneNo: string;
     adminWalletId: number;

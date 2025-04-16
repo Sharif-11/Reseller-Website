@@ -12,7 +12,6 @@ import { dhakaDeliveryCharge, negativeLimit, outsideDhakaDeliveryCharge } from '
 import { Wallet } from '../Context/userContext';
 import { createOrder, getAdminWallets, getWalletList } from '../Api/seller.api';
 import { OrderData } from '../types/order.types';
-import { CART_ITEMS_KEY } from '../utils/utils.variables';
 
 interface CartItem {
   productId: number;
@@ -165,16 +164,18 @@ const Checkout = () => {
             selectedOptions: item.selectedOptions,
           })),
 
-          isDeliveryChargePaidBySeller: values.needsPayment,
-          deliveryChargePaidBySeller: values.needsPayment ? amountToPay : undefined,
-          transactionId: values.transactionId,
+          isDeliveryChargePaidBySeller: values.needsPayment,    
           sellerWalletName: values.senderWalletType,
           sellerWalletPhoneNo: values.senderWallet,
           adminWalletId: values.adminWalletId,
         };
-      const {success, message} = await createOrder(orderData);
+         if(values.needsPayment) {
+          orderData.transactionId = values.transactionId;
+          orderData.deliveryChargePaidBySeller = amountToPay;
+         }
+      const {success, message} = await createOrder(orderData)
       if (success) {
-          localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([]));
+          // localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([]));
           navigate('/orders', { state: { orderSuccess: true } });
         } else {
           setFormErrors([message]);
