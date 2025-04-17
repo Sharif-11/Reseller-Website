@@ -441,3 +441,56 @@ export const createOrder=async (orderData:OrderData)=>{
     };
   }
 }
+export const getOrders=async ({
+  page = 1,
+  pageSize = 10,
+  status
+}: {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+})=>{
+  
+  try {
+    console.log(page, pageSize, status)
+    const statusArray=status?.split(',')
+    const generateQueryString = (params: string[]|string|undefined) => {
+      if (Array.isArray(params)) {
+        return params.map((param) => `status=${encodeURIComponent(param.trim())}`).join('&');
+      }
+      return params ? `status=${encodeURIComponent(params)}` : '';  
+
+    }
+    const queryString=`page=${page}&pageSize=${pageSize}`
+    const statusQueryString = generateQueryString(statusArray);
+    const queryParams = statusQueryString ? `${queryString}&${statusQueryString}` : queryString;
+    const { data } = await axiosInstance.get(`sellers/orders?${queryParams}`);
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
