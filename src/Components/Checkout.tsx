@@ -131,11 +131,11 @@ const Checkout = () => {
 
   const formik = useFormik({
     initialValues: {
-      customerPhone: '',
-      customerName: '',
-      zilla: '',
-      upazilla: '',
-      deliveryAddress: '',
+      customerPhone: '01883575965',
+      customerName: 'Mr  John',
+      zilla: 'Dhaka',
+      upazilla: 'Dhamrai',
+      deliveryAddress: 'Fokirapul, Dhaka',
       adminWalletId: 0,
       transactionId: '',
       senderWallet: '',
@@ -148,7 +148,7 @@ const Checkout = () => {
     onSubmit: async (values) => {
       setIsSubmitting(true);
       try {
-        const orderData:OrderData = {
+        const orderData:Partial<OrderData> = {
           customerName: values.customerName,
           customerPhoneNo: values.customerPhone,
           customerZilla: values.zilla,
@@ -164,16 +164,17 @@ const Checkout = () => {
             selectedOptions: item.selectedOptions,
           })),
 
-          isDeliveryChargePaidBySeller: values.needsPayment,    
+          isDeliveryChargePaidBySeller: values.needsPayment,      
           sellerWalletName: values.senderWalletType,
           sellerWalletPhoneNo: values.senderWallet,
           adminWalletId: values.adminWalletId,
+          deliveryChargePaidBySeller: amountToPay 
+         
         };
-         if(values.needsPayment) {
+        if(values.needsPayment) {
           orderData.transactionId = values.transactionId;
-          orderData.deliveryChargePaidBySeller = amountToPay;
-         }
-      const {success, message} = await createOrder(orderData)
+        }
+      const {success, message} = await createOrder(orderData as OrderData)
       if (success) {
           // localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([]));
           navigate('/orders', { state: { orderSuccess: true } });

@@ -18,7 +18,7 @@ export interface OrderData  {
     isDeliveryChargePaidBySeller: boolean;
     deliveryChargePaidBySeller?: number;
     transactionId?: string;
-    sellerWalletName: string;
-    sellerWalletPhoneNo: string;
-    adminWalletId: number;
+    sellerWalletName?: string;
+    sellerWalletPhoneNo?: string;
+    adminWalletId?: number;
   };
