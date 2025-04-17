@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { getOrders } from '../Api/seller.api';
+import { cancelOrder, getOrders } from '../Api/seller.api';
 import { toast } from 'react-toastify';
 import { formatDate } from '../utils/date.utils';
+import { NavLink } from 'react-router-dom';
 
 interface Order {
   orderId: number;
@@ -111,7 +112,7 @@ const Orders = () => {
       } else if (activeTab === 'completed') {
         statusParam = 'completed';
       } else if (activeTab === 'others') {
-        statusParam = 'rejected,refunded,cancelled';
+        statusParam = 'rejected,refunded,cancelled,returned';
       }
 
       const response = await getOrders({
@@ -215,24 +216,21 @@ const Orders = () => {
   const handleCancelOrder = async (orderId: number) => {
     try {
       setCancellingId(orderId);
-      // Here you would call your API to cancel the order
-      // const response = await cancelOrder(orderId);
-      // For now, we'll just simulate it
-      
-      toast.success('Order cancelled successfully');
-      setAllOrders(prev => prev.map(order => 
-        order.orderId === orderId ? { ...order, orderStatus: 'cancelled', cancelledByUser: true } : order
-      ));
-      fetchOrders(pagination[activeTab].currentPage);
-    } catch (error) {
-      toast.error((error as Error).message || 'Error cancelling order');
-    } finally {
+      const {success,message}=await cancelOrder(orderId);
+      if (success) {
+        toast.success('অর্ডার বাতিল করা হয়েছে');
+        fetchOrders(pagination[activeTab].currentPage, pagination[activeTab].pageSize);
+      } else {
+        toast.error(message || 'Failed to cancel order');
+      }
+  } catch (error) {
+      toast.error('An error occurred while cancelling the order');
+      console.error('Error cancelling order:', error);
+    }  finally{
       setCancellingId(null);
-      setShowCancelConfirmation(false);
-      setOrderToCancel(null);
+      closeCancelConfirmation();
     }
-  };
-
+    }
   const openCancelConfirmation = (order: Order) => {
     setOrderToCancel(order);
     setShowCancelConfirmation(true);
@@ -248,21 +246,33 @@ const Orders = () => {
     
     switch (status) {
       case 'completed':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}>সম্পূর্ণ</span>;
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>কমপ্লিটেড</span>;
       case 'approved':
-        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>অনুমোদিত</span>;
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}> অ্যাপ্রুভড </span>;
       case 'processing':
-        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>প্রক্রিয়াধীন</span>;
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>
+          প্রসেসিং
+        </span>;
       case 'shipped':
-        return <span className={`${baseClasses} bg-indigo-100 text-indigo-800`}>শিপড</span>;
+        return <span className={`${baseClasses} bg-indigo-100 text-indigo-800 text-[6px]`}> কুরিয়ারে পাঠানো হয়েছে</span>;
       case 'rejected':
-        return <span className={`${baseClasses} bg-red-100 text-red-800`}>প্রত্যাখ্যাত</span>;
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>
+          রিজেক্টেড 
+        </span>;
       case 'refunded':
-        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>ফেরত</span>;
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>রিফান্ডেড</span>;
       case 'cancelled':
-        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>বাতিল</span>;
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
+          ক্যানসেল্ড 
+        </span>;
+      case 'returned':
+        return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>
+          রিটার্নড
+        </span>;
       default:
-        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>বিচারাধীন</span>;
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
+          পেন্ডিং
+        </span>;
     }
   };
 
@@ -285,31 +295,31 @@ const Orders = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex border-b">
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'all' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'all' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('all')}
             >
               সব
             </button>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('pending')}
             >
-              বিচারাধীন
+             পেন্ডিং
             </button>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'processing' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'processing' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('processing')}
             >
-              প্রক্রিয়াধীন
+              প্রসেসিং
             </button>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('completed')}
             >
-              সম্পূর্ণ
+             কমপ্লিটেড
             </button>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'others' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'others' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
               onClick={() => setActiveTab('others')}
             >
               অন্যান্য
@@ -647,14 +657,32 @@ const Orders = () => {
                     {selectedOrder.courierName && (
                       <p className="text-sm"><span className="font-medium">কুরিয়ার:</span> {selectedOrder.courierName}</p>
                     )}
-                    {selectedOrder.trackingURL && (
-                      <p className="text-sm">
-                        <span className="font-medium">ট্র্যাকিং লিঙ্ক:</span>{' '}
-                        <a href={selectedOrder.trackingURL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          দেখুন
-                        </a>
-                      </p>
-                    )}
+                   {selectedOrder.trackingURL && (
+  <div className="flex items-center gap-2">
+    <span className="font-medium">ট্র্যাকিং লিঙ্ক:</span>
+    <div className="flex items-center border rounded-md overflow-hidden">
+      <NavLink 
+        to={`/${selectedOrder.trackingURL}`} 
+        className="text-blue-600 hover:underline px-2 py-1 text-sm truncate max-w-xs"
+      >
+        {selectedOrder.trackingURL}
+      </NavLink>
+      <button
+        onClick={() => {
+          if(!selectedOrder.trackingURL) return;
+          navigator.clipboard.writeText(selectedOrder.trackingURL);
+          toast.success('লিঙ্ক কপি করা হয়েছে');
+        }}
+        className="bg-gray-100 hover:bg-gray-200 px-2 py-1 border-l"
+        title="Copy link"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+        </svg>
+      </button>
+    </div>
+  </div>
+)}
                   </div>
                 </div>
               </div>

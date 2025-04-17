@@ -441,6 +441,38 @@ export const createOrder=async (orderData:OrderData)=>{
     };
   }
 }
+export const cancelOrder=async (orderId:number)=>{
+  try {
+    const { data } = await axiosInstance.patch(`sellers/orders/${orderId}`);
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
 export const getOrders=async ({
   page = 1,
   pageSize = 10,
