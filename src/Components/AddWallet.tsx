@@ -99,14 +99,12 @@ const AddWallet = () => {
 
   const handleSendOtp = async () => {
     if (!validatePhoneNumber(formData.number)) return;
-
     setIsLoading(true);
     try {
       const response = await sendWalletOTP(formData.number);
-      
       if (response.success) {
         // Check if phone is already verified
-        if (response.data?.isVerified && !response.data?.sendOTP) {
+        if (response.data?.otpVerified) {
           setIsAlreadyVerified(true);
           await addNewWallet(); // Add directly if already verified
         } else {
@@ -136,7 +134,6 @@ const AddWallet = () => {
     setIsVerifying(true);
     try {
       const response = await verifyWalletOTP(formData.number, otp);
-      
       if (response.success) {
         await addNewWallet();
       } else {
