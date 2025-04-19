@@ -35,6 +35,7 @@ import FAQSection from "./Components/FAQ.tsx";
 import SupportTicket from "./Components/SupportTicket.tsx";
 import SalesGuidelines from "./Components/SalesGuideline.tsx";
 import AboutUs from "./Components/AboutUs.tsx";
+import OrderTracking from "./Components/Tracking.tsx";
 
 
 
@@ -202,6 +203,11 @@ createRoot(document.getElementById("root")!).render(
           <Route path="profile" element={
             <PrivateRoute>
               <Profile />
+            </PrivateRoute>
+          } />
+          <Route path="tracking" element={
+            <PrivateRoute>
+            <OrderTracking/>
             </PrivateRoute>
           } />
           <Route path="add-referral-code" element={

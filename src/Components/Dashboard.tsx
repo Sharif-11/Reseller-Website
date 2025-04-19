@@ -1,8 +1,10 @@
 import { useContext, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { ReactNode } from "react";
 import { UserContext } from "../Context/userContext";
 import Header from "./Header";
+import { logout } from "../Api/auth.api";
+import { useAuth } from "../Hooks/useAuth";
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -12,6 +14,8 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
   });
   const userContext = useContext(UserContext);
   const user = userContext ? userContext.user : null;
+  const {setUser}=useAuth()
+  const navigate=useNavigate()
 
   const toggleAccordion = (key: string) => {
     setOpenAccordions(prev => ({
@@ -19,6 +23,16 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       [key]: !prev[key]
     }));
   };
+  const handleLogout = async () => {
+   
+     const { success } = await logout();
+     if (success) {
+       localStorage.removeItem("token");
+       if (setUser) setUser(null);
+       navigate("/");
+     }
+     
+   };
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -223,9 +237,9 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                     onClick={() => setIsSidebarOpen(false)}
                   >
                    
-                    <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18m-7 5h7" />
-                    </svg>
+                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+</svg>
 
                     ব্যালেন্স স্টেটমেন্ট
                   </NavLink>
@@ -320,6 +334,23 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 </>
               )}
 
+                <NavLink
+                to="/tracking"
+                className={({ isActive }) => `
+                  flex items-center px-4 py-3 rounded-lg transition-all
+                  ${isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'}
+                `}
+                onClick={() => setIsSidebarOpen(false)}
+                >
+                 
+                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M8 4v4" />
+</svg>
+                অর্ডার ট্র্যাক করুন
+                </NavLink>
+
               <NavLink
                 to="/change-password"
                 className={({ isActive }) => `
@@ -336,9 +367,9 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               {user?.role === 'Seller' && (
                 <div className="relative">
                   <div className="flex items-center px-4 py-3 rounded-lg text-indigo-100 opacity-80">
-                    <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18m-7 5h7" />
-                    </svg>
+                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+</svg>
                     সাপোর্ট টিকিট
                     <span className="absolute top-2 right-4 bg-yellow-100 text-yellow-800 text-[8px] px-1 py-0.5 rounded-full">
                       শীঘ্রই আসছে
@@ -346,6 +377,15 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                   </div>
                 </div>
               )}
+              <button
+                className="flex items-center px-4 py-3 rounded-lg transition-all text-indigo-100 hover:bg-indigo-600/50 w-full text-left"
+                onClick={handleLogout}
+              >
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+</svg>
+                লগ আউট
+              </button>
             </nav>
           </aside>
 

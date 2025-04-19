@@ -9,10 +9,10 @@ const SellerHomeDashboard = () => {
   const currentBalance = user?.balance || 0; // Example balance, replace with actual data
   
   // Announcements data
-  const announcements = [
+  const announcements:string[] = [
     "🎉 নতুন বছর উপলক্ষে বিশেষ ডিসকাউন্ট চলছে!",
-    "⚠️ আগামীকাল সিস্টেম মেইন্টেন্যান্সের কারণে বিক্রয় বন্ধ থাকবে সকাল ১০টা থেকে ১২টা পর্যন্ত",
-    "📢 নতুন সেলারদের জন্য বিশেষ ট্রেনিং সেশনের আয়োজন করা হবে ১৫ই জানুয়ারি"
+    // "⚠️ আগামীকাল সিস্টেম মেইন্টেন্যান্সের কারণে বিক্রয় বন্ধ থাকবে সকাল ১০টা থেকে ১২টা পর্যন্ত",
+    // "📢 নতুন সেলারদের জন্য বিশেষ ট্রেনিং সেশনের আয়োজন করা হবে ১৫ই জানুয়ারি"
   ];
 
   const quickLinks = [
@@ -65,7 +65,7 @@ const SellerHomeDashboard = () => {
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Announcement Bar with Moving Text */}
-        <div className="bg-indigo-600 text-white rounded-lg mb-6 overflow-hidden">
+       {announcements.length>0 && <div className="bg-indigo-600 text-white rounded-lg mb-6 overflow-hidden">
           <div className="flex items-center p-3">
             <FaBullhorn className="text-xl md:text-md mr-3 flex-shrink-0" />
             <div className="whitespace-nowrap overflow-hidden">
@@ -78,7 +78,7 @@ const SellerHomeDashboard = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Pay Due Alert (if balance is negative) */}
         {currentBalance < 0 && (

@@ -77,7 +77,6 @@ const Cart = () => {
   // Calculation functions
   const calculateSubtotal = () => cartItems.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0);
   const calculateTotalItems = () => cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const calculateProfit = (item: CartItem) => (item.sellingPrice - item.basePrice) * item.quantity;
   // const calculateTotalProfit = () => cartItems.reduce((sum, item) => sum + (item.sellingPrice - item.basePrice) * item.quantity, 0);
   // const calculateTotalBasePrice = () => cartItems.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
 
@@ -212,61 +211,58 @@ const Cart = () => {
                       </div>
                     )}
                   </div>
+                  
                 </div>
 
                 {/* Price - hidden on mobile, shown on desktop */}
                 <div className="hidden md:flex flex-col items-center justify-center col-span-2">
-                  <p className="text-gray-900">৳{item.sellingPrice.toLocaleString('bn-BD')}</p>
-                  <p className="text-xs text-gray-500 line-through">
-                    ৳{item.basePrice.toLocaleString('bn-BD')}
+      
+                  <p className="text-xs text-gray-900 ">
+                    ৳{item.sellingPrice.toLocaleString('bn-BD')}
                   </p>
-                  <p className="text-xs text-green-600">
-                    (+৳{(item.sellingPrice - item.basePrice).toLocaleString('bn-BD')})
-                  </p>
+              
                 </div>
 
                 {/* Quantity - full width on mobile, col-span-3 on desktop */}
-                <div className="col-span-4 md:col-span-3 flex items-center justify-between sm:justify-center mt-2 sm:mt-0">
-                  <span className="text-xs text-gray-500 md:hidden">পরিমাণ:</span>
+                <div className="col-span-4 md:col-span-3 flex items-center justify-start sm:justify-center mt-2 sm:mt-0">
+                  <span className="text-[10px] text-gray-500 mr-1 md:hidden">পরিমাণ:</span>
                   <div className="flex items-center border rounded-md">
                     <button
                       onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
                       className="px-2 py-1 text-gray-600 hover:bg-gray-100"
                       disabled={isUpdating === item.productId}
                     >
-                      <FiChevronLeft size={16} />
+                      <FiChevronLeft size={8} />
                     </button>
-                    <span className="px-2 sm:px-3 py-1 text-center min-w-[30px] sm:min-w-[40px]">
-                      {isUpdating === item.productId ? (
-                        <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-500 border-r-transparent"></div>
-                      ) : (
-                        item.quantity
-                      )}
-                    </span>
+                    <span className="px-1 sm:px-2 py-0.5 sm:py-1 text-center text-xs sm:text-sm max-w-[16px] sm:max-w-[20px] min-w-[16px] sm:min-w-[20px]">
+  {isUpdating === item.productId ? (
+    <div className="inline-block h-1 w-1 sm:h-1.5 sm:w-1.5 animate-spin rounded-full border border-solid sm:border-2 border-blue-500 border-r-transparent"></div>
+  ) : (
+    <span className="text-xs sm:text-sm">{item.quantity}</span>
+  )}
+</span>
                     <button
                       onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
                       className="px-2 py-1 text-gray-600 hover:bg-gray-100"
                       disabled={isUpdating === item.productId}
                     >
-                      <FiChevronRight size={16} />
+                      <FiChevronRight size={8} />
                     </button>
                   </div>
                 </div>
 
                 {/* Total and remove - full width on mobile, col-span-2 on desktop */}
                 <div className="col-span-2 flex flex-col sm:items-end justify-between sm:justify-center mt-3 sm:mt-0">
-                  <div className="flex justify-between sm:block">
-                    <p className="text-gray-900 font-medium">
-                      ৳{(item.sellingPrice * item.quantity).toLocaleString('bn-BD')}
+                  <div className="flex flex-col sm:block text-right">
+                    <p className="text-gray-900 text-sm pb-1">
+                    মোট: ৳{(item.sellingPrice * item.quantity).toLocaleString('bn-BD')}
                     </p>
                     {/* Mobile price info (hidden on desktop) */}
-                    <div className="md:hidden text-right">
-                      <p className="text-xs text-gray-500 line-through">
-                        ৳{item.basePrice.toLocaleString('bn-BD')}
+                    <div className="md:hidden">
+                      <p className="text-xs text-gray-900">
+                        প্রতি পিস: ৳{item.sellingPrice.toLocaleString('bn-BD')}
                       </p>
-                      <p className="text-xs text-green-600">
-                        লাভ: ৳{calculateProfit(item).toLocaleString('bn-BD')}
-                      </p>
+                     
                     </div>
                   </div>
                   <button

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { cancelOrder, getOrders } from '../Api/seller.api';
 import { toast } from 'react-toastify';
 import { formatDate } from '../utils/date.utils';
-import { NavLink } from 'react-router-dom';
+import {  useNavigate } from 'react-router-dom';
 
 interface Order {
   orderId: number;
@@ -97,6 +97,7 @@ const Orders = () => {
     endDate: null,
   });
   const [showFilters, setShowFilters] = useState(false);
+  const navigate = useNavigate();
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
 
@@ -285,7 +286,12 @@ const Orders = () => {
   };
 
   const currentPagination = pagination[activeTab];
-
+ const handleTrackingLinkClick= (trackingURL: string) => {
+    if (trackingURL) {
+        navigate('/tracking',{ state: { trackingUrl: trackingURL } });
+    }
+     
+ }
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
       <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">অর্ডার তালিকা</h1>
@@ -661,12 +667,12 @@ const Orders = () => {
   <div className="flex items-center gap-2">
     <span className="font-medium">ট্র্যাকিং লিঙ্ক:</span>
     <div className="flex items-center border rounded-md overflow-hidden">
-      <NavLink 
-        to={`/${selectedOrder.trackingURL}`} 
-        className="text-blue-600 hover:underline px-2 py-1 text-sm truncate max-w-xs"
+      <div
+        className="text-blue-600 hover:underline px-2 py-1 text-sm truncate cursor-pointer max-w-xs"
+        onClick={() => handleTrackingLinkClick('https://old.steadfast.com.bd/t/6451D9619F6')}
       >
         {selectedOrder.trackingURL}
-      </NavLink>
+      </div>
       <button
         onClick={() => {
           if(!selectedOrder.trackingURL) return;

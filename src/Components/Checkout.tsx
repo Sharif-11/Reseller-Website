@@ -131,11 +131,11 @@ const Checkout = () => {
 
   const formik = useFormik({
     initialValues: {
-      customerPhone: '01883575965',
-      customerName: 'Mr  John',
-      zilla: 'Dhaka',
-      upazilla: 'Dhamrai',
-      deliveryAddress: 'Fokirapul, Dhaka',
+      customerPhone: '',
+      customerName: '',
+      zilla: '',
+      upazilla: '',
+      deliveryAddress: '',
       adminWalletId: 0,
       transactionId: '',
       senderWallet: '',
@@ -567,7 +567,7 @@ const Checkout = () => {
                     ডেলিভারির ঠিকানা*
                   </label>
                   <textarea
-                    rows={3}
+                    rows={4}
                     className={`w-full px-3 py-2 border rounded-lg text-sm ${
                       formik.touched.deliveryAddress && formik.errors.deliveryAddress 
                         ? "border-red-500" 
@@ -751,7 +751,7 @@ const Checkout = () => {
                     কমেন্টস (অপশনাল)
                   </label>
                   <textarea
-                    rows={2}
+                    rows={5}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     {...formik.getFieldProps("comments")}
                     placeholder="অর্ডার সম্পর্কে কোন অতিরিক্ত নির্দেশিকা থাকলে লিখুন"
