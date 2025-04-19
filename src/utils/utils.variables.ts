@@ -3,3 +3,6 @@ export const FAVORITES_KEY = 'product_favorites';
 export const CART_ITEMS_KEY = 'cart_items';
 export const ITEMS_PER_PAGE = 12;
 export const steadfast_url='https://www.steadfast.com.bd/track/consignment/6451D9619F6'
+export const pathao_url='https://merchant.pathao.com/api/v1/user/tracking/6451D9619F6'
+export const redx_url='https://api.redx.com.bd/v1/logistics/global-tracking/25A111SA17CD30'
+export const paperfly_url='https://go-app.paperfly.com.bd/merchant/api/react/order/track_order.php?order_number=Z-180125-25342-A17-PA4'

@@ -1,0 +1,109 @@
+{
+    "isError": false,
+    "tracking": [
+        {
+            "messageEn": "Parcel is created successfully",
+            "messageBn": "পার্সেলটি পিকআপের জন্য মার্চেন্ট অনুরোধ করেছেন",
+            "status": "pickup-pending",
+            "groupedStatus": "pickup-pending",
+            "action": "pickup-pending",
+            "time": "2025-01-11T08:07:00.000Z"
+        },
+        {
+            "messageEn": "Parcel is picked up",
+            "messageBn": "পার্সেল পিকাপ সম্পন্ন হয়েছে ",
+            "status": "ready-for-delivery",
+            "groupedStatus": "parcel_received",
+            "action": "received-from-seller",
+            "time": "2025-01-11T14:33:01.000Z"
+        },
+        {
+            "messageEn": "Parcel is ready for transfer from Puran Dhaka Hub to REDX Birulia Central Mother Hub",
+            "messageBn": "পার্সেলটি Puran Dhaka Hub হতে  REDX Birulia Central Mother Hub এর গাড়িতে ওঠার অপেক্ষায় আছে",
+            "status": "line-haul-in-progress",
+            "groupedStatus": "line-haul-in-progress",
+            "action": "dispatched-to-line-haul",
+            "time": "2025-01-11T14:58:41.000Z"
+        },
+        {
+            "messageEn": "Parcel carrying vehicle has left from Puran Dhaka Hub for REDX Birulia Central Mother Hub",
+            "messageBn": "পার্সেলটির গাড়ি REDX Birulia Central Mother Hub এর উদ্দেশ্যে Puran Dhaka Hub ছেড়ে গিয়েছে",
+            "status": "line-haul-trip-started",
+            "groupedStatus": "line-haul-trip-started",
+            "action": "trip-started",
+            "time": "2025-01-11T16:53:09.000Z"
+        },
+        {
+            "messageEn": "Parcel is unloaded from the vehicle in REDX Birulia Central Mother Hub",
+            "messageBn": "পার্সেলটি REDX Birulia Central Mother Hub এ গাড়ি থেকে নামানো হয়েছে",
+            "status": "bulk-transfer-received",
+            "groupedStatus": "bulk-transfer-received",
+            "action": "received-transfer",
+            "time": "2025-01-11T20:24:35.000Z"
+        },
+        {
+            "messageEn": "Parcel is received in REDX Birulia Central Mother Hub",
+            "messageBn": "পার্সেলটি REDX Birulia Central Mother Hub এ রিসিভ করা হয়েছে",
+            "status": "ready-for-delivery",
+            "groupedStatus": "parcel_processing",
+            "action": "received-from-hub",
+            "time": "2025-01-11T20:24:35.000Z"
+        },
+        {
+            "messageEn": "Parcel is ready for transfer from REDX Birulia Central Mother Hub to Azimpur Hub",
+            "messageBn": "পার্সেলটি REDX Birulia Central Mother Hub হতে  Azimpur Hub এর গাড়িতে ওঠার অপেক্ষায় আছে",
+            "status": "line-haul-in-progress",
+            "groupedStatus": "line-haul-in-progress",
+            "action": "dispatched-to-line-haul",
+            "time": "2025-01-11T21:40:30.000Z"
+        },
+        {
+            "messageEn": "Parcel carrying vehicle has left from REDX Birulia Central Mother Hub for Azimpur Hub",
+            "messageBn": "পার্সেলটির গাড়ি Azimpur Hub এর উদ্দেশ্যে REDX Birulia Central Mother Hub ছেড়ে গিয়েছে",
+            "status": "line-haul-trip-started",
+            "groupedStatus": "line-haul-trip-started",
+            "action": "trip-started",
+            "time": "2025-01-12T01:01:50.000Z"
+        },
+        {
+            "messageEn": "Parcel carrying vehicle has reached Azimpur Hub",
+            "messageBn": "পার্সেলটির গাড়ি Azimpur Hub এ পৌছে গেছে",
+            "status": "line-haul-bulk-dropped",
+            "groupedStatus": "line-haul-bulk-dropped",
+            "action": "bulk-dropped",
+            "time": "2025-01-12T02:10:50.000Z"
+        },
+        {
+            "messageEn": "Parcel is unloaded from the vehicle in Azimpur Hub",
+            "messageBn": "পার্সেলটি Azimpur Hub এ গাড়ি থেকে নামানো হয়েছে",
+            "status": "bulk-transfer-received",
+            "groupedStatus": "bulk-transfer-received",
+            "action": "received-transfer",
+            "time": "2025-01-12T02:36:07.000Z"
+        },
+        {
+            "messageEn": "Parcel is received in Azimpur Hub",
+            "messageBn": "পার্সেলটি Azimpur Hub এ রিসিভ করা হয়েছে",
+            "status": "ready-for-delivery",
+            "groupedStatus": "parcel_processing",
+            "action": "received-from-hub",
+            "time": "2025-01-12T02:44:14.000Z"
+        },
+        {
+            "messageEn": "Parcel is on the way to delivery by Abul Hasan_NB(8801743836476)",
+            "messageBn": "ডেলিভারি এজেন্ট Abul Hasan_NB(8801743836476) ডেলিভারির জন্যে বের হয়েছে",
+            "status": "delivery-in-progress",
+            "groupedStatus": "delivery_on_the_way",
+            "action": "dispatched-to-agent",
+            "time": "2025-01-12T03:23:59.000Z"
+        },
+        {
+            "messageEn": "Parcel is delivered successfully",
+            "messageBn": "পার্সেল ডেলিভারি সম্পন্ন হয়েছে",
+            "status": "delivered",
+            "groupedStatus": "delivered",
+            "action": "agent-delivered",
+            "time": "2025-01-12T07:08:47.000Z"
+        }
+    ]
+}

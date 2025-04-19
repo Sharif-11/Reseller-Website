@@ -1,0 +1,87 @@
+{
+    "message": "Order information",
+    "type": "success",
+    "code": 200,
+    "data": {
+        "order": {
+            "order_id": 5310665,
+            "consignment": "DI160621V8NDP7",
+            "order_type_id": 1,
+            "collectable_amount": 2240,
+            "transfer_status": "Delivered",
+            "transfer_status_updated_at": "17 Jun, 2021 7:43 PM",
+            "merchant_logo": "https:\/\/cdn.pathao.com\/hermes\/hermes_AYNY8cDIe5ECAoDW1651854660.jpg",
+            "created_at": "Jun 16, 2021 1:27 PM",
+            "order_description": "MGC Die Casting granait Non Stick Cookware Induction Friendly Granite Fry Pan with Cover Gas & Induction Compatible-24cm",
+            "cash_on_delivery": "Yes",
+            "is_ecom_merchant": "No",
+            "c2c_info": null,
+            "delivery_hub_latitude": "23.7810677",
+            "delivery_hub_longitude": "90.4078489",
+            "agent": {
+                "id": 631,
+                "name": "MD. AMIT HASAN",
+                "image": "https:\/\/cdn.pathao.com\/hermes\/hermes_3eNbHR1OsbODUPQg1643957156.png",
+                "rating": null
+            },
+            "estimated_date": ""
+        },
+        "state": {
+            "name": "Delivered",
+            "id": 5,
+            "transition_id": 2
+        },
+        "log": [
+            {
+                "desc": "New Delivery Requested",
+                "created_at": "Jun 16, 2021 1:27 PM",
+                "notes": ""
+            },
+            {
+                "desc": "Order Updated By Merchant",
+                "created_at": "Jun 16, 2021 1:32 PM",
+                "notes": ""
+            },
+            {
+                "desc": "Your order has been confirmed",
+                "created_at": "Jun 16, 2021 2:12 PM",
+                "notes": ""
+            },
+            {
+                "desc": "Order Updated By Merchant",
+                "created_at": "Jun 16, 2021 3:06 PM",
+                "notes": ""
+            },
+            {
+                "desc": "Order weight updated from  1kg to 1.6kg",
+                "created_at": "Jun 16, 2021 8:44 PM",
+                "notes": ""
+            },
+            {
+                "desc": "Your order is being sorted.",
+                "created_at": "Jun 16, 2021 8:44 PM",
+                "notes": ""
+            },
+            {
+                "desc": "Your order On The Way To  (Last Mile) Hub",
+                "created_at": "Jun 17, 2021 3:23 AM",
+                "notes": ""
+            },
+            {
+                "desc": "Your order has reached at Last Mile Hub",
+                "created_at": "Jun 17, 2021 9:43 AM",
+                "notes": ""
+            },
+            {
+                "desc": "Our Deliver man (MD. AMIT HASAN(FDA 0331)) has picked-up you order for Delivery",
+                "created_at": "Jun 17, 2021 11:47 AM",
+                "notes": ""
+            },
+            {
+                "desc": "Your order has been delivered.",
+                "created_at": "Jun 17, 2021 7:43 PM",
+                "notes": ""
+            }
+        ]
+    }
+}

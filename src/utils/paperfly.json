@@ -1,0 +1,55 @@
+{
+    "sender": {
+        "full_name": "Shp Bazar",
+        "phone_number": "018XXXXX880",
+        "thana_name": "Imamganj-Chawkbazar",
+        "district": "Dhaka"
+    },
+    "receiver": {
+        "full_name": " Maj Mahbuba Sultana",
+        "phone_number": "019XXXXX110",
+        "thana_name": "Cantonment (Dhaka)",
+        "district": "Dhaka",
+        "address_line": "196\/6 Staff Road, Dhaka Cantonment"
+    },
+    "package": {
+        "package_option": "standard",
+        "merchant_provide_weight": "0.41",
+        "collectable_amount": 1210,
+        "collected_amount": 1210,
+        "merchant_order_ref": "49664",
+        "package_description": ""
+    },
+    "status": "Delivered",
+    "order_number": "Z-180125-25342-A17-PA4",
+    "timeline": [
+        {
+            "date_time": "2025-01-22 05:35:28",
+            "message": "Invoiced"
+        },
+        {
+            "date_time": "2025-01-20 21:32:07",
+            "message": "Delivered"
+        },
+        {
+            "date_time": "2025-01-20 21:27:11",
+            "message": "On the way to delivery,Name: PA4 User,Call: 01897614301"
+        },
+        {
+            "date_time": "2025-01-20 14:52:07",
+            "message": "On hold, Reason: \u09aa\u09be\u09b0\u09cd\u09b8\u09c7\u09b2\u099f\u09bf \u09b9\u09cb\u09b2\u09cd\u09a1 \u09b9\u09df\u09c7\u099b\u09c7"
+        },
+        {
+            "date_time": "2025-01-20 08:26:05",
+            "message": "Reached delivery point"
+        },
+        {
+            "date_time": "2025-01-19 03:16:28",
+            "message": "Parcel Picked"
+        },
+        {
+            "date_time": "2025-01-18 15:18:21",
+            "message": "Pickup request sent"
+        }
+    ]
+}

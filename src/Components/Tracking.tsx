@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 
 interface TrackingStep {
   id: number;
@@ -12,85 +13,121 @@ interface TrackingStep {
 
 interface PackageDetails {
   trackingNumber: string;
-  carrier: string;
+  courier: string;
   estimatedDelivery: string;
   weight: string;
   dimensions: string;
+  status: string;
 }
 
+const courierOptions = [
+  { value: 'Pathao', label: 'Pathao' },
+  { value: 'Steadfast', label: 'Steadfast' },
+  { value: 'Redx', label: 'Redx' },
+  { value: 'Sundarban', label: 'Sundarban' },
+  { value: 'Paperfly', label: 'Paperfly' },
+];
+
 const OrderTracking = () => {
+  const location = useLocation();
+  const [courier, setCourier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [packageDetails, setPackageDetails] = useState<PackageDetails | null>(null);
   const [trackingSteps, setTrackingSteps] = useState<TrackingStep[]>([]);
 
-  // Mock data fetch - replace with your API call
+  // Check for tracking info in location state on component mount
   useEffect(() => {
-    if (trackingNumber) {
-      setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setPackageDetails({
-          trackingNumber: trackingNumber,
-          carrier: 'FedEx',
-          estimatedDelivery: 'Thu, May 25, 2023',
-          weight: '2.5 kg',
-          dimensions: '30 × 20 × 10 cm'
-        });
-
-        // Note: The steps are now sorted with most recent first
-        setTrackingSteps([
-          {
-            id: 5,
-            status: 'pending',
-            title: 'Delivered',
-            description: 'Your package has been delivered',
-            date: '',
-            time: ''
-          },
-          {
-            id: 4,
-            status: 'active',
-            title: 'Out for Delivery',
-            description: 'Your package is on the delivery vehicle',
-            date: 'May 25, 2023',
-            time: '8:00 AM'
-          },
-          {
-            id: 3,
-            status: 'completed',
-            title: 'In Transit',
-            description: 'Your package is moving through our network',
-            date: 'May 22, 2023',
-            time: '9:15 AM'
-          },
-          {
-            id: 2,
-            status: 'completed',
-            title: 'Shipped',
-            description: 'Your package has left our facility and is on its way',
-            date: 'May 21, 2023',
-            time: '3:45 PM'
-          },
-          {
-            id: 1,
-            status: 'completed',
-            title: 'Order Processed',
-            description: 'Your order has been processed and is being prepared for shipment',
-            date: 'May 20, 2023',
-            time: '10:30 AM'
-          }
-        ]);
-        setIsLoading(false);
-      }, 1500);
+    if (location.state?.trackingInfo) {
+      const { courier, trackingNumber } = location.state.trackingInfo;
+      setCourier(courier);
+      setTrackingNumber(trackingNumber);
+      fetchTrackingData(courier, trackingNumber);
     }
-  }, [trackingNumber]);
+  }, [location.state]);
+
+  // Mock data fetch - replace with your API call
+  const fetchTrackingData = (courier: string, trackingNum: string) => {
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setPackageDetails({
+        trackingNumber: trackingNum,
+        courier: courier,
+        estimatedDelivery: 'Thu, May 25, 2023',
+        weight: '2.5 kg',
+        dimensions: '30 × 20 × 10 cm',
+        status: 'In Transit'
+      });
+
+      // Generate tracking steps based on courier and status
+      const steps = generateTrackingSteps(courier, trackingNum);
+      setTrackingSteps(steps);
+      setIsLoading(false);
+    }, 1500);
+  };
+
+  // Generate different tracking steps based on courier
+  const generateTrackingSteps = (courier: string, trackingNum: string) => {
+    console.log(`Generating tracking steps for ${courier} with tracking number ${trackingNum}`);
+    const baseSteps: TrackingStep[] = [
+      {
+        id: 5,
+        status: 'pending',
+        title: 'Delivered',
+        description: `Your ${courier} package has been delivered`,
+        date: '',
+        time: ''
+      },
+      {
+        id: 4,
+        status: 'active',
+        title: 'Out for Delivery',
+        description: `Your ${courier} package is on the delivery vehicle`,
+        date: 'May 25, 2023',
+        time: '8:00 AM'
+      },
+      {
+        id: 3,
+        status: 'completed',
+        title: 'In Transit',
+        description: `Your package is moving through ${courier}'s network`,
+        date: 'May 22, 2023',
+        time: '9:15 AM'
+      },
+      {
+        id: 2,
+        status: 'completed',
+        title: 'Shipped',
+        description: `Your package has left ${courier}'s facility`,
+        date: 'May 21, 2023',
+        time: '3:45 PM'
+      },
+      {
+        id: 1,
+        status: 'completed',
+        title: 'Order Processed',
+        description: `Your order has been processed by ${courier}`,
+        date: 'May 20, 2023',
+        time: '10:30 AM'
+      }
+    ];
+
+    // Adjust steps based on courier (example customization)
+    if (courier === 'Pathao') {
+      baseSteps[3].description = "Picked up by Pathao rider";
+    } else if (courier === 'Redx') {
+      baseSteps[3].description = "Received at Redx warehouse";
+    }
+
+    return baseSteps;
+  };
 
   const handleTrack = (e: React.FormEvent) => {
     e.preventDefault();
-    if (trackingNumber.trim()) {
-      // In a real app, you would call your tracking API here
-      console.log('Tracking:', trackingNumber);
+    if (courier && trackingNumber.trim()) {
+      fetchTrackingData(courier, trackingNumber);
     }
   };
 
@@ -104,7 +141,7 @@ const OrderTracking = () => {
           className="text-center mb-6 sm:mb-10"
         >
           <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">আপনার অর্ডার ট্র্যাক করুন</h1>
-          <p className="text-base text-md text-gray-600">আপনার ডেলিভারি স্ট্যাটাস চেক করতে ট্র্যাকিং নম্বর লিখুন</p>
+          <p className="text-base text-md text-gray-600">কুরিয়ার সিলেক্ট করে ট্র্যাকিং আইডি লিখুন</p>
         </motion.div>
 
         <motion.div
@@ -114,23 +151,46 @@ const OrderTracking = () => {
           className="bg-white rounded-xl shadow-lg overflow-hidden mb-6 sm:mb-8"
         >
           <div className="p-4 sm:p-6 md:p-8">
-            <form onSubmit={handleTrack} className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <div className="flex-grow">
-                <label htmlFor="tracking-number" className="sr-only">Tracking Number</label>
-                <input
-                  type="text"
-                  id="tracking-number"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  placeholder="Enter your tracking number"
-                  className="w-full px-4 py-3 text-xs  border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
+            <form onSubmit={handleTrack} className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="courier" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    কুরিয়ার সিলেক্ট করুন
+                  </label>
+                  <select
+                    id="courier"
+                    value={courier}
+                    onChange={(e) => setCourier(e.target.value)}
+                    className="w-full px-4 py-3 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="">Select Courier</option>
+                    {courierOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="tracking-number" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    ট্র্যাকিং নম্বর
+                  </label>
+                  <input
+                    type="text"
+                    id="tracking-number"
+                    value={trackingNumber}
+                    onChange={(e) => setTrackingNumber(e.target.value)}
+                    placeholder="Enter your tracking number"
+                    className="w-full px-4 py-3 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
               </div>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-medium rounded-lg transition-colors duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-medium rounded-lg transition-colors duration-200 disabled:opacity-70 disabled:cursor-not-allowed self-center sm:self-end"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center">
@@ -168,22 +228,26 @@ const OrderTracking = () => {
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Package Details</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
+                    <h3 className="text-xs sm:text-sm font-medium text-gray-500">Courier</h3>
+                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.courier}</p>
+                  </div>
+                  <div>
                     <h3 className="text-xs sm:text-sm font-medium text-gray-500">Tracking Number</h3>
                     <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.trackingNumber}</p>
                   </div>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-medium text-gray-500">Carrier</h3>
-                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.carrier}</p>
+                    <h3 className="text-xs sm:text-sm font-medium text-gray-500">Current Status</h3>
+                    <p className="mt-1 text-base sm:text-lg font-medium text-blue-600">{packageDetails.status}</p>
                   </div>
                   <div>
                     <h3 className="text-xs sm:text-sm font-medium text-gray-500">Estimated Delivery</h3>
-                    <p className="mt-1 text-base sm:text-lg font-medium text-blue-600">{packageDetails.estimatedDelivery}</p>
+                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.estimatedDelivery}</p>
                   </div>
                   <div>
                     <h3 className="text-xs sm:text-sm font-medium text-gray-500">Weight</h3>
                     <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.weight}</p>
                   </div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <h3 className="text-xs sm:text-sm font-medium text-gray-500">Dimensions</h3>
                     <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.dimensions}</p>
                   </div>
