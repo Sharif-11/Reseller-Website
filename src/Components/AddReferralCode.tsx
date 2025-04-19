@@ -51,9 +51,9 @@ const AddReferralCode = () => {
     <div className="min-h-screen  flex items-start justify-center p-8">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
         {/* Header Section */}
-        <div className="bg-gradient-to-r  p-6 text-center text-white">
-          <h1 className="text-2xl font-bold">রেফারাল কোড যোগ করুন</h1>
-          <p className="text-indigo-100 mt-1 text-sm">
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-center text-white">
+          <h1 className="text-md font-bold">রেফারাল কোড যোগ করুন</h1>
+          <p className="text-indigo-100 mt-1 text-xs">
             আপনার রেফারাল কোডটি এখানে প্রবেশ করুন
           </p>
         </div>
@@ -76,13 +76,13 @@ const AddReferralCode = () => {
           <form onSubmit={formik.handleSubmit} className="space-y-4">
             {/* Referral Code Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <FiUserPlus className="text-indigo-600" />
                 রেফারাল কোড *
               </label>
               <input
                 type="text"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                className={`w-full text-xs px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
                   formik.touched.referralCode && formik.errors.referralCode
                     ? "border-red-500"
                     : "border-gray-300"
@@ -101,7 +101,7 @@ const AddReferralCode = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-xs"
             >
               {isLoading ? (
                 <>
