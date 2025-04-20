@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sentry/react": "^9.13.0",
+    "@sentry/vite-plugin": "^3.3.1",
     "@types/react-copy-to-clipboard": "^5.0.7",
     "axios": "^1.7.9",
     "formik": "^2.4.6",

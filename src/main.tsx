@@ -38,6 +38,12 @@ import AboutUs from "./Components/AboutUs.tsx";
 import OrderTracking from "./Components/Tracking.tsx";
 import AdminOrders from "./Components/AdminOrders.tsx";
 
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: "https://283a749ae1d929c3da86a952b8290e15@o4509187069378560.ingest.de.sentry.io/4509187074359376"
+});
+
 
 
 const PublicRoute = ({ children }: { children: JSX.Element }) => {
