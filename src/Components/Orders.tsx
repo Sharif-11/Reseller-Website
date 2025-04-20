@@ -669,7 +669,7 @@ const Orders = () => {
     <div className="flex items-center border rounded-md overflow-hidden">
       <div
         className="text-blue-600 hover:underline px-2 py-1 text-sm truncate cursor-pointer max-w-xs"
-        onClick={() => handleTrackingLinkClick('https://old.steadfast.com.bd/t/6451D9619F6')}
+        onClick={() => handleTrackingLinkClick(selectedOrder.trackingURL!)}
       >
         {selectedOrder.trackingURL}
       </div>

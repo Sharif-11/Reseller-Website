@@ -1,24 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
+import CourierTracker, { TrackingResponse } from '../utils/CourierTracker';
+import { fetchTrackingInfo } from '../Api/tracking.api';
 
-interface TrackingStep {
-  id: number;
-  status: 'completed' | 'active' | 'pending';
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-}
 
-interface PackageDetails {
-  trackingNumber: string;
-  courier: string;
-  estimatedDelivery: string;
-  weight: string;
-  dimensions: string;
-  status: string;
-}
 
 const courierOptions = [
   { value: 'Pathao', label: 'Pathao' },
@@ -33,12 +19,19 @@ const OrderTracking = () => {
   const [courier, setCourier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [packageDetails, setPackageDetails] = useState<PackageDetails | null>(null);
-  const [trackingSteps, setTrackingSteps] = useState<TrackingStep[]>([]);
+  const [trackingResponse, setTrackingResponse] = useState<TrackingResponse | null>(null);
+  const [error, setError] = useState('');
 
   // Check for tracking info in location state on component mount
   useEffect(() => {
-    if (location.state?.trackingInfo) {
+    if (location.state?.trackingUrl) {
+      const trackingInfo = CourierTracker.parseTrackingInfo(location.state.trackingUrl);
+      if (trackingInfo) {
+        setCourier(trackingInfo.courier);
+        setTrackingNumber(trackingInfo.trackingNumber);
+        fetchTrackingData(trackingInfo.courier, trackingInfo.trackingNumber);
+      }
+    } else if (location.state?.trackingInfo) {
       const { courier, trackingNumber } = location.state.trackingInfo;
       setCourier(courier);
       setTrackingNumber(trackingNumber);
@@ -46,82 +39,25 @@ const OrderTracking = () => {
     }
   }, [location.state]);
 
-  // Mock data fetch - replace with your API call
-  const fetchTrackingData = (courier: string, trackingNum: string) => {
+  const fetchTrackingData = async (courier: string, trackingNum: string) => {
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setPackageDetails({
-        trackingNumber: trackingNum,
-        courier: courier,
-        estimatedDelivery: 'Thu, May 25, 2023',
-        weight: '2.5 kg',
-        dimensions: '30 × 20 × 10 cm',
-        status: 'In Transit'
-      });
+    setError('');
+    const trackingUrl= CourierTracker.getTrackingUrl(courier, trackingNum);
+    try {
+       const {message,success,data}=await fetchTrackingInfo(trackingUrl);
+       if(success){
+        setTrackingResponse(data);
+        setIsLoading(false);
+       }
+        else{
+          setError(message);
+          setIsLoading(false);
+        }
 
-      // Generate tracking steps based on courier and status
-      const steps = generateTrackingSteps(courier, trackingNum);
-      setTrackingSteps(steps);
-      setIsLoading(false);
-    }, 1500);
-  };
-
-  // Generate different tracking steps based on courier
-  const generateTrackingSteps = (courier: string, trackingNum: string) => {
-    console.log(`Generating tracking steps for ${courier} with tracking number ${trackingNum}`);
-    const baseSteps: TrackingStep[] = [
-      {
-        id: 5,
-        status: 'pending',
-        title: 'Delivered',
-        description: `Your ${courier} package has been delivered`,
-        date: '',
-        time: ''
-      },
-      {
-        id: 4,
-        status: 'active',
-        title: 'Out for Delivery',
-        description: `Your ${courier} package is on the delivery vehicle`,
-        date: 'May 25, 2023',
-        time: '8:00 AM'
-      },
-      {
-        id: 3,
-        status: 'completed',
-        title: 'In Transit',
-        description: `Your package is moving through ${courier}'s network`,
-        date: 'May 22, 2023',
-        time: '9:15 AM'
-      },
-      {
-        id: 2,
-        status: 'completed',
-        title: 'Shipped',
-        description: `Your package has left ${courier}'s facility`,
-        date: 'May 21, 2023',
-        time: '3:45 PM'
-      },
-      {
-        id: 1,
-        status: 'completed',
-        title: 'Order Processed',
-        description: `Your order has been processed by ${courier}`,
-        date: 'May 20, 2023',
-        time: '10:30 AM'
-      }
-    ];
-
-    // Adjust steps based on courier (example customization)
-    if (courier === 'Pathao') {
-      baseSteps[3].description = "Picked up by Pathao rider";
-    } else if (courier === 'Redx') {
-      baseSteps[3].description = "Received at Redx warehouse";
+    } catch (error) {
+      
     }
-
-    return baseSteps;
+    
   };
 
   const handleTrack = (e: React.FormEvent) => {
@@ -216,7 +152,26 @@ const OrderTracking = () => {
           </motion.div>
         )}
 
-        {packageDetails && !isLoading && (
+        {error && !isLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-red-50 border-l-4 border-red-500 p-4 mb-6"
+          >
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {trackingResponse && !isLoading && trackingResponse.success && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -229,28 +184,34 @@ const OrderTracking = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <h3 className="text-xs sm:text-sm font-medium text-gray-500">Courier</h3>
-                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.courier}</p>
+                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{trackingResponse.courier}</p>
                   </div>
                   <div>
                     <h3 className="text-xs sm:text-sm font-medium text-gray-500">Tracking Number</h3>
-                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.trackingNumber}</p>
+                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{trackingResponse.trackingNumber || trackingNumber}</p>
                   </div>
                   <div>
                     <h3 className="text-xs sm:text-sm font-medium text-gray-500">Current Status</h3>
-                    <p className="mt-1 text-base sm:text-lg font-medium text-blue-600">{packageDetails.status}</p>
+                    <p className="mt-1 text-base sm:text-lg font-medium text-blue-600">{trackingResponse.status}</p>
                   </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-medium text-gray-500">Estimated Delivery</h3>
-                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.estimatedDelivery}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-medium text-gray-500">Weight</h3>
-                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.weight}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-medium text-gray-500">Dimensions</h3>
-                    <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{packageDetails.dimensions}</p>
-                  </div>
+                  {trackingResponse.estimatedDelivery && (
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-500">Estimated Delivery</h3>
+                      <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{trackingResponse.estimatedDelivery}</p>
+                    </div>
+                  )}
+                  {trackingResponse.weight && (
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-500">Weight</h3>
+                      <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{trackingResponse.weight}</p>
+                    </div>
+                  )}
+                  {trackingResponse.dimensions && (
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-500">Dimensions</h3>
+                      <p className="mt-1 text-base sm:text-lg font-medium text-gray-900">{trackingResponse.dimensions}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -262,7 +223,7 @@ const OrderTracking = () => {
                   {/* Timeline */}
                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
                   
-                  {trackingSteps.map((step, index) => (
+                  {trackingResponse.steps.map((step, index) => (
                     <motion.div
                       key={step.id}
                       initial={{ opacity: 0, x: -20 }}
@@ -276,7 +237,7 @@ const OrderTracking = () => {
                         'bg-white border-gray-300'
                       }`}></div>
                       <div className={`absolute left-4 top-4 h-full w-0.5 ${
-                        index === trackingSteps.length - 1 ? 'hidden' : 
+                        index === trackingResponse.steps.length - 1 ? 'hidden' : 
                         step.status === 'completed' ? 'bg-green-500' : 'bg-gray-200'
                       }`}></div>
                       <div className="space-y-1">
