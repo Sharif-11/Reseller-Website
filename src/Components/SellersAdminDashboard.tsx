@@ -10,7 +10,7 @@ const SellerHomeDashboard = () => {
   
   // Announcements data
   const announcements:string[] = [
-    "🎉 নতুন বছর উপলক্ষে বিশেষ ডিসকাউন্ট চলছে!",
+    // "🎉 নতুন বছর উপলক্ষে বিশেষ ডিসকাউন্ট চলছে!",
     // "⚠️ আগামীকাল সিস্টেম মেইন্টেন্যান্সের কারণে বিক্রয় বন্ধ থাকবে সকাল ১০টা থেকে ১২টা পর্যন্ত",
     // "📢 নতুন সেলারদের জন্য বিশেষ ট্রেনিং সেশনের আয়োজন করা হবে ১৫ই জানুয়ারি"
   ];
@@ -40,6 +40,11 @@ const SellerHomeDashboard = () => {
       title: 'সাধারণ প্রশ্ন',
       icon: <FaQuestionCircle className="text-3xl text-indigo-600" />,
       url: '/faq'
+    },
+    {
+      title: 'অর্ডার ট্র্যাকিং',
+      icon: <FaBoxOpen className="text-3xl text-gray-600" />,
+      url: '/tracking'
     },
     {
       title: 'সেলার ড্যাশবোর্ড',

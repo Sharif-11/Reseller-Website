@@ -3,6 +3,7 @@ import { cancelOrder, getOrders } from '../Api/seller.api';
 import { toast } from 'react-toastify';
 import { formatDate } from '../utils/date.utils';
 import {  useNavigate } from 'react-router-dom';
+import { FaCopy } from 'react-icons/fa';
 
 interface Order {
   orderId: number;
@@ -255,7 +256,7 @@ const Orders = () => {
           প্রসেসিং
         </span>;
       case 'shipped':
-        return <span className={`${baseClasses} bg-indigo-100 text-indigo-800 text-[6px]`}> কুরিয়ারে পাঠানো হয়েছে</span>;
+        return <span className={`${baseClasses} bg-indigo-100 text-indigo-800  text-[4px] md:text-[6px]`}> কুরিয়ারে পাঠানো হয়েছে</span>;
       case 'rejected':
         return <span className={`${baseClasses} bg-red-100 text-red-800`}>
           রিজেক্টেড 
@@ -459,6 +460,34 @@ const Orders = () => {
                     <p className="text-gray-500">ডেলিভারি চার্জ:</p>
                     <p className="font-medium">{parseFloat(order.deliveryCharge).toFixed(2)}৳</p>
                   </div>
+                  {order.orderStatus === 'shipped' && order.trackingURL && (
+                  <div>
+                    <p className="text-gray-500">ট্র্যাকিং লিংক:</p>
+                    <div className="flex items-center gap-1 mt-1">
+                    <input
+                      type="text"
+                      value={order.trackingURL}
+                      readOnly
+                      onClick={()=>{
+                        navigator.clipboard.writeText(order.trackingURL || '');
+                        handleTrackingLinkClick(order.trackingURL || '');
+                      }}
+                      className="text-xs p-1 border rounded flex-1 w-24 truncate"
+                    />
+                    <button
+                      onClick={() => {
+                      navigator.clipboard.writeText(order.trackingURL || '');
+                      toast.success('ট্র্যাকিং লিংক কপি করা হয়েছে');
+                      }}
+                      className="p-1 bg-gray-100 rounded hover:bg-gray-200"
+                      aria-label="Copy tracking link"
+                    >
+                      <FaCopy size={12} />
+                    </button>
+                  
+                    </div>
+                  </div>
+                  )}
                 </div>
 
                 <div className="mt-3 flex justify-between items-center">
@@ -663,30 +692,32 @@ const Orders = () => {
                     {selectedOrder.courierName && (
                       <p className="text-sm"><span className="font-medium">কুরিয়ার:</span> {selectedOrder.courierName}</p>
                     )}
-                   {selectedOrder.trackingURL && (
-  <div className="flex items-center gap-2">
-    <span className="font-medium">ট্র্যাকিং লিঙ্ক:</span>
-    <div className="flex items-center border rounded-md overflow-hidden">
-      <div
-        className="text-blue-600 hover:underline px-2 py-1 text-sm truncate cursor-pointer max-w-xs"
-        onClick={() => handleTrackingLinkClick(selectedOrder.trackingURL!)}
-      >
-        {selectedOrder.trackingURL}
-      </div>
+                  {selectedOrder.orderStatus=== 'shipped' && selectedOrder.trackingURL && (
+  <div className="mt-4">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Tracking Link
+    </label>
+    <div className="flex items-center">
+      <input
+        type="text"
+        value={`${selectedOrder.trackingURL}`}
+        readOnly
+        className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+      />
       <button
         onClick={() => {
-          if(!selectedOrder.trackingURL) return;
-          navigator.clipboard.writeText(selectedOrder.trackingURL);
-          toast.success('লিঙ্ক কপি করা হয়েছে');
+          navigator.clipboard.writeText(selectedOrder.trackingURL!);
+          // Add toast notification or alert here
         }}
-        className="bg-gray-100 hover:bg-gray-200 px-2 py-1 border-l"
-        title="Copy link"
+        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-r-md text-sm flex items-center"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-        </svg>
+        <FaCopy className="mr-1" />
+        Copy
       </button>
     </div>
+    <p className="mt-1 text-xs text-gray-500">
+      Share this link with your customer to track their order
+    </p>
   </div>
 )}
                   </div>
