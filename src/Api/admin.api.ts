@@ -300,3 +300,353 @@ export const getAllAdminWallets = async ()=>{
   }
 
 }
+export const getAdminOrders=async ({
+  page = 1,
+  pageSize = 10,
+  status
+}: {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+})=>{
+  
+  try {
+    console.log(page, pageSize, status)
+    const statusArray=status?.split(',')
+    const generateQueryString = (params: string[]|string|undefined) => {
+      if (Array.isArray(params)) {
+        return params.map((param) => `status=${encodeURIComponent(param.trim())}`).join('&');
+      }
+      return params ? `status=${encodeURIComponent(params)}` : '';  
+
+    }
+    const queryString=`page=${page}&pageSize=${pageSize}`
+    const statusQueryString = generateQueryString(statusArray);
+    const queryParams = statusQueryString ? `${queryString}&${statusQueryString}` : queryString;
+    const { data } = await axiosInstance.get(`admin/orders?${queryParams}`);
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+export const approveOrder=async ({
+  orderId,
+  transactionId,
+}:{
+  orderId:string;
+  transactionId:string;
+})=>{
+  
+  try {
+    
+    const { data } = await axiosInstance.patch(`admin/orders/${orderId}/approve`, {
+      transactionId
+    });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+export const rejectOrder=async ({
+  orderId,
+  remarks
+}:{
+  orderId:string;
+  remarks?:string;
+})=>{
+  
+  try {
+    
+    const { data } = await axiosInstance.patch(`admin/orders/${orderId}/reject`, {
+      remarks
+    });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+export const cancelOrder=async ({
+  orderId,
+  remarks
+}:{
+  orderId:string;
+  remarks?:string;
+})=>{
+  
+  try {
+    
+    const { data } = await axiosInstance.patch(`admin/orders/${orderId}/cancel`, {
+      remarks
+    });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+export const processOrder=async ({
+  orderId,
+}:{
+  orderId:string;
+})=>{
+  
+  try {
+    
+    const { data } = await axiosInstance.patch(`admin/orders/${orderId}/process`);
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+export const shipOrder=async ({
+  orderId,
+  trackingURL,
+}:{
+  orderId:string;
+  trackingURL:string;
+})=>{
+  
+  try {
+    
+    const { data } = await axiosInstance.patch(`admin/orders/${orderId}/ship`, {
+      trackingURL
+    });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+export const completeOrder=async ({
+  orderId,
+  totalAmountPaidByCustomer}
+:{
+  orderId:string;
+  totalAmountPaidByCustomer:number;
+})=>{
+    
+    try {
+      
+      const { data } = await axiosInstance.patch(`admin/orders/${orderId}/complete`, {
+        totalAmountPaidByCustomer
+      });
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        data: responseData,
+        statusCode,
+      };
+    } catch (error) {
+      
+      if (error instanceof AxiosError && error.response?.data) {
+        const { data } = error.response;
+        const { success, message, statusCode } = data;
+        const responseData = data?.data;
+        return {
+          success,
+          message,
+          statusCode,
+          data: responseData,
+        };
+      }
+      // Handle unexpected errors
+      return {
+        success: false,
+        message: "An unexpected error occurred",
+        statusCode: 500,
+        data: null,
+      };
+    }
+  }
+export const returnOrder=async ({
+  orderId,
+  remarks
+}:{
+  orderId:string;
+  remarks?:string;
+})=>{
+  
+  try {
+    
+    const { data } = await axiosInstance.patch(`admin/orders/${orderId}/return`, {
+      remarks
+    });
+    const { success, message, statusCode } = data;
+    const responseData = data?.data;
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    };
+  } catch (error) {
+    
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response;
+      const { success, message, statusCode } = data;
+      const responseData = data?.data;
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      };
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: "An unexpected error occurred",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}

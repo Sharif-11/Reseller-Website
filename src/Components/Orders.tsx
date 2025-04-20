@@ -695,13 +695,17 @@ const Orders = () => {
                   {selectedOrder.orderStatus=== 'shipped' && selectedOrder.trackingURL && (
   <div className="mt-4">
     <label className="block text-sm font-medium text-gray-700 mb-1">
-      Tracking Link
+      ট্র্যাকিং লিংক
     </label>
     <div className="flex items-center">
       <input
         type="text"
         value={`${selectedOrder.trackingURL}`}
         readOnly
+        onClick={()=>{
+          navigator.clipboard.writeText(selectedOrder.trackingURL!);
+          handleTrackingLinkClick(selectedOrder.trackingURL!);
+        }}
         className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
       />
       <button
@@ -716,7 +720,7 @@ const Orders = () => {
       </button>
     </div>
     <p className="mt-1 text-xs text-gray-500">
-      Share this link with your customer to track their order
+    অর্ডার ট্র্যাক করতে  এই লিংকটি আপনার গ্রাহকের সাথে শেয়ার করুন
     </p>
   </div>
 )}

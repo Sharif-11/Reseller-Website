@@ -36,6 +36,7 @@ import SupportTicket from "./Components/SupportTicket.tsx";
 import SalesGuidelines from "./Components/SalesGuideline.tsx";
 import AboutUs from "./Components/AboutUs.tsx";
 import OrderTracking from "./Components/Tracking.tsx";
+import AdminOrders from "./Components/AdminOrders.tsx";
 
 
 
@@ -171,6 +172,11 @@ createRoot(document.getElementById("root")!).render(
           <Route path='admin-withdraw-request' element={
             <AdminRoute>
               <AdminWithdrawRequests/>
+            </AdminRoute>
+          } />
+          <Route path='admin-orders' element={
+            <AdminRoute>
+              <AdminOrders/>
             </AdminRoute>
           } />
           <Route path='withdraw-history' element={
