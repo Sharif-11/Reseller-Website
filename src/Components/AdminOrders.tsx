@@ -11,7 +11,7 @@ import {
 } from '../Api/admin.api';
 import { toast } from 'react-toastify';
 import { formatDate } from '../utils/date.utils';
-import { FaCopy, FaFilter, FaTimes } from 'react-icons/fa';
+import { FaCopy, FaFilter, FaTimes, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 interface Order {
@@ -91,17 +91,18 @@ const AdminOrders = () => {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate=useNavigate()
+  const [fetching, setFetching] = useState(false);
+  const navigate = useNavigate();
   const [pagination, setPagination] = useState<Record<string, PaginationState>>({
-    pending: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
-    approved: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
+    newRequests: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
     processing: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
     shipped: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
+    completed: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
     others: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
   });
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [processingOrder, setProcessingOrder] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'processing' | 'shipped' | 'others'>('pending');
+  const [activeTab, setActiveTab] = useState<'newRequests' | 'processing' | 'shipped' | 'completed' | 'others'>('newRequests');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     phoneNo: '',
     orderId: '',
@@ -119,22 +120,23 @@ const AdminOrders = () => {
     remarks: '',
     totalAmountPaidByCustomer: ''
   });
+  const [actionError, setActionError] = useState('');
 
   const fetchOrders = async (page = 1, pageSize = pagination[activeTab].pageSize) => {
     try {
-      setLoading(true);
+      setFetching(true);
       let statusParam = '';
       
-      if (activeTab === 'pending') {
-        statusParam = 'pending';
-      } else if (activeTab === 'approved') {
-        statusParam = 'approved';
+      if (activeTab === 'newRequests') {
+        statusParam = 'pending,approved';
       } else if (activeTab === 'processing') {
         statusParam = 'processing';
       } else if (activeTab === 'shipped') {
         statusParam = 'shipped';
+      } else if (activeTab === 'completed') {
+        statusParam = 'completed';
       } else if (activeTab === 'others') {
-        statusParam = 'completed,cancelled,refunded,returned,rejected';
+        statusParam = 'cancelled,refunded,returned,rejected';
       }
 
       const response = await getAdminOrders({
@@ -163,6 +165,7 @@ const AdminOrders = () => {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
+      setFetching(false);
     }
   };
 
@@ -249,7 +252,7 @@ const AdminOrders = () => {
     
     switch (status) {
       case 'completed':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}>কমপ্লিটেড </span>;
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>কমপ্লিটেড</span>;
       case 'approved':
         return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>অনুমোদিত</span>;
       case 'processing':
@@ -257,11 +260,11 @@ const AdminOrders = () => {
       case 'shipped':
         return <span className={`${baseClasses} bg-indigo-100 text-indigo-800`}>শিপড</span>;
       case 'rejected':
-        return <span className={`${baseClasses} bg-red-100 text-red-800`}>রিজেক্টেড </span>;
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>রিজেক্টেড</span>;
       case 'refunded':
         return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>রিফান্ডেড</span>;
       case 'cancelled':
-        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>ক্যানসেল্ড </span>;
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>ক্যানসেল্ড</span>;
       case 'returned':
         return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>রিটার্নড</span>;
       default:
@@ -283,6 +286,7 @@ const AdminOrders = () => {
     setCurrentAction(action);
     setSelectedOrder(order);
     setShowActionModal(true);
+    setActionError('');
     setActionData({
       transactionId: '',
       trackingURL: order.trackingURL || '',
@@ -295,25 +299,42 @@ const AdminOrders = () => {
     setShowActionModal(false);
     setCurrentAction(null);
     setSelectedOrder(null);
+    setActionError('');
   };
 
   const handleActionSubmit = async () => {
     if (!selectedOrder) return;
+    
+    // Validation
+    if (currentAction === 'approve' && !actionData.transactionId.trim()) {
+      setActionError('ট্রানজেকশন আইডি প্রয়োজন');
+      return;
+    }
+    
+    if (currentAction === 'ship' && !actionData.trackingURL.trim()) {
+      setActionError('ট্র্যাকিং URL প্রয়োজন');
+      return;
+    }
+    
+    if (currentAction === 'complete' && !actionData.totalAmountPaidByCustomer.trim()) {
+      setActionError('গ্রাহক কর্তৃক প্রদত্ত অর্থের পরিমাণ প্রয়োজন');
+      return;
+    }
+    
     setProcessingOrder(true);
+    setActionError('');
 
     try {
       let response;
+      let nextTab = activeTab;
       
       switch (currentAction) {
         case 'approve':
-          if (!actionData.transactionId) {
-            toast.error('ট্রানজেকশন আইডি প্রয়োজন');
-            return;
-          }
           response = await approveOrder({
             orderId: selectedOrder.orderId.toString(),
             transactionId: actionData.transactionId
           });
+          nextTab = 'processing';
           break;
         
         case 'reject':
@@ -321,6 +342,7 @@ const AdminOrders = () => {
             orderId: selectedOrder.orderId.toString(),
             remarks: actionData.remarks || undefined
           });
+          nextTab = 'others';
           break;
         
         case 'cancel':
@@ -328,34 +350,30 @@ const AdminOrders = () => {
             orderId: selectedOrder.orderId.toString(),
             remarks: actionData.remarks || undefined
           });
+          nextTab = 'others';
           break;
         
         case 'process':
           response = await processOrder({
             orderId: selectedOrder.orderId.toString()
           });
+          nextTab = 'processing';
           break;
         
         case 'ship':
-          if (!actionData.trackingURL) {
-            toast.error('ট্র্যাকিং URL প্রয়োজন');
-            return;
-          }
           response = await shipOrder({
             orderId: selectedOrder.orderId.toString(),
             trackingURL: actionData.trackingURL
           });
+          nextTab = 'shipped';
           break;
         
         case 'complete':
-          if (!actionData.totalAmountPaidByCustomer) {
-            toast.error('গ্রাহক কর্তৃক প্রদত্ত অর্থের পরিমাণ প্রয়োজন');
-            return;
-          }
           response = await completeOrder({
             orderId: selectedOrder.orderId.toString(),
             totalAmountPaidByCustomer: parseFloat(actionData.totalAmountPaidByCustomer)
           });
+          nextTab = 'completed';
           break;
         
         case 'return':
@@ -363,6 +381,7 @@ const AdminOrders = () => {
             orderId: selectedOrder.orderId.toString(),
             remarks: actionData.remarks || undefined
           });
+          nextTab = 'others';
           break;
         
         default:
@@ -370,17 +389,31 @@ const AdminOrders = () => {
       }
 
       if (response.success) {
-        toast.success(`অর্ডার ${currentAction} সফলভাবে সম্পন্ন হয়েছে`);
-        fetchOrders(pagination[activeTab].currentPage, pagination[activeTab].pageSize);
+        toast.success(`অর্ডার সফলভাবে ${getActionName(currentAction)} হয়েছে`);
+        setActiveTab(nextTab);
+        fetchOrders(1, pagination[nextTab].pageSize);
         closeActionModal();
       } else {
-        toast.error(response.message || `অর্ডার ${currentAction} করতে সমস্যা হয়েছে`);
+        setActionError(response.message || `অর্ডার ${getActionName(currentAction)} করতে সমস্যা হয়েছে`);
       }
     } catch (error) {
-      toast.error(`অর্ডার ${currentAction} করতে সমস্যা হয়েছে`);
+      setActionError(`অর্ডার ${getActionName(currentAction)} করতে সমস্যা হয়েছে`);
       console.error(`Error ${currentAction} order:`, error);
-    } finally{
+    } finally {
       setProcessingOrder(false);
+    }
+  };
+
+  const getActionName = (action: string | null) => {
+    switch (action) {
+      case 'approve': return 'অনুমোদন';
+      case 'reject': return 'রিজেক্ট';
+      case 'cancel': return 'ক্যানসেল';
+      case 'process': return 'প্রসেস';
+      case 'ship': return 'শিপ';
+      case 'complete': return 'কমপ্লিট';
+      case 'return': return 'রিটার্ন';
+      default: return '';
     }
   };
 
@@ -395,16 +428,10 @@ const AdminOrders = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex border-b overflow-x-auto">
             <button
-              className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('pending')}
+              className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'newRequests' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('newRequests')}
             >
-              পেন্ডিং
-            </button>
-            <button
-              className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'approved' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('approved')}
-            >
-              অনুমোদিত
+              নতুন রিকোয়েস্ট
             </button>
             <button
               className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'processing' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
@@ -417,6 +444,12 @@ const AdminOrders = () => {
               onClick={() => setActiveTab('shipped')}
             >
               শিপড
+            </button>
+            <button
+              className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('completed')}
+            >
+              কমপ্লিটেড
             </button>
             <button
               className={`px-3 py-2 text-[10px] md:text-sm ${activeTab === 'others' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
@@ -439,6 +472,7 @@ const AdminOrders = () => {
               value={currentPagination.pageSize}
               onChange={handlePageSizeChange}
               className="border rounded-md px-2 py-1.5 text-xs md:text-sm"
+              disabled={fetching}
             >
               <option value="5">প্রতি পৃষ্ঠায় ৫টি</option>
               <option value="10">প্রতি পৃষ্ঠায় ১০টি</option>
@@ -528,7 +562,11 @@ const AdminOrders = () => {
         )}
       </div>
 
-      {loading ? (
+      {fetching ? (
+        <div className="flex justify-center items-center h-64">
+          <FaSpinner className="animate-spin text-blue-500 text-2xl" />
+        </div>
+      ) : loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
@@ -680,10 +718,7 @@ const AdminOrders = () => {
                         onClick={() => openActionModal('process', order)}
                         className="py-1 px-2 bg-blue-50 text-blue-600 rounded font-medium text-xs"
                       >
-                         
                         রিফান্ড করুন
-
-                     
                       </button>
                     )}
                     
@@ -779,7 +814,7 @@ const AdminOrders = () => {
                             onClick={() => openActionModal('reject', order)}
                             className="text-red-600 hover:text-red-800"
                           >
-                            রিজেক্ট  করুন
+                            রিজেক্ট করুন
                           </button>
                         </>
                       )}
@@ -825,7 +860,7 @@ const AdminOrders = () => {
                             onClick={() => openActionModal('complete', order)}
                             className="text-green-600 hover:text-green-800"
                             >
-                            কমপ্লিট  করুন
+                            কমপ্লিট করুন
                             </button>
                           <button
                             onClick={() => openActionModal('return', order)}
@@ -848,14 +883,14 @@ const AdminOrders = () => {
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() => fetchOrders(currentPagination.currentPage - 1)}
-                  disabled={currentPagination.currentPage === 1}
+                  disabled={currentPagination.currentPage === 1 || fetching}
                   className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   পূর্ববর্তী
                 </button>
                 <button
                   onClick={() => fetchOrders(currentPagination.currentPage + 1)}
-                  disabled={currentPagination.currentPage === currentPagination.totalPages}
+                  disabled={currentPagination.currentPage === currentPagination.totalPages || fetching}
                   className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   পরবর্তী
@@ -874,7 +909,7 @@ const AdminOrders = () => {
                   <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                     <button
                       onClick={() => fetchOrders(currentPagination.currentPage - 1)}
-                      disabled={currentPagination.currentPage === 1}
+                      disabled={currentPagination.currentPage === 1 || fetching}
                       className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                     >
                       <span className="sr-only">পূর্ববর্তী</span>
@@ -897,6 +932,7 @@ const AdminOrders = () => {
                         <button
                           key={pageNum}
                           onClick={() => fetchOrders(pageNum)}
+                          disabled={fetching}
                           className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                             pageNum === currentPagination.currentPage
                               ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
@@ -909,7 +945,7 @@ const AdminOrders = () => {
                     })}
                     <button
                       onClick={() => fetchOrders(currentPagination.currentPage + 1)}
-                      disabled={currentPagination.currentPage === currentPagination.totalPages}
+                      disabled={currentPagination.currentPage === currentPagination.totalPages || fetching}
                       className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                     >
                       <span className="sr-only">পরবর্তী</span>
@@ -947,9 +983,7 @@ const AdminOrders = () => {
                   <div className="space-y-1">
                     <p className="text-sm"><span className="font-medium">নাম:</span> {selectedOrder.customerName}</p>
                     <p className="text-sm"><span className="font-medium">ফোন:</span> {selectedOrder.customerPhoneNo}</p>
-                    <p className="text-sm"><span className="font-medium">
-                    ডেলিভারি ঠিকানা:
-                      </span> {selectedOrder.deliveryAddress}</p>
+                    <p className="text-sm"><span className="font-medium">ডেলিভারি ঠিকানা:</span> {selectedOrder.deliveryAddress}</p>
                     <p className="text-sm"><span className="font-medium">জেলা/উপজেলা:</span> {selectedOrder.customerZilla}, {selectedOrder.customerUpazilla}</p>
                   </div>
                 </div>
@@ -1040,9 +1074,7 @@ const AdminOrders = () => {
                     )}
                     <p className="text-sm"><span className="font-medium">ট্রানজেকশন ভেরিফাইড:</span> {selectedOrder.transactionVerified ? 'হ্যাঁ' : 'না'}</p>
                     {selectedOrder.sellerWalletPhoneNo && (
-                      <p className="text-sm"><span className="font-medium">
-                           বিক্রেতা ওয়ালেট:  
-                      </span> {selectedOrder.sellerWalletName} - {selectedOrder.sellerWalletPhoneNo}</p>
+                      <p className="text-sm"><span className="font-medium">বিক্রেতা ওয়ালেট:</span> {selectedOrder.sellerWalletName} - {selectedOrder.sellerWalletPhoneNo}</p>
                     )}
                     {selectedOrder.adminWalletName && (
                       <p className="text-sm"><span className="font-medium">অ্যাডমিন ওয়ালেট:</span> {selectedOrder.adminWalletName} - {selectedOrder.adminWalletPhoneNo}</p>
@@ -1096,7 +1128,7 @@ const AdminOrders = () => {
                     </div>
                     <div className="flex justify-between border-t pt-2">
                       <p className="text-sm font-medium">সর্বমোট:</p>
-                      <p className="text-sm font-medium">{parseFloat(selectedOrder.totalAmount).toFixed(2)}৳</p>
+                      <p className="text-sm font-medium">{(Number(selectedOrder.totalAmount)+Number(selectedOrder.deliveryCharge)).toFixed(2)}৳</p>
                     </div>
                   </div>
                 </div>
@@ -1182,6 +1214,18 @@ const AdminOrders = () => {
                 </div>
               </div>
 
+              {actionError && (
+                <div className="bg-red-50 p-3 rounded-md">
+                  <div className="flex items-start">  
+                    <div className="ml-3">
+                      <div className="mt-2 text-sm text-red-700">
+                        <p>{actionError}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {currentAction === 'approve' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">ট্রানজেকশন আইডি *</label>
@@ -1241,21 +1285,29 @@ const AdminOrders = () => {
             <div className="p-4 border-t flex justify-end gap-3">
               <button
                 onClick={closeActionModal}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                disabled={processingOrder}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
               >
                 ক্যানসেল করুন
               </button>
               <button
                 onClick={handleActionSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                disabled={processingOrder}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center min-w-24"
               >
-                {currentAction === 'approve' && 'অনুমোদন করুন'}
-                {currentAction === 'reject' && 'রিজেক্ট করুন'}
-                {currentAction === 'cancel' && 'ক্যানসেল করুন'}
-                {currentAction === 'process' && 'প্রসেস করুন'}
-                {currentAction === 'ship' && 'শিপ করুন'}
-                {currentAction === 'complete' && 'কমপ্লিট  করুন'}
-                {currentAction === 'return' && 'রিটার্ন করুন'}
+                {processingOrder ? (
+                  <FaSpinner className="animate-spin" />
+                ) : (
+                  <>
+                    {currentAction === 'approve' && 'অনুমোদন করুন'}
+                    {currentAction === 'reject' && 'রিজেক্ট করুন'}
+                    {currentAction === 'cancel' && 'ক্যানসেল করুন'}
+                    {currentAction === 'process' && 'প্রসেস করুন'}
+                    {currentAction === 'ship' && 'শিপ করুন'}
+                    {currentAction === 'complete' && 'কমপ্লিট করুন'}
+                    {currentAction === 'return' && 'রিটার্ন করুন'}
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -27,6 +27,9 @@ interface TransactionResponse {
   currentPage: number;
   pageSize: number;
   totalPages: number;
+  calculatedBalance: number; // Assuming the API returns this as well
+  totalCredit: number;
+  totalDebit: number;
 }
 
 const BalanceStatement = () => {
@@ -34,6 +37,9 @@ const BalanceStatement = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [calculatedBalance, setCalculatedBalance] = useState(0);  
+  const [totalCredit, setTotalCredit] = useState(0);
+  const [totalDebit, setTotalDebit] = useState(0);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -58,6 +64,9 @@ const BalanceStatement = () => {
           totalPages: data.totalPages,
           totalTransactions: data.totalTransactions
         });
+        setCalculatedBalance(data.calculatedBalance); 
+        setTotalCredit(data.totalCredit);
+        setTotalDebit(data.totalDebit);
       } else {
         toast.error(response.message || 'Transactions লোড করতে ব্যর্থ হয়েছে');
       }
@@ -87,17 +96,7 @@ const BalanceStatement = () => {
     reloadUser(); // Reload user data when component mounts
   }, []);
 
-  const calculateBalance = () => {
-    let balance = 0;
-    transactions.forEach(tx => {
-      if (tx.type === 'Credit') {
-        balance += parseFloat(tx.amount);
-      } else {
-        balance -= parseFloat(tx.amount);
-      }
-    });
-    return balance.toFixed(2);
-  };
+
 
   const getTypeBadge = (type: string) => {
     const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
@@ -136,26 +135,20 @@ const BalanceStatement = () => {
           <div className="w-full sm:w-auto">
             <h2 className="text-base sm:text-lg font-medium text-gray-700">বর্তমান ব্যালেন্স</h2>
             <p className="text-xl sm:text-2xl font-bold">
-              {calculateBalance()}৳
+              {calculatedBalance}৳
             </p>
           </div>
           <div className="grid grid-cols-2 sm:flex sm:flex-row gap-4 w-full sm:w-auto">
             <div className="text-center p-2 bg-green-50 rounded-lg">
               <p className="text-xs text-gray-500">মোট ক্রেডিট</p>
               <p className="text-green-600 font-medium text-sm sm:text-base">
-                {transactions
-                  .filter(tx => tx.type === 'Credit')
-                  .reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
-                  .toFixed(2)}৳
+                {totalCredit}৳
               </p>
             </div>
             <div className="text-center p-2 bg-red-50 rounded-lg">
               <p className="text-xs text-gray-500">মোট ডেবিট</p>
               <p className="text-red-600 font-medium text-sm sm:text-base">
-                {transactions
-                  .filter(tx => tx.type === 'Debit')
-                  .reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
-                  .toFixed(2)}৳
+                {totalDebit}৳
               </p>
             </div>
             <div className="text-center p-2 bg-blue-50 rounded-lg col-span-2 sm:col-span-1">
