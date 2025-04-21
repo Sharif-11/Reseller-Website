@@ -818,6 +818,14 @@ const AdminOrders = () => {
                           </button>
                         </>
                       )}
+                      {
+                        order.orderStatus === 'pending' && order.cancelledByUser &&  <button
+                        onClick={() => openActionModal('approve', order)}
+                        className="text-green-600 hover:text-green-800"
+                      >
+                        অনুমোদন করুন
+                      </button>
+                      }
                       
                       {(order.orderStatus === 'approved' || order.orderStatus === 'processing') && !order.cancelledByUser && (
                         <button
@@ -1094,7 +1102,7 @@ const AdminOrders = () => {
                         className="w-16 h-16 object-cover rounded-md"
                       />
                       <div className="ml-3 flex-1">
-                        <h4 className="text-sm font-medium">{product.productName}</h4>
+                        <h4 className="text-sm font-medium">{`${product.productName} (#${product.productId})`}</h4>
                         <p className="text-sm text-gray-500">
                           {Object.entries(product.selectedOptions).map(([key, value]) => (
                             <span key={key} className="mr-2">{key}: {value}</span>
