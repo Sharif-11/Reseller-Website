@@ -12,6 +12,7 @@ import {
 import { toast } from 'react-toastify';
 import { formatDate } from '../utils/date.utils';
 import { FaCopy, FaFilter, FaTimes } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 interface Order {
   orderId: number;
@@ -90,6 +91,7 @@ const AdminOrders = () => {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate=useNavigate()
   const [pagination, setPagination] = useState<Record<string, PaginationState>>({
     pending: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
     approved: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
@@ -98,6 +100,7 @@ const AdminOrders = () => {
     others: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
   });
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [processingOrder, setProcessingOrder] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'processing' | 'shipped' | 'others'>('pending');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     phoneNo: '',
@@ -246,7 +249,7 @@ const AdminOrders = () => {
     
     switch (status) {
       case 'completed':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}>সম্পূর্ণ</span>;
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>কমপ্লিটেড </span>;
       case 'approved':
         return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>অনুমোদিত</span>;
       case 'processing':
@@ -254,11 +257,11 @@ const AdminOrders = () => {
       case 'shipped':
         return <span className={`${baseClasses} bg-indigo-100 text-indigo-800`}>শিপড</span>;
       case 'rejected':
-        return <span className={`${baseClasses} bg-red-100 text-red-800`}>প্রত্যাখ্যাত</span>;
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>রিজেক্টেড </span>;
       case 'refunded':
-        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>ফেরত</span>;
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>রিফান্ডেড</span>;
       case 'cancelled':
-        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>বাতিল</span>;
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>ক্যানসেল্ড </span>;
       case 'returned':
         return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>রিটার্নড</span>;
       default:
@@ -296,6 +299,7 @@ const AdminOrders = () => {
 
   const handleActionSubmit = async () => {
     if (!selectedOrder) return;
+    setProcessingOrder(true);
 
     try {
       let response;
@@ -375,6 +379,8 @@ const AdminOrders = () => {
     } catch (error) {
       toast.error(`অর্ডার ${currentAction} করতে সমস্যা হয়েছে`);
       console.error(`Error ${currentAction} order:`, error);
+    } finally{
+      setProcessingOrder(false);
     }
   };
 
@@ -546,7 +552,7 @@ const AdminOrders = () => {
                   <div>
                     {getStatusBadge(order.orderStatus)}
                     {order.cancelledByUser && (
-                      <span className="mt-1 block text-xs text-red-500">বিক্রেতা কর্তৃক বাতিল</span>
+                      <span className="mt-1 block text-xs text-red-500">এই অর্ডারটি বিক্রেতা কর্তৃক ক্যানসেল করা হয়েছে</span>
                     )}
                   </div>
                 </div>
@@ -604,6 +610,11 @@ const AdminOrders = () => {
                           type="text"
                           value={order.trackingURL}
                           readOnly
+                          onClick={()=>{
+                            navigator.clipboard.writeText(order.trackingURL || '');
+                            navigate(`/tracking/${order.trackingURL}`)
+                            
+                          }}
                           className="text-xs p-1 border rounded flex-1 w-24 truncate"
                         />
                         <button
@@ -642,7 +653,7 @@ const AdminOrders = () => {
                           onClick={() => openActionModal('reject', order)}
                           className="py-1 px-2 bg-red-50 text-red-600 rounded font-medium text-xs"
                         >
-                          প্রত্যাখ্যান
+                          রিজেক্ট
                         </button>
                       </>
                     )}
@@ -652,7 +663,7 @@ const AdminOrders = () => {
                         onClick={() => openActionModal('cancel', order)}
                         className="py-1 px-2 bg-red-50 text-red-600 rounded font-medium text-xs"
                       >
-                        বাতিল
+                        ক্যানসেল করুন
                       </button>
                     )}
                     
@@ -661,7 +672,18 @@ const AdminOrders = () => {
                         onClick={() => openActionModal('process', order)}
                         className="py-1 px-2 bg-blue-50 text-blue-600 rounded font-medium text-xs"
                       >
-                        প্রসেস
+                        প্রসেস করুন
+                      </button>
+                    )}
+                    {order.orderStatus === 'approved' && order.cancelledByUser && (
+                      <button
+                        onClick={() => openActionModal('process', order)}
+                        className="py-1 px-2 bg-blue-50 text-blue-600 rounded font-medium text-xs"
+                      >
+                         
+                        রিফান্ড করুন
+
+                     
                       </button>
                     )}
                     
@@ -670,7 +692,7 @@ const AdminOrders = () => {
                         onClick={() => openActionModal('ship', order)}
                         className="py-1 px-2 bg-purple-50 text-purple-600 rounded font-medium text-xs"
                       >
-                        শিপ
+                        শিপ করুন
                       </button>
                     )}
                     
@@ -680,13 +702,13 @@ const AdminOrders = () => {
                           onClick={() => openActionModal('complete', order)}
                           className="py-1 px-2 bg-green-50 text-green-600 rounded font-medium text-xs"
                         >
-                          সম্পূর্ণ
+                          কমপ্লিট করুন
                         </button>
                         <button
                           onClick={() => openActionModal('return', order)}
                           className="py-1 px-2 bg-orange-50 text-orange-600 rounded font-medium text-xs"
                         >
-                          রিটার্ন
+                          রিটার্ন করুন
                         </button>
                       </>
                     )}
@@ -734,7 +756,7 @@ const AdminOrders = () => {
                       <div className="flex items-center space-x-2">
                         {getStatusBadge(order.orderStatus)}
                         {order.cancelledByUser && (
-                          <span className="text-xs text-red-500">এই অর্ডারটি বিক্রেতা কর্তৃক বাতিল করা হয়েছে</span>
+                          <span className="text-xs text-red-500">এই অর্ডারটি বিক্রেতা কর্তৃক ক্যানসেল করা হয়েছে</span>
                         )}
                         <button 
                           onClick={() => openDetailsModal(order)}
@@ -751,13 +773,13 @@ const AdminOrders = () => {
                             onClick={() => openActionModal('approve', order)}
                             className="text-green-600 hover:text-green-800"
                           >
-                            অনুমোদন
+                            অনুমোদন করুন
                           </button>
                           <button
                             onClick={() => openActionModal('reject', order)}
                             className="text-red-600 hover:text-red-800"
                           >
-                            প্রত্যাখ্যান
+                            রিজেক্ট  করুন
                           </button>
                         </>
                       )}
@@ -767,7 +789,7 @@ const AdminOrders = () => {
                           onClick={() => openActionModal('cancel', order)}
                           className="text-red-600 hover:text-red-800"
                         >
-                          বাতিল
+                          ক্যানসেল করুন
                         </button>
                       )}
                       
@@ -776,7 +798,15 @@ const AdminOrders = () => {
                           onClick={() => openActionModal('process', order)}
                           className="text-blue-600 hover:text-blue-800"
                         >
-                          প্রসেস
+                          প্রসেস করুন
+                        </button>
+                      )}
+                      {order.orderStatus === 'approved' && order.cancelledByUser && (
+                        <button
+                          onClick={() => openActionModal('process', order)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          রিফান্ড করুন
                         </button>
                       )}
                       
@@ -785,23 +815,23 @@ const AdminOrders = () => {
                           onClick={() => openActionModal('ship', order)}
                           className="text-purple-600 hover:text-purple-800"
                         >
-                          শিপ
+                          শিপ করুন
                         </button>
                       )}
                       
                       {order.orderStatus === 'shipped' && !order.cancelledByUser && (
                         <>
-                          <button
+                            <button
                             onClick={() => openActionModal('complete', order)}
                             className="text-green-600 hover:text-green-800"
-                          >
-                            সম্পূর্ণ
-                          </button>
+                            >
+                            কমপ্লিট  করুন
+                            </button>
                           <button
                             onClick={() => openActionModal('return', order)}
                             className="text-orange-600 hover:text-orange-800"
                           >
-                            রিটার্ন
+                            রিটার্ন করুন
                           </button>
                         </>
                       )}
@@ -942,7 +972,7 @@ const AdminOrders = () => {
                     <p className="text-sm"><span className="font-medium">স্ট্যাটাস:</span> {getStatusBadge(selectedOrder.orderStatus)}</p>
                     {selectedOrder.cancelledByUser && (
                         <p className="text-xs text-red-500">
-                        এই অর্ডারটি বিক্রেতা কর্তৃক বাতিল করা হয়েছে
+                        এই অর্ডারটি বিক্রেতা কর্তৃক ক্যানসেল করা হয়েছে
                         </p>
                     )}
                     <p className="text-sm"><span className="font-medium">অর্ডার তারিখ:</span> {formatDate(selectedOrder.orderCreatedAt)}</p>
@@ -952,11 +982,15 @@ const AdminOrders = () => {
                     )}
                     {selectedOrder.trackingURL && (
                       <div className="mt-1">
-                        <p className="text-sm font-medium">ট্র্যাকিং URL:</p>
+                        <p className="text-sm font-medium">ট্র্যাকিং লিংক:</p>
                         <div className="flex items-center mt-1">
                           <input
                             type="text"
                             value={selectedOrder.trackingURL}
+                            onClick={()=>{
+                              navigator.clipboard.writeText(selectedOrder.trackingURL || '');
+                              navigate(`/tracking/${selectedOrder.trackingURL}`)
+                            }}
                             readOnly
                             className="flex-1 px-2 py-1 border rounded-l text-sm"
                           />
@@ -1005,6 +1039,11 @@ const AdminOrders = () => {
                       </div>
                     )}
                     <p className="text-sm"><span className="font-medium">ট্রানজেকশন ভেরিফাইড:</span> {selectedOrder.transactionVerified ? 'হ্যাঁ' : 'না'}</p>
+                    {selectedOrder.sellerWalletPhoneNo && (
+                      <p className="text-sm"><span className="font-medium">
+                           বিক্রেতা ওয়ালেট:  
+                      </span> {selectedOrder.sellerWalletName} - {selectedOrder.sellerWalletPhoneNo}</p>
+                    )}
                     {selectedOrder.adminWalletName && (
                       <p className="text-sm"><span className="font-medium">অ্যাডমিন ওয়ালেট:</span> {selectedOrder.adminWalletName} - {selectedOrder.adminWalletPhoneNo}</p>
                     )}
@@ -1104,13 +1143,13 @@ const AdminOrders = () => {
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
             <div className="p-4 border-b">
               <h2 className="text-lg font-medium">
-                {currentAction === 'approve' && 'অর্ডার অনুমোদন করুন'}
-                {currentAction === 'reject' && 'অর্ডার প্রত্যাখ্যান করুন'}
-                {currentAction === 'cancel' && 'অর্ডার বাতিল করুন'}
-                {currentAction === 'process' && 'অর্ডার প্রসেস করুন'}
-                {currentAction === 'ship' && 'অর্ডার শিপ করুন'}
-                {currentAction === 'complete' && 'অর্ডার সম্পূর্ণ করুন'}
-                {currentAction === 'return' && 'অর্ডার রিটার্ন করুন'}
+                {currentAction === 'approve' && (processingOrder ? 'অর্ডার অনুমোদন করা হচ্ছে...' : 'অর্ডার অনুমোদন করুন')}
+                {currentAction === 'reject' && (processingOrder ? 'অর্ডার রিজেক্ট করা হচ্ছে...' : 'অর্ডার রিজেক্ট করুন')}
+                {currentAction === 'cancel' && (processingOrder ? 'অর্ডার ক্যানসেল করা হচ্ছে...' : 'অর্ডার ক্যানসেল করুন')}
+                {currentAction === 'process' && (processingOrder ? 'অর্ডার প্রসেস করা হচ্ছে...' : 'অর্ডার প্রসেস করুন')}
+                {currentAction === 'ship' && (processingOrder ? 'অর্ডার শিপ করা হচ্ছে...' : 'অর্ডার শিপ করুন')}
+                {currentAction === 'complete' && (processingOrder ? 'অর্ডার কমপ্লিট করা হচ্ছে...' : 'অর্ডার কমপ্লিট করুন')}
+                {currentAction === 'return' && (processingOrder ? 'অর্ডার রিটার্ন করা হচ্ছে...' : 'অর্ডার রিটার্ন করুন')}
               </h2>
             </div>
             
@@ -1204,18 +1243,18 @@ const AdminOrders = () => {
                 onClick={closeActionModal}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
               >
-                বাতিল করুন
+                ক্যানসেল করুন
               </button>
               <button
                 onClick={handleActionSubmit}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
               >
                 {currentAction === 'approve' && 'অনুমোদন করুন'}
-                {currentAction === 'reject' && 'প্রত্যাখ্যান করুন'}
-                {currentAction === 'cancel' && 'বাতিল করুন'}
+                {currentAction === 'reject' && 'রিজেক্ট করুন'}
+                {currentAction === 'cancel' && 'ক্যানসেল করুন'}
                 {currentAction === 'process' && 'প্রসেস করুন'}
                 {currentAction === 'ship' && 'শিপ করুন'}
-                {currentAction === 'complete' && 'সম্পূর্ণ করুন'}
+                {currentAction === 'complete' && 'কমপ্লিট  করুন'}
                 {currentAction === 'return' && 'রিটার্ন করুন'}
               </button>
             </div>
