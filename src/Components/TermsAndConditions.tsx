@@ -56,8 +56,8 @@ const TermsAndConditions = () => {
         <div className='mb-4'>
           <h3 className='text-lg font-medium mb-2'>২.১ অর্ডার প্রক্রিয়াকরণ</h3>
           <p className='text-gray-700'>
-            প্রথম ৫টি অর্ডারের ডেলিভারি চার্জ অগ্রিম নেওয়া হবে। গ্রাহক না পেলে বা পণ্য নিতে
-            অস্বীকার করলে ডেলিভারি চার্জ সেলার বহন করবেন।
+            প্রথম অর্ডারের ডেলিভারি চার্জ অগ্রিম নেওয়া হবে। গ্রাহক না পেলে বা পণ্য নিতে অস্বীকার
+            করলে ডেলিভারি চার্জ সেলার বহন করবেন।
           </p>
         </div>
 
@@ -92,9 +92,9 @@ const TermsAndConditions = () => {
       <div className='bg-white rounded-lg shadow-md p-6'>
         <h2 className='text-xl font-semibold mb-4'>যোগাযোগ</h2>
         <div className='space-y-2 text-gray-700'>
-          <p>ফোন: ০৯৬৪৭৩০০১০০</p>
+          <p>ফোন: 09638755704</p>
           <p>ইমেইল: support@resellerbd.com</p>
-          <p>ঠিকানা: হাউস-৭১৭, রোড-১, মোহাম্মদপুর, ঢাকা-১২০৭</p>
+          {/* <p>ঠিকানা: হাউস-৭১৭, রোড-১, মোহাম্মদপুর, ঢাকা-১২০৭</p> */}
         </div>
       </div>
     </div>

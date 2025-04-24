@@ -99,14 +99,14 @@ const RefundPolicy = () => {
             </p>
             <div className='mt-3 space-y-1'>
               <p className='text-sm'>
-                <span className='font-medium'>ফোন:</span> ০৯৬৪৭৩০০১০০
+                <span className='font-medium'>ফোন:</span> 09638755704
               </p>
               <p className='text-sm'>
                 <span className='font-medium'>ইমেইল:</span> support@shopbasebd.com
               </p>
-              <p className='text-sm'>
+              {/* <p className='text-sm'>
                 <span className='font-medium'>ফেসবুক:</span> facebook.com/shopbasereseller
-              </p>
+              </p> */}
             </div>
           </div>
         </div>
