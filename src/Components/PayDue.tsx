@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { verifyLogin } from '../Api/auth.api'
-import { getAdminWallets } from '../Api/seller.api'
+import { getAdminWallets, payDue } from '../Api/seller.api'
 import { useAuth } from '../Hooks/useAuth'
 
 interface Wallet {
@@ -14,7 +15,7 @@ interface AdminWallet extends Wallet {
 }
 
 const PayDue = () => {
-  // const navigate = useNavigate()
+  const navigate = useNavigate()
   const { user, setUser } = useAuth()
   const [wallets, setWallets] = useState<Wallet[]>([])
   const [adminWallets, setAdminWallets] = useState<AdminWallet[]>([])
@@ -22,7 +23,7 @@ const PayDue = () => {
   const [selectedAdminWallet, setSelectedAdminWallet] = useState<AdminWallet | null>(null)
   const [amount, setAmount] = useState('')
   const [dueAmount, setDueAmount] = useState(0)
-  const [isLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [errors, setErrors] = useState({
     wallet: '',
@@ -146,29 +147,29 @@ const PayDue = () => {
 
     if (!validateForm() || !selectedWallet || !selectedAdminWallet) return
 
-    // try {
-    //   setIsLoading(true)
-    //   const response = await payDueBalance({
-    //     amount: parseFloat(amount),
-    //     walletName: selectedWallet.walletName,
-    //     walletPhoneNo: selectedWallet.walletPhoneNo,
-    //     adminWalletId: selectedAdminWallet.walletId,
-    //     transactionId,
-    //   })
-    //   if (response.success) {
-    //     navigate('/dashboard', { state: { message: 'বকেয়া পরিশোধ সফল হয়েছে' } })
-    //   } else {
-    //     throw new Error(response.message || 'বকেয়া পরিশোধ ব্যর্থ হয়েছে')
-    //   }
-    // } catch (error) {
-    //   setErrors(prev => ({
-    //     ...prev,
-    //     form: (error as Error).message || 'বকেয়া পরিশোধে সমস্যা হয়েছে',
-    //   }))
-    //   console.error('Payment error:', error)
-    // } finally {
-    //   setIsLoading(false)
-    // }
+    try {
+      setIsLoading(true)
+      const response = await payDue({
+        amount: parseFloat(amount),
+        sellerWalletName: selectedWallet.walletName,
+        sellerWalletPhoneNo: selectedWallet.walletPhoneNo,
+        adminWalletId: selectedAdminWallet.walletId,
+        transactionId,
+      })
+      if (response.success) {
+        navigate('/home', { state: { message: 'বকেয়া পরিশোধ সফল হয়েছে' } })
+      } else {
+        throw new Error(response.message || 'বকেয়া পরিশোধ ব্যর্থ হয়েছে')
+      }
+    } catch (error) {
+      setErrors(prev => ({
+        ...prev,
+        form: (error as Error).message || 'বকেয়া পরিশোধে সমস্যা হয়েছে',
+      }))
+      console.error('Payment error:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleWalletChange = (walletId: number) => {
