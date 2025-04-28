@@ -39,6 +39,7 @@ import { useAuth } from './Hooks/useAuth.tsx'
 import './index.css'
 
 import * as Sentry from '@sentry/react'
+import PayDue from './Components/PayDue.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
@@ -152,6 +153,14 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <SellerRoute>
                   <SellerHomeDashboard />
+                </SellerRoute>
+              }
+            />
+            <Route
+              path='pay-due'
+              element={
+                <SellerRoute>
+                  <PayDue />
                 </SellerRoute>
               }
             />
