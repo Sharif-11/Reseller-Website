@@ -40,6 +40,7 @@ import './index.css'
 
 import * as Sentry from '@sentry/react'
 import PayDue from './Components/PayDue.tsx'
+import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
@@ -263,6 +264,14 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <SellerRoute>
                   <WithdrawHistory />
+                </SellerRoute>
+              }
+            />
+            <Route
+              path='payment-history'
+              element={
+                <SellerRoute>
+                  <PaymentHistory />
                 </SellerRoute>
               }
             />
