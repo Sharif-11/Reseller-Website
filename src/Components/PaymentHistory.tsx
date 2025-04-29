@@ -189,7 +189,7 @@ const PaymentHistory = () => {
 
     switch (status) {
       case 'verified':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}> কমপ্লিটেড</span>
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>ভেরিফাইড</span>
       case 'rejected':
         return <span className={`${baseClasses} bg-red-100 text-red-800`}> রিজেক্টেড</span>
       default:

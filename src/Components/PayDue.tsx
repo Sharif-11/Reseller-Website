@@ -157,7 +157,7 @@ const PayDue = () => {
         transactionId,
       })
       if (response.success) {
-        navigate('/home', { state: { message: 'বকেয়া পরিশোধ সফল হয়েছে' } })
+        navigate('/payment-history', { state: { message: 'বকেয়া পরিশোধ সফল হয়েছে' } })
       } else {
         throw new Error(response.message || 'বকেয়া পরিশোধ ব্যর্থ হয়েছে')
       }

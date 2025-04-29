@@ -39,6 +39,7 @@ import { useAuth } from './Hooks/useAuth.tsx'
 import './index.css'
 
 import * as Sentry from '@sentry/react'
+import AdminPaymentVerification from './Components/AdminPaymentVerification.tsx'
 import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
@@ -273,6 +274,14 @@ createRoot(document.getElementById('root')!).render(
                 <SellerRoute>
                   <PaymentHistory />
                 </SellerRoute>
+              }
+            />
+            <Route
+              path='payment-verification'
+              element={
+                <AdminRoute>
+                  <AdminPaymentVerification />
+                </AdminRoute>
               }
             />
             <Route
