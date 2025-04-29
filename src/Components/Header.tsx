@@ -72,7 +72,11 @@ const Header = ({
               to='/'
               className='flex items-center text-white font-bold hover:text-indigo-200 transition duration-300'
             >
-              <img src='/shopbd.png' alt='Shop BD Logo' className='h-20 w-60 sm:h-20 md:h-20' />
+              <img
+                src='../../public/shopbd_logo.png'
+                alt='Shop BD Logo'
+                className='h-20 w-60 sm:h-20 md:h-20'
+              />
             </NavLink>
           </div>
 
