@@ -34,6 +34,7 @@ const AdminPaymentVerification = () => {
   const [loading, setLoading] = useState(true)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [actionType, setActionType] = useState<'verify' | 'reject' | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [verificationData, setVerificationData] = useState({
     transactionId: '',
     amount: '',
@@ -112,10 +113,11 @@ const AdminPaymentVerification = () => {
 
     try {
       setProcessing(true)
+      setError(null)
 
       if (actionType === 'verify') {
         if (!verificationData.transactionId) {
-          toast.error('লেনদেন আইডি প্রয়োজন')
+          setError('লেনদেন আইডি প্রয়োজন')
           return
         }
 
@@ -148,7 +150,7 @@ const AdminPaymentVerification = () => {
         }
       }
     } catch (error) {
-      toast.error((error as Error).message || 'একটি ত্রুটি ঘটেছে')
+      setError((error as Error).message || 'একটি ত্রুটি ঘটেছে')
     } finally {
       setProcessing(false)
     }
@@ -222,12 +224,12 @@ const AdminPaymentVerification = () => {
         : `${payment.sellerWalletName} (${payment.sellerWalletPhoneNo})`
 
     return (
-      <div className='flex items-center'>
-        <div className='text-sm font-medium text-gray-700'>{senderWallet}</div>
-        <div className='mx-2 flex items-center'>
+      <div className='flex items-center text-xs'>
+        <div className='text-xs font-medium text-gray-700'>{senderWallet}</div>
+        <div className='mx-1 flex items-center'>
           <svg
             xmlns='http://www.w3.org/2000/svg'
-            className='h-4 w-4 text-gray-500'
+            className='h-4 w-4 text-gray-500 text-xs'
             fill='none'
             viewBox='0 0 24 24'
             stroke='currentColor'
@@ -240,7 +242,7 @@ const AdminPaymentVerification = () => {
             />
           </svg>
         </div>
-        <div className='text-sm font-medium text-gray-700'>{receiverWallet}</div>
+        <div className='text-xs font-medium text-gray-700'>{receiverWallet}</div>
       </div>
     )
   }
@@ -633,7 +635,11 @@ const AdminPaymentVerification = () => {
                   </p>
                 </div>
               </div>
-
+              {error && (
+                <div className='bg-red-50 p-3 rounded-md text-red-800 text-sm font-medium'>
+                  {error}
+                </div>
+              )}
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-1'>
                   লেনদেন আইডি *
@@ -738,7 +744,11 @@ const AdminPaymentVerification = () => {
                   </div>
                 </div>
               </div>
-
+              {error && (
+                <div className='bg-red-50 p-3 rounded-md text-red-800 text-sm font-medium'>
+                  {error}
+                </div>
+              )}
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-1'>
                   কারণ (ঐচ্ছিক)
