@@ -175,14 +175,7 @@ createRoot(document.getElementById('root')!).render(
                 </SellerRoute>
               }
             />
-            <Route
-              path='support'
-              element={
-                <SellerRoute>
-                  <SupportCenter />
-                </SellerRoute>
-              }
-            />
+            <Route path='support' element={<SupportCenter />} />
             <Route
               path='selling-guide'
               element={
