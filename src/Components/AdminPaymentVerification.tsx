@@ -82,6 +82,7 @@ const AdminPaymentVerification = () => {
 
   const handleVerifyClick = (payment: Payment) => {
     setSelectedPayment(payment)
+    setError(null)
     setActionType('verify')
     setVerificationData({
       transactionId: '',
@@ -92,6 +93,7 @@ const AdminPaymentVerification = () => {
 
   const handleRejectClick = (payment: Payment) => {
     setSelectedPayment(payment)
+    setError(null)
     setActionType('reject')
     setVerificationData({
       transactionId: '',
