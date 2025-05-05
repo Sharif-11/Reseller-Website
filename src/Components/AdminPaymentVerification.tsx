@@ -31,6 +31,7 @@ type PaymentStatus = 'all' | 'pending' | 'verified' | 'rejected'
 
 const AdminPaymentVerification = () => {
   const [allPayments, setAllPayments] = useState<Payment[]>([])
+  const [showFilters, setShowFilters] = useState(false)
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
@@ -389,62 +390,72 @@ const AdminPaymentVerification = () => {
             </button>
           </nav>
         </div>
-
+        {/* Add this button below the tabs but before the filters */}
+        <div className='flex justify-end mb-2'>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className='px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200'
+          >
+            {showFilters ? 'ফিল্টার লুকান' : 'ফিল্টার দেখুন'}
+          </button>
+        </div>
         {/* Advanced Filters */}
-        <div className='bg-white p-4 rounded-lg shadow mb-4'>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>লেনদেন আইডি</label>
-              <input
-                type='text'
-                name='transactionId'
-                value={filters.transactionId}
-                onChange={handleFilterChange}
-                placeholder='লেনদেন আইডি সার্চ করুন'
-                className='w-full px-3 py-1.5 border rounded-md text-sm'
-              />
-            </div>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>ফোন নম্বর</label>
-              <input
-                type='text'
-                name='phoneNo'
-                value={filters.phoneNo}
-                onChange={handleFilterChange}
-                placeholder='ফোন নম্বর সার্চ করুন'
-                className='w-full px-3 py-1.5 border rounded-md text-sm'
-              />
-            </div>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>শুরুর তারিখ</label>
-              <input
-                type='date'
-                name='startDate'
-                value={filters.startDate}
-                onChange={handleFilterChange}
-                className='w-full px-3 py-1.5 border rounded-md text-sm'
-              />
-            </div>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>শেষ তারিখ</label>
-              <input
-                type='date'
-                name='endDate'
-                value={filters.endDate}
-                onChange={handleFilterChange}
-                className='w-full px-3 py-1.5 border rounded-md text-sm'
-              />
-            </div>
-            <div className='flex items-end'>
-              <button
-                onClick={resetFilters}
-                className='px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200'
-              >
-                ফিল্টার রিসেট করুন
-              </button>
+        {showFilters && (
+          <div className='bg-white p-4 rounded-lg shadow mb-4'>
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>লেনদেন আইডি</label>
+                <input
+                  type='text'
+                  name='transactionId'
+                  value={filters.transactionId}
+                  onChange={handleFilterChange}
+                  placeholder='লেনদেন আইডি সার্চ করুন'
+                  className='w-full px-3 py-1.5 border rounded-md text-sm'
+                />
+              </div>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>ফোন নম্বর</label>
+                <input
+                  type='text'
+                  name='phoneNo'
+                  value={filters.phoneNo}
+                  onChange={handleFilterChange}
+                  placeholder='ফোন নম্বর সার্চ করুন'
+                  className='w-full px-3 py-1.5 border rounded-md text-sm'
+                />
+              </div>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>শুরুর তারিখ</label>
+                <input
+                  type='date'
+                  name='startDate'
+                  value={filters.startDate}
+                  onChange={handleFilterChange}
+                  className='w-full px-3 py-1.5 border rounded-md text-sm'
+                />
+              </div>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>শেষ তারিখ</label>
+                <input
+                  type='date'
+                  name='endDate'
+                  value={filters.endDate}
+                  onChange={handleFilterChange}
+                  className='w-full px-3 py-1.5 border rounded-md text-sm'
+                />
+              </div>
+              <div className='flex items-end'>
+                <button
+                  onClick={resetFilters}
+                  className='px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200'
+                >
+                  ফিল্টার রিসেট করুন
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className='flex justify-between items-center'>
           <div className='text-sm text-gray-500'>মোট পেমেন্ট: {filteredPayments.length}</div>
