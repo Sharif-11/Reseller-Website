@@ -332,7 +332,7 @@ const AdminPaymentVerification = () => {
       <h1 className='text-xl font-bold mb-4 md:text-2xl md:mb-6'>পেমেন্ট ব্যবস্থাপনা</h1>
 
       {/* Tabs and Filters */}
-      <div className='mb-6'>
+      <div className='mb-6 text-xs'>
         <div className='border-b border-gray-200 mb-4'>
           <nav className='-mb-px flex space-x-4'>
             <button
@@ -340,7 +340,7 @@ const AdminPaymentVerification = () => {
                 setActiveTab('all')
                 setPagination(prev => ({ ...prev, page: 1 }))
               }}
-              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-xs ${
                 activeTab === 'all'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -353,7 +353,7 @@ const AdminPaymentVerification = () => {
                 setActiveTab('pending')
                 setPagination(prev => ({ ...prev, page: 1 }))
               }}
-              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-xs ${
                 activeTab === 'pending'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -366,7 +366,7 @@ const AdminPaymentVerification = () => {
                 setActiveTab('verified')
                 setPagination(prev => ({ ...prev, page: 1 }))
               }}
-              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-xs ${
                 activeTab === 'verified'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -379,7 +379,7 @@ const AdminPaymentVerification = () => {
                 setActiveTab('rejected')
                 setPagination(prev => ({ ...prev, page: 1 }))
               }}
-              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-xs ${
                 activeTab === 'rejected'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'

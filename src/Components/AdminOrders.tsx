@@ -3,12 +3,12 @@ import { FaCopy, FaFilter, FaSpinner, FaTimes } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import {
-  approveOrder,
   cancelOrder,
   completeOrder,
   getAdminOrders,
   processOrder,
   rejectOrder,
+  requestReOrder,
   returnOrder,
   shipOrder,
 } from '../Api/admin.api'
@@ -19,7 +19,7 @@ interface Order {
   orderStatus: string
   orderCreatedAt: string
   orderUpdatedAt: string
-  cancelledByUser: boolean
+  cancelledBySeller: boolean
   remarks: string | null
   sellerId: string
   sellerName: string
@@ -36,9 +36,8 @@ interface Order {
   courierName: string | null
   trackingURL: string | null
   deliveryCharge: string
-  deliveryChargeMustBePaidBySeller: string
-  deliveryChargePaidBySeller: string
   isDeliveryChargePaidBySeller: boolean
+  deliveryChargePaidBySeller: string
   transactionId: string | null
   transactionVerified: boolean
   sellerWalletName: string
@@ -47,6 +46,7 @@ interface Order {
   adminWalletName: string | null
   adminWalletPhoneNo: string | null
   totalAmount: string
+  cashOnAmount: string
   totalCommission: string
   actualCommission: string
   totalProductBasePrice: string
@@ -94,7 +94,8 @@ const AdminOrders = () => {
   const [fetching, setFetching] = useState(false)
   const navigate = useNavigate()
   const [pagination, setPagination] = useState<Record<string, PaginationState>>({
-    newRequests: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
+    unverified: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
+    pending: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
     processing: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
     shipped: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
     completed: { currentPage: 1, totalPages: 1, totalOrders: 0, pageSize: 10 },
@@ -103,8 +104,8 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [processingOrder, setProcessingOrder] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState<
-    'newRequests' | 'processing' | 'shipped' | 'completed' | 'others'
-  >('newRequests')
+    'unverified' | 'pending' | 'processing' | 'shipped' | 'completed' | 'others'
+  >('pending')
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     phoneNo: '',
     orderId: '',
@@ -116,10 +117,9 @@ const AdminOrders = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showActionModal, setShowActionModal] = useState(false)
   const [currentAction, setCurrentAction] = useState<
-    'approve' | 'reject' | 'cancel' | 'process' | 'ship' | 'complete' | 'return' | null
+    'process' | 'cancel' | 'reject' | 'ship' | 'complete' | 'return' | 'refund' | 'reorder' | null
   >(null)
   const [actionData, setActionData] = useState({
-    transactionId: '',
     trackingURL: '',
     remarks: '',
     totalAmountPaidByCustomer: '',
@@ -131,8 +131,10 @@ const AdminOrders = () => {
       setFetching(true)
       let statusParam = ''
 
-      if (activeTab === 'newRequests') {
-        statusParam = 'pending,approved'
+      if (activeTab === 'unverified') {
+        statusParam = 'unverified'
+      } else if (activeTab === 'pending') {
+        statusParam = 'pending'
       } else if (activeTab === 'processing') {
         statusParam = 'processing'
       } else if (activeTab === 'shipped') {
@@ -140,7 +142,7 @@ const AdminOrders = () => {
       } else if (activeTab === 'completed') {
         statusParam = 'completed'
       } else if (activeTab === 'others') {
-        statusParam = 'cancelled,refunded,returned,rejected'
+        statusParam = 'cancelled,rejected,refunded,returned,faulty,unverified'
       }
 
       const response = await getAdminOrders({
@@ -255,8 +257,6 @@ const AdminOrders = () => {
     switch (status) {
       case 'completed':
         return <span className={`${baseClasses} bg-green-100 text-green-800`}>কমপ্লিটেড</span>
-      case 'approved':
-        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>অনুমোদিত</span>
       case 'processing':
         return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>প্রসেসিং</span>
       case 'shipped':
@@ -269,6 +269,10 @@ const AdminOrders = () => {
         return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>ক্যানসেল্ড</span>
       case 'returned':
         return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>রিটার্নড</span>
+      case 'faulty':
+        return <span className={`${baseClasses} bg-pink-100 text-pink-800`}>ফল্টি</span>
+      case 'unverified':
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>আনভেরিফাইড</span>
       default:
         return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>পেন্ডিং</span>
     }
@@ -290,7 +294,6 @@ const AdminOrders = () => {
     setShowActionModal(true)
     setActionError('')
     setActionData({
-      transactionId: '',
       trackingURL: order.trackingURL || '',
       remarks: '',
       totalAmountPaidByCustomer: '',
@@ -308,11 +311,6 @@ const AdminOrders = () => {
     if (!selectedOrder) return
 
     // Validation
-    if (currentAction === 'approve' && !actionData.transactionId.trim()) {
-      setActionError('ট্রানজেকশন আইডি প্রয়োজন')
-      return
-    }
-
     if (currentAction === 'ship' && !actionData.trackingURL.trim()) {
       setActionError('ট্র্যাকিং URL প্রয়োজন')
       return
@@ -331,20 +329,11 @@ const AdminOrders = () => {
       let nextTab = activeTab
 
       switch (currentAction) {
-        case 'approve':
-          response = await approveOrder({
+        case 'process':
+          response = await processOrder({
             orderId: selectedOrder.orderId.toString(),
-            transactionId: actionData.transactionId,
           })
           nextTab = 'processing'
-          break
-
-        case 'reject':
-          response = await rejectOrder({
-            orderId: selectedOrder.orderId.toString(),
-            remarks: actionData.remarks || undefined,
-          })
-          nextTab = 'others'
           break
 
         case 'cancel':
@@ -355,11 +344,12 @@ const AdminOrders = () => {
           nextTab = 'others'
           break
 
-        case 'process':
-          response = await processOrder({
+        case 'reject':
+          response = await rejectOrder({
             orderId: selectedOrder.orderId.toString(),
+            remarks: actionData.remarks || undefined,
           })
-          nextTab = 'processing'
+          nextTab = 'others'
           break
 
         case 'ship':
@@ -382,6 +372,20 @@ const AdminOrders = () => {
           response = await returnOrder({
             orderId: selectedOrder.orderId.toString(),
             remarks: actionData.remarks || undefined,
+          })
+          nextTab = 'others'
+          break
+
+        case 'refund':
+          response = await processOrder({
+            orderId: selectedOrder.orderId.toString(),
+          })
+          nextTab = 'others'
+          break
+
+        case 'reorder':
+          response = await requestReOrder({
+            orderId: selectedOrder.orderId.toString(),
           })
           nextTab = 'others'
           break
@@ -410,20 +414,22 @@ const AdminOrders = () => {
 
   const getActionName = (action: string | null) => {
     switch (action) {
-      case 'approve':
-        return 'অনুমোদন'
-      case 'reject':
-        return 'রিজেক্ট'
-      case 'cancel':
-        return 'ক্যানসেল'
       case 'process':
         return 'প্রসেস'
+      case 'cancel':
+        return 'ক্যানসেল'
+      case 'reject':
+        return 'রিজেক্ট'
       case 'ship':
         return 'শিপ'
       case 'complete':
         return 'কমপ্লিট'
       case 'return':
         return 'রিটার্ন'
+      case 'refund':
+        return 'রিফান্ড'
+      case 'reorder':
+        return 'পুনরায় অর্ডার'
       default:
         return ''
     }
@@ -441,13 +447,13 @@ const AdminOrders = () => {
           <div className='flex border-b overflow-x-auto'>
             <button
               className={`px-3 py-2 text-[10px] md:text-sm ${
-                activeTab === 'newRequests'
+                activeTab === 'pending'
                   ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500'
               }`}
-              onClick={() => setActiveTab('newRequests')}
+              onClick={() => setActiveTab('pending')}
             >
-              নতুন রিকোয়েস্ট
+              পেন্ডিং
             </button>
             <button
               className={`px-3 py-2 text-[10px] md:text-sm ${
@@ -635,7 +641,7 @@ const AdminOrders = () => {
                   </div>
                   <div>
                     {getStatusBadge(order.orderStatus)}
-                    {order.cancelledByUser && (
+                    {order.cancelledBySeller && (
                       <span className='mt-1 block text-xs text-red-500'>
                         এই অর্ডারটি বিক্রেতা কর্তৃক ক্যানসেল করা হয়েছে
                       </span>
@@ -649,6 +655,10 @@ const AdminOrders = () => {
                     <p className='font-medium'>{parseFloat(order.totalAmount).toFixed(2)}৳</p>
                   </div>
                   <div>
+                    <p className='text-gray-500'>ক্যাশ অন:</p>
+                    <p className='font-medium'>{parseFloat(order.cashOnAmount).toFixed(2)}৳</p>
+                  </div>
+                  <div>
                     <p className='text-gray-500'>পণ্য সংখ্যা:</p>
                     <p className='font-medium'>{order.totalProductQuantity} টি</p>
                   </div>
@@ -657,12 +667,11 @@ const AdminOrders = () => {
                     <p className='font-medium'>{parseFloat(order.deliveryCharge).toFixed(2)}৳</p>
                   </div>
 
-                  {(order.orderStatus === 'pending' || order.orderStatus === 'approved') && (
+                  {order.isDeliveryChargePaidBySeller && (
                     <div>
-                      <p className='mt-1 font-medium text-red-600 text-xs'>
-                        {`বিক্রেতাকে ${parseFloat(order.deliveryChargeMustBePaidBySeller).toFixed(
-                          2
-                        )} টাকা ডেলিভারি চার্জ হিসেবে দিতে হবে`}
+                      <p className='text-gray-500'>বিক্রেতা প্রদত্ত ডেলিভারি চার্জ:</p>
+                      <p className='font-medium'>
+                        {parseFloat(order.deliveryChargePaidBySeller).toFixed(2)}৳
                       </p>
                     </div>
                   )}
@@ -729,61 +738,51 @@ const AdminOrders = () => {
                   </button>
 
                   <div className='flex gap-2'>
-                    {order.orderStatus === 'pending' && !order.cancelledByUser && (
+                    {order.orderStatus === 'pending' && !order.cancelledBySeller && (
                       <>
                         <button
-                          onClick={() => openActionModal('approve', order)}
-                          className='py-1 px-2 bg-green-50 text-green-600 rounded font-medium text-xs'
+                          onClick={() => openActionModal('process', order)}
+                          className='py-1 px-2 bg-blue-50 text-blue-600 rounded font-medium text-xs'
                         >
-                          অনুমোদন
+                          প্রসেস
                         </button>
-                        <button
-                          onClick={() => openActionModal('reject', order)}
-                          className='py-1 px-2 bg-red-50 text-red-600 rounded font-medium text-xs'
-                        >
-                          রিজেক্ট
-                        </button>
-                      </>
-                    )}
-
-                    {(order.orderStatus === 'approved' || order.orderStatus === 'processing') &&
-                      !order.cancelledByUser && (
                         <button
                           onClick={() => openActionModal('cancel', order)}
                           className='py-1 px-2 bg-red-50 text-red-600 rounded font-medium text-xs'
                         >
+                          ক্যানসেল
+                        </button>
+                      </>
+                    )}
+
+                    {order.orderStatus === 'pending' && order.cancelledBySeller && (
+                      <button
+                        onClick={() => openActionModal('refund', order)}
+                        className='py-1 px-2 bg-yellow-50 text-yellow-600 rounded font-medium text-xs'
+                      >
+                        রিফান্ড
+                      </button>
+                    )}
+
+                    {order.orderStatus === 'processing' && !order.cancelledBySeller && (
+                      <>
+                        <button
+                          onClick={() => openActionModal('ship', order)}
+                          className='py-1 px-2 bg-purple-50 text-purple-600 rounded font-medium text-[10px]'
+                        >
+                          শিপ করুন
+                        </button>
+                        <button
+                          onClick={() => openActionModal('cancel', order)}
+                          className='py-1 px-2 bg-red-50 text-red-600 rounded font-medium text-[10px]'
+                        >
                           ক্যানসেল করুন
                         </button>
-                      )}
-
-                    {order.orderStatus === 'approved' && !order.cancelledByUser && (
-                      <button
-                        onClick={() => openActionModal('process', order)}
-                        className='py-1 px-2 bg-blue-50 text-blue-600 rounded font-medium text-xs'
-                      >
-                        প্রসেস করুন
-                      </button>
-                    )}
-                    {order.orderStatus === 'approved' && order.cancelledByUser && (
-                      <button
-                        onClick={() => openActionModal('process', order)}
-                        className='py-1 px-2 bg-blue-50 text-blue-600 rounded font-medium text-xs'
-                      >
-                        রিফান্ড করুন
-                      </button>
+                      </>
                     )}
 
-                    {order.orderStatus === 'processing' && !order.cancelledByUser && (
-                      <button
-                        onClick={() => openActionModal('ship', order)}
-                        className='py-1 px-2 bg-purple-50 text-purple-600 rounded font-medium text-xs'
-                      >
-                        শিপ করুন
-                      </button>
-                    )}
-
-                    {order.orderStatus === 'shipped' && !order.cancelledByUser && (
-                      <>
+                    {order.orderStatus === 'shipped' && !order.cancelledBySeller && (
+                      <div className='flex flex-col gap-1'>
                         <button
                           onClick={() => openActionModal('complete', order)}
                           className='py-1 px-2 bg-green-50 text-green-600 rounded font-medium text-xs'
@@ -796,7 +795,13 @@ const AdminOrders = () => {
                         >
                           রিটার্ন করুন
                         </button>
-                      </>
+                        <button
+                          onClick={() => openActionModal('reorder', order)}
+                          className='py-1 px-2 bg-pink-50 text-pink-600 rounded font-medium text-xs'
+                        >
+                          বিক্রেতাকে পুনরায় অর্ডার করতে বলুন
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -855,7 +860,7 @@ const AdminOrders = () => {
                     <td className='px-4 py-4 whitespace-nowrap'>
                       <div className='flex items-center space-x-2'>
                         {getStatusBadge(order.orderStatus)}
-                        {order.cancelledByUser && (
+                        {order.cancelledBySeller && (
                           <span className='text-xs text-red-500'>
                             এই অর্ডারটি বিক্রেতা কর্তৃক ক্যানসেল করা হয়েছে
                           </span>
@@ -869,68 +874,50 @@ const AdminOrders = () => {
                       </div>
                     </td>
                     <td className='px-4 py-4 whitespace-nowrap font-medium space-x-2'>
-                      {order.orderStatus === 'pending' && !order.cancelledByUser && (
+                      {order.orderStatus === 'pending' && !order.cancelledBySeller && (
                         <>
                           <button
-                            onClick={() => openActionModal('approve', order)}
-                            className='text-green-600 hover:text-green-800'
+                            onClick={() => openActionModal('process', order)}
+                            className='text-blue-600 hover:text-blue-800'
                           >
-                            অনুমোদন করুন
+                            প্রসেস
                           </button>
                           <button
-                            onClick={() => openActionModal('reject', order)}
+                            onClick={() => openActionModal('cancel', order)}
                             className='text-red-600 hover:text-red-800'
                           >
-                            রিজেক্ট করুন
+                            ক্যানসেল
                           </button>
                         </>
                       )}
-                      {order.orderStatus === 'pending' && order.cancelledByUser && (
+
+                      {order.orderStatus === 'pending' && order.cancelledBySeller && (
                         <button
-                          onClick={() => openActionModal('approve', order)}
-                          className='text-green-600 hover:text-green-800'
+                          onClick={() => openActionModal('refund', order)}
+                          className='text-yellow-600 hover:text-yellow-800'
                         >
-                          অনুমোদন করুন
+                          রিফান্ড
                         </button>
                       )}
 
-                      {(order.orderStatus === 'approved' || order.orderStatus === 'processing') &&
-                        !order.cancelledByUser && (
+                      {order.orderStatus === 'processing' && !order.cancelledBySeller && (
+                        <>
+                          <button
+                            onClick={() => openActionModal('ship', order)}
+                            className='text-purple-600 hover:text-purple-800'
+                          >
+                            শিপ করুন
+                          </button>
                           <button
                             onClick={() => openActionModal('cancel', order)}
                             className='text-red-600 hover:text-red-800'
                           >
                             ক্যানসেল করুন
                           </button>
-                        )}
-
-                      {order.orderStatus === 'approved' && !order.cancelledByUser && (
-                        <button
-                          onClick={() => openActionModal('process', order)}
-                          className='text-blue-600 hover:text-blue-800'
-                        >
-                          প্রসেস করুন
-                        </button>
-                      )}
-                      {order.orderStatus === 'approved' && order.cancelledByUser && (
-                        <button
-                          onClick={() => openActionModal('process', order)}
-                          className='text-blue-600 hover:text-blue-800'
-                        >
-                          রিফান্ড করুন
-                        </button>
+                        </>
                       )}
 
-                      {order.orderStatus === 'processing' && !order.cancelledByUser && (
-                        <button
-                          onClick={() => openActionModal('ship', order)}
-                          className='text-purple-600 hover:text-purple-800'
-                        >
-                          শিপ করুন
-                        </button>
-                      )}
-
-                      {order.orderStatus === 'shipped' && !order.cancelledByUser && (
+                      {order.orderStatus === 'shipped' && !order.cancelledBySeller && (
                         <>
                           <button
                             onClick={() => openActionModal('complete', order)}
@@ -943,6 +930,12 @@ const AdminOrders = () => {
                             className='text-orange-600 hover:text-orange-800'
                           >
                             রিটার্ন করুন
+                          </button>
+                          <button
+                            onClick={() => openActionModal('reorder', order)}
+                            className='text-pink-600 hover:text-pink-800'
+                          >
+                            পুনরায় অর্ডার করতে বলুন
                           </button>
                         </>
                       )}
@@ -1131,6 +1124,11 @@ const AdminOrders = () => {
                       <span className='font-medium'>ব্যালেন্স:</span>{' '}
                       {parseFloat(selectedOrder.sellerBalance).toFixed(2)}৳
                     </p>
+                    {selectedOrder.cancelledBySeller && (
+                      <p className='text-sm text-red-500'>
+                        এই অর্ডারটি বিক্রেতা কর্তৃক ক্যানসেল করা হয়েছে
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1143,11 +1141,6 @@ const AdminOrders = () => {
                       <span className='font-medium'>স্ট্যাটাস:</span>{' '}
                       {getStatusBadge(selectedOrder.orderStatus)}
                     </p>
-                    {selectedOrder.cancelledByUser && (
-                      <p className='text-xs text-red-500'>
-                        এই অর্ডারটি বিক্রেতা কর্তৃক ক্যানসেল করা হয়েছে
-                      </p>
-                    )}
                     <p className='text-sm'>
                       <span className='font-medium'>অর্ডার তারিখ:</span>{' '}
                       {formatDate(selectedOrder.orderCreatedAt)}
@@ -1197,12 +1190,10 @@ const AdminOrders = () => {
                       <span className='font-medium'>ডেলিভারি চার্জ:</span>{' '}
                       {parseFloat(selectedOrder.deliveryCharge).toFixed(2)}৳
                     </p>
-                    {(selectedOrder.orderStatus === 'pending' ||
-                      selectedOrder.orderStatus === 'approved') && (
-                      <p className='mt-1 font-medium text-red-600'>
-                        {`বিক্রেতাকে ${parseFloat(
-                          selectedOrder.deliveryChargeMustBePaidBySeller
-                        ).toFixed(2)}৳ টাকা ডেলিভারি চার্জ হিসেবে দিতে হবে`}
+                    {selectedOrder.isDeliveryChargePaidBySeller && (
+                      <p className='text-sm'>
+                        <span className='font-medium'>বিক্রেতা প্রদত্ত ডেলিভারি চার্জ:</span>{' '}
+                        {parseFloat(selectedOrder.deliveryChargePaidBySeller).toFixed(2)}৳
                       </p>
                     )}
                     {selectedOrder.transactionId && (
@@ -1300,10 +1291,7 @@ const AdminOrders = () => {
                     <div className='flex justify-between border-t pt-2'>
                       <p className='text-sm font-medium'>গ্রাহকের থেকে ক্যাশ অন ডেলিভারি চার্জ:</p>
                       <p className='text-sm font-medium'>
-                        {(
-                          Number(selectedOrder.totalAmount) + Number(selectedOrder.deliveryCharge)
-                        ).toFixed(2)}
-                        ৳
+                        {parseFloat(selectedOrder.cashOnAmount).toFixed(2)}৳
                       </p>
                     </div>
                   </div>
@@ -1357,20 +1345,24 @@ const AdminOrders = () => {
           <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
             <div className='p-4 border-b'>
               <h2 className='text-lg font-medium'>
-                {currentAction === 'approve' &&
-                  (processingOrder ? 'অর্ডার অনুমোদন করা হচ্ছে...' : 'অর্ডার অনুমোদন করুন')}
-                {currentAction === 'reject' &&
-                  (processingOrder ? 'অর্ডার রিজেক্ট করা হচ্ছে...' : 'অর্ডার রিজেক্ট করুন')}
-                {currentAction === 'cancel' &&
-                  (processingOrder ? 'অর্ডার ক্যানসেল করা হচ্ছে...' : 'অর্ডার ক্যানসেল করুন')}
                 {currentAction === 'process' &&
                   (processingOrder ? 'অর্ডার প্রসেস করা হচ্ছে...' : 'অর্ডার প্রসেস করুন')}
+                {currentAction === 'cancel' &&
+                  (processingOrder ? 'অর্ডার ক্যানসেল করা হচ্ছে...' : 'অর্ডার ক্যানসেল করুন')}
+                {currentAction === 'reject' &&
+                  (processingOrder ? 'অর্ডার রিজেক্ট করা হচ্ছে...' : 'অর্ডার রিজেক্ট করুন')}
                 {currentAction === 'ship' &&
                   (processingOrder ? 'অর্ডার শিপ করা হচ্ছে...' : 'অর্ডার শিপ করুন')}
                 {currentAction === 'complete' &&
                   (processingOrder ? 'অর্ডার কমপ্লিট করা হচ্ছে...' : 'অর্ডার কমপ্লিট করুন')}
                 {currentAction === 'return' &&
                   (processingOrder ? 'অর্ডার রিটার্ন করা হচ্ছে...' : 'অর্ডার রিটার্ন করুন')}
+                {currentAction === 'refund' &&
+                  (processingOrder ? 'অর্ডার রিফান্ড করা হচ্ছে...' : 'অর্ডার রিফান্ড করুন')}
+                {currentAction === 'reorder' &&
+                  (processingOrder
+                    ? 'পুনরায় অর্ডার রিকোয়েস্ট করা হচ্ছে...'
+                    : 'পুনরায় অর্ডার রিকোয়েস্ট করুন')}
               </h2>
             </div>
 
@@ -1402,11 +1394,9 @@ const AdminOrders = () => {
                       <p className='mt-1'>
                         মোট পরিমাণ: {parseFloat(selectedOrder.totalAmount).toFixed(2)}৳
                       </p>
-                      {currentAction === 'approve' && (
+                      {selectedOrder.cancelledBySeller && (
                         <p className='mt-1 font-medium text-red-600'>
-                          {`বিক্রেতাকে ${parseFloat(
-                            selectedOrder.deliveryChargeMustBePaidBySeller
-                          ).toFixed(2)}৳ টাকা ডেলিভারি চার্জ হিসেবে দিতে হবে`}
+                          এই অর্ডারটি বিক্রেতা কর্তৃক ক্যানসেল করা হয়েছে
                         </p>
                       )}
                     </div>
@@ -1423,22 +1413,6 @@ const AdminOrders = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {currentAction === 'approve' && (
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    ট্রানজেকশন আইডি *
-                  </label>
-                  <input
-                    type='text'
-                    value={actionData.transactionId}
-                    onChange={e => setActionData({ ...actionData, transactionId: e.target.value })}
-                    placeholder='ট্রানজেকশন আইডি লিখুন'
-                    className='w-full px-3 py-2 border rounded-md text-sm'
-                    required
-                  />
                 </div>
               )}
 
@@ -1476,9 +1450,10 @@ const AdminOrders = () => {
                 </div>
               )}
 
-              {(currentAction === 'reject' ||
-                currentAction === 'cancel' ||
-                currentAction === 'return') && (
+              {(currentAction === 'cancel' ||
+                currentAction === 'reject' ||
+                currentAction === 'return' ||
+                currentAction === 'refund') && (
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-1'>
                     মন্তব্য (ঐচ্ছিক)
@@ -1500,7 +1475,7 @@ const AdminOrders = () => {
                 disabled={processingOrder}
                 className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50'
               >
-                ক্যানসেল করুন
+                বাতিল
               </button>
               <button
                 onClick={handleActionSubmit}
@@ -1511,13 +1486,14 @@ const AdminOrders = () => {
                   <FaSpinner className='animate-spin' />
                 ) : (
                   <>
-                    {currentAction === 'approve' && 'অনুমোদন করুন'}
-                    {currentAction === 'reject' && 'রিজেক্ট করুন'}
-                    {currentAction === 'cancel' && 'ক্যানসেল করুন'}
-                    {currentAction === 'process' && 'প্রসেস করুন'}
-                    {currentAction === 'ship' && 'শিপ করুন'}
-                    {currentAction === 'complete' && 'কমপ্লিট করুন'}
-                    {currentAction === 'return' && 'রিটার্ন করুন'}
+                    {currentAction === 'process' && 'প্রসেস'}
+                    {currentAction === 'cancel' && 'ক্যানসেল'}
+                    {currentAction === 'reject' && 'রিজেক্ট'}
+                    {currentAction === 'ship' && 'শিপ'}
+                    {currentAction === 'complete' && 'কমপ্লিট'}
+                    {currentAction === 'return' && 'রিটার্ন'}
+                    {currentAction === 'refund' && 'রিফান্ড'}
+                    {currentAction === 'reorder' && 'পুনরায় অর্ডার'}
                   </>
                 )}
               </button>
