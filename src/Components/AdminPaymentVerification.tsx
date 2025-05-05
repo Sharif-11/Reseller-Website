@@ -30,7 +30,8 @@ interface Payment {
 type PaymentStatus = 'all' | 'pending' | 'verified' | 'rejected'
 
 const AdminPaymentVerification = () => {
-  const [payments, setPayments] = useState<Payment[]>([])
+  const [allPayments, setAllPayments] = useState<Payment[]>([])
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [actionType, setActionType] = useState<'verify' | 'reject' | null>(null)
@@ -48,6 +49,12 @@ const AdminPaymentVerification = () => {
     total: 0,
     totalPages: 1,
   })
+  const [filters, setFilters] = useState({
+    transactionId: '',
+    phoneNo: '',
+    startDate: '',
+    endDate: '',
+  })
 
   const fetchPayments = async () => {
     try {
@@ -59,7 +66,8 @@ const AdminPaymentVerification = () => {
       })
 
       if (response.success && response.data) {
-        setPayments(response.data.payments)
+        setAllPayments(response.data.payments)
+        setFilteredPayments(response.data.payments)
         setPagination(prev => ({
           ...prev,
           total: response.data.totalPayments,
@@ -79,6 +87,47 @@ const AdminPaymentVerification = () => {
   useEffect(() => {
     fetchPayments()
   }, [activeTab, pagination.page])
+
+  useEffect(() => {
+    // Apply filters manually
+    let results = [...allPayments]
+
+    // Filter by transaction ID
+    if (filters.transactionId) {
+      results = results.filter(payment =>
+        payment.transactionId?.toLowerCase().includes(filters.transactionId.toLowerCase())
+      )
+    }
+
+    // Filter by phone number
+    if (filters.phoneNo) {
+      results = results.filter(
+        payment =>
+          payment.sellerPhoneNo.includes(filters.phoneNo) ||
+          payment.adminWalletPhoneNo.includes(filters.phoneNo) ||
+          payment.sellerWalletPhoneNo.includes(filters.phoneNo)
+      )
+    }
+
+    // Filter by date range
+    if (filters.startDate || filters.endDate) {
+      const startDate = filters.startDate ? new Date(filters.startDate).getTime() : 0
+      const endDate = filters.endDate ? new Date(filters.endDate).getTime() : Date.now()
+
+      results = results.filter(payment => {
+        const paymentDate = new Date(payment.paymentDate).getTime()
+        return paymentDate >= startDate && paymentDate <= endDate
+      })
+    }
+
+    setFilteredPayments(results)
+    setPagination(prev => ({
+      ...prev,
+      total: results.length,
+      totalPages: Math.ceil(results.length / prev.limit),
+      page: 1, // Reset to first page when filters change
+    }))
+  }, [filters, allPayments])
 
   const handleVerifyClick = (payment: Payment) => {
     setSelectedPayment(payment)
@@ -110,6 +159,14 @@ const AdminPaymentVerification = () => {
     }))
   }
 
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFilters(prev => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
   const handleSubmit = async () => {
     if (!selectedPayment) return
 
@@ -127,11 +184,11 @@ const AdminPaymentVerification = () => {
           paymentId: selectedPayment.paymentId,
           transactionId: verificationData.transactionId,
           amount: verificationData.amount,
-          paymentType: selectedPayment.paymentType,
+          paymentType: 'OrderPayment',
         })
 
         if (response?.success) {
-          toast.success('পেমেন্ট সফলভাবে যাচাই করা হয়েছে')
+          toast.success('পেমেন্ট সফলভাবে ভেরিফাই করা হয়েছে')
           fetchPayments()
           closeModal()
         } else {
@@ -144,7 +201,7 @@ const AdminPaymentVerification = () => {
         })
 
         if (response.success) {
-          toast.success('পেমেন্ট সফলভাবে প্রত্যাখ্যান করা হয়েছে')
+          toast.success('পেমেন্ট সফলভাবে রিজেক্ট করা হয়েছে')
           fetchPayments()
           closeModal()
         } else {
@@ -192,13 +249,13 @@ const AdminPaymentVerification = () => {
       case 'verified':
         return (
           <span className='px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800'>
-            যাচাইকৃত
+            ভেরিফাইড
           </span>
         )
       case 'rejected':
         return (
           <span className='px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800'>
-            প্রত্যাখ্যাত
+            রিজেক্টেড
           </span>
         )
       default:
@@ -227,11 +284,11 @@ const AdminPaymentVerification = () => {
 
     return (
       <div className='flex items-center text-xs'>
-        <div className='text-xs font-medium text-gray-700'>{senderWallet}</div>
-        <div className='mx-1 flex items-center'>
+        <div className='text-[10px] font-medium text-gray-700'>{senderWallet}</div>
+        <div className='mx-1 flex items-center text-xs'>
           <svg
             xmlns='http://www.w3.org/2000/svg'
-            className='h-4 w-4 text-gray-500 text-xs'
+            className='h-4 w-4 text-gray-500 text-[10px]'
             fill='none'
             viewBox='0 0 24 24'
             stroke='currentColor'
@@ -244,10 +301,31 @@ const AdminPaymentVerification = () => {
             />
           </svg>
         </div>
-        <div className='text-xs font-medium text-gray-700'>{receiverWallet}</div>
+        <div className='text-[10px] font-medium text-gray-700'>{receiverWallet}</div>
       </div>
     )
   }
+
+  const copyToClipboard = (text: string | null) => {
+    if (!text) return
+    navigator.clipboard.writeText(text)
+    toast.success('কপি করা হয়েছে')
+  }
+
+  const resetFilters = () => {
+    setFilters({
+      transactionId: '',
+      phoneNo: '',
+      startDate: '',
+      endDate: '',
+    })
+  }
+
+  // Calculate paginated data
+  const paginatedPayments = filteredPayments.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit
+  )
 
   return (
     <div className='px-4 py-6 max-w-6xl mx-auto'>
@@ -294,7 +372,7 @@ const AdminPaymentVerification = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              যাচাইকৃত
+              ভেরিফাইড
             </button>
             <button
               onClick={() => {
@@ -307,13 +385,69 @@ const AdminPaymentVerification = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              প্রত্যাখ্যাত
+              রিজেক্টেড
             </button>
           </nav>
         </div>
 
+        {/* Advanced Filters */}
+        <div className='bg-white p-4 rounded-lg shadow mb-4'>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>লেনদেন আইডি</label>
+              <input
+                type='text'
+                name='transactionId'
+                value={filters.transactionId}
+                onChange={handleFilterChange}
+                placeholder='লেনদেন আইডি সার্চ করুন'
+                className='w-full px-3 py-1.5 border rounded-md text-sm'
+              />
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>ফোন নম্বর</label>
+              <input
+                type='text'
+                name='phoneNo'
+                value={filters.phoneNo}
+                onChange={handleFilterChange}
+                placeholder='ফোন নম্বর সার্চ করুন'
+                className='w-full px-3 py-1.5 border rounded-md text-sm'
+              />
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>শুরুর তারিখ</label>
+              <input
+                type='date'
+                name='startDate'
+                value={filters.startDate}
+                onChange={handleFilterChange}
+                className='w-full px-3 py-1.5 border rounded-md text-sm'
+              />
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>শেষ তারিখ</label>
+              <input
+                type='date'
+                name='endDate'
+                value={filters.endDate}
+                onChange={handleFilterChange}
+                className='w-full px-3 py-1.5 border rounded-md text-sm'
+              />
+            </div>
+            <div className='flex items-end'>
+              <button
+                onClick={resetFilters}
+                className='px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200'
+              >
+                ফিল্টার রিসেট করুন
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className='flex justify-between items-center'>
-          <div className='text-sm text-gray-500'>মোট পেমেন্ট: {pagination.total}</div>
+          <div className='text-sm text-gray-500'>মোট পেমেন্ট: {filteredPayments.length}</div>
           <div className='flex items-center space-x-2'>
             <label htmlFor='limit' className='text-sm text-gray-500'>
               প্রতি পৃষ্ঠায়:
@@ -343,7 +477,7 @@ const AdminPaymentVerification = () => {
         <div className='flex justify-center items-center h-64'>
           <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500'></div>
         </div>
-      ) : payments.length === 0 ? (
+      ) : filteredPayments.length === 0 ? (
         <div className='bg-white rounded-lg shadow p-6 text-center'>
           <p className='text-gray-500'>কোন পেমেন্ট পাওয়া যায়নি</p>
         </div>
@@ -367,6 +501,9 @@ const AdminPaymentVerification = () => {
                     পরিমাণ
                   </th>
                   <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
+                    লেনদেন আইডি
+                  </th>
+                  <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
                     স্ট্যাটাস
                   </th>
                   {activeTab === 'pending' && (
@@ -377,7 +514,7 @@ const AdminPaymentVerification = () => {
                 </tr>
               </thead>
               <tbody className='bg-white divide-y divide-gray-200'>
-                {payments.map(payment => (
+                {paginatedPayments.map(payment => (
                   <tr key={payment.paymentId}>
                     <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
                       {formatDate(payment.paymentDate)}
@@ -402,6 +539,35 @@ const AdminPaymentVerification = () => {
                       )}
                     </td>
                     <td className='px-4 py-4 whitespace-nowrap'>
+                      {payment.transactionId ? (
+                        <div className='flex items-center'>
+                          <span className='font-mono text-sm'>{payment.transactionId}</span>
+                          <button
+                            onClick={() => copyToClipboard(payment.transactionId)}
+                            className='ml-2 text-blue-500 hover:text-blue-700'
+                            title='কপি করুন'
+                          >
+                            <svg
+                              xmlns='http://www.w3.org/2000/svg'
+                              className='h-4 w-4'
+                              fill='none'
+                              viewBox='0 0 24 24'
+                              stroke='currentColor'
+                            >
+                              <path
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                                strokeWidth={2}
+                                d='M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3'
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className='text-gray-400'>N/A</span>
+                      )}
+                    </td>
+                    <td className='px-4 py-4 whitespace-nowrap'>
                       {getStatusBadge(payment.paymentStatus)}
                       {payment.processedAt && (
                         <div className='text-xs text-gray-500 mt-1'>
@@ -414,15 +580,15 @@ const AdminPaymentVerification = () => {
                         <div className='flex gap-2'>
                           <button
                             onClick={() => handleVerifyClick(payment)}
-                            className='text-green-600 hover:text-green-800'
+                            className='text-green-600 hover:text-green-800 text-xs'
                           >
-                            যাচাই করুন
+                            ভেরিফাই করুন
                           </button>
                           <button
                             onClick={() => handleRejectClick(payment)}
-                            className='text-red-600 hover:text-red-800'
+                            className='text-red-600 hover:text-red-800 text-xs'
                           >
-                            প্রত্যাখ্যান করুন
+                            রিজেক্ট করুন
                           </button>
                         </div>
                       </td>
@@ -435,7 +601,7 @@ const AdminPaymentVerification = () => {
 
           {/* Mobile View - Cards */}
           <div className='md:hidden space-y-3 p-3'>
-            {payments.map(payment => (
+            {paginatedPayments.map(payment => (
               <div key={payment.paymentId} className='border rounded-lg p-3 text-xs'>
                 <div className='flex justify-between items-start'>
                   <div>
@@ -463,11 +629,42 @@ const AdminPaymentVerification = () => {
                     )}
                   </div>
                   <div>
-                    <p className='text-gray-500'>প্রক্রিয়াকরণ:</p>
-                    <p className='text-gray-500'>
-                      {payment.processedAt ? formatDate(payment.processedAt) : 'প্রক্রিয়াধীন'}
-                    </p>
+                    <p className='text-gray-500'>লেনদেন আইডি:</p>
+                    {payment.transactionId ? (
+                      <div className='flex items-center'>
+                        <span className='font-mono'>{payment.transactionId}</span>
+                        <button
+                          onClick={() => copyToClipboard(payment.transactionId)}
+                          className='ml-1 text-blue-500'
+                          title='কপি করুন'
+                        >
+                          <svg
+                            xmlns='http://www.w3.org/2000/svg'
+                            className='h-3 w-3'
+                            fill='none'
+                            viewBox='0 0 24 24'
+                            stroke='currentColor'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth={2}
+                              d='M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3'
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <p className='text-gray-400'>N/A</p>
+                    )}
                   </div>
+                </div>
+
+                <div className='mt-2'>
+                  <p className='text-gray-500'>প্রক্রিয়াকরণ:</p>
+                  <p className='text-gray-500'>
+                    {payment.processedAt ? formatDate(payment.processedAt) : 'প্রক্রিয়াধীন'}
+                  </p>
                 </div>
 
                 {payment.paymentStatus === 'pending' && (
@@ -476,13 +673,13 @@ const AdminPaymentVerification = () => {
                       onClick={() => handleVerifyClick(payment)}
                       className='py-1 px-2 bg-green-50 text-green-600 rounded font-medium'
                     >
-                      যাচাই করুন
+                      ভেরিফাই করুন
                     </button>
                     <button
                       onClick={() => handleRejectClick(payment)}
                       className='py-1 px-2 bg-red-50 text-red-600 rounded font-medium'
                     >
-                      প্রত্যাখ্যান করুন
+                      রিজেক্ট করুন
                     </button>
                   </div>
                 )}
@@ -518,9 +715,10 @@ const AdminPaymentVerification = () => {
                     </span>{' '}
                     থেকে{' '}
                     <span className='font-medium'>
-                      {Math.min(pagination.page * pagination.limit, pagination.total)}
+                      {Math.min(pagination.page * pagination.limit, filteredPayments.length)}
                     </span>{' '}
-                    টি পেমেন্টের <span className='font-medium'>{pagination.total}</span> টির মধ্যে
+                    টি পেমেন্টের <span className='font-medium'>{filteredPayments.length}</span> টির
+                    মধ্যে
                   </p>
                 </div>
                 <div>
@@ -606,7 +804,7 @@ const AdminPaymentVerification = () => {
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
           <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
             <div className='p-4 border-b'>
-              <h2 className='text-lg font-medium'>পেমেন্ট যাচাই করুন</h2>
+              <h2 className='text-lg font-medium'>পেমেন্ট ভেরিফাই করুন</h2>
             </div>
 
             <div className='p-4 space-y-4'>
@@ -698,7 +896,7 @@ const AdminPaymentVerification = () => {
                 disabled={processing || !verificationData.transactionId || !verificationData.amount}
                 className='px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50'
               >
-                {processing ? 'প্রসেসিং...' : 'যাচাই করুন'}
+                {processing ? 'প্রসেসিং...' : 'ভেরিফাই করুন'}
               </button>
             </div>
           </div>
@@ -710,7 +908,7 @@ const AdminPaymentVerification = () => {
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
           <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
             <div className='p-4 border-b'>
-              <h2 className='text-lg font-medium text-red-600'>পেমেন্ট প্রত্যাখ্যান করুন</h2>
+              <h2 className='text-lg font-medium text-red-600'>পেমেন্ট রিজেক্ট করুন</h2>
             </div>
 
             <div className='p-4 space-y-4'>
@@ -732,7 +930,7 @@ const AdminPaymentVerification = () => {
                   </div>
                   <div className='ml-3'>
                     <h3 className='text-sm font-medium text-red-800'>
-                      আপনি এই পেমেন্টটি প্রত্যাখ্যান করতে চলেছেন
+                      আপনি এই পেমেন্টটি রিজেক্ট করতে চলেছেন
                     </h3>
                     <div className='mt-2 text-sm text-red-700'>
                       <p>
@@ -759,7 +957,7 @@ const AdminPaymentVerification = () => {
                   name='remarks'
                   value={verificationData.remarks}
                   onChange={handleInputChange}
-                  placeholder='প্রত্যাখ্যানের কারণ লিখুন'
+                  placeholder='রিজেক্টের কারণ লিখুন'
                   rows={3}
                   className='w-full px-3 py-1.5 border rounded-md text-sm'
                 />
@@ -779,7 +977,7 @@ const AdminPaymentVerification = () => {
                 disabled={processing}
                 className='px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50'
               >
-                {processing ? 'প্রসেসিং...' : 'প্রত্যাখ্যান করুন'}
+                {processing ? 'প্রসেসিং...' : 'রিজেক্ট করুন'}
               </button>
             </div>
           </div>

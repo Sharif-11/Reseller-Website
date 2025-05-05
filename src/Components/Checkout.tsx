@@ -178,7 +178,7 @@ const Checkout = () => {
           deliveryChargePaidBySeller: amountToPay,
         }
         if (values.needsPayment) {
-          orderData.transactionId = values.transactionId
+          orderData.transactionId = values.transactionId.trim()
         }
         const { success, message } = await createOrder(orderData as OrderData)
         if (success) {

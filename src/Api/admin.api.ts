@@ -592,6 +592,38 @@ export const returnOrder = async ({ orderId, remarks }: { orderId: string; remar
     }
   }
 }
+export const requestReOrder = async ({ orderId }: { orderId: string }) => {
+  try {
+    const { data } = await axiosInstance.patch(`admin/orders/${orderId}/faulty`)
+    const { success, message, statusCode } = data
+    const responseData = data?.data
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    }
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.data) {
+      const { data } = error.response
+      const { success, message, statusCode } = data
+      const responseData = data?.data
+      return {
+        success,
+        message,
+        statusCode,
+        data: responseData,
+      }
+    }
+    // Handle unexpected errors
+    return {
+      success: false,
+      message: 'An unexpected error occurred',
+      statusCode: 500,
+      data: null,
+    }
+  }
+}
 export const verifyPayment = async ({
   paymentId,
   transactionId,
@@ -601,11 +633,24 @@ export const verifyPayment = async ({
   paymentId: number
   transactionId: string
   amount: string
-  paymentType: 'DuePayment' | 'OrderPayment' | 'WithdrawPayment'
+  paymentType: 'DuePayment' | 'OrderPayment'
 }) => {
   try {
     if (paymentType === 'DuePayment') {
       const { data } = await axiosInstance.patch(`admin/payments/${paymentId}/verify-due`, {
+        transactionId,
+        amount: Number(amount),
+      })
+      const { success, message, statusCode } = data
+      const responseData = data?.data
+      return {
+        success,
+        message,
+        data: responseData,
+        statusCode,
+      }
+    } else if (paymentType === 'OrderPayment') {
+      const { data } = await axiosInstance.patch(`admin/payments/${paymentId}/verify-order`, {
         transactionId,
         amount: Number(amount),
       })
