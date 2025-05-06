@@ -744,13 +744,13 @@ const AdminOrders = () => {
                           onClick={() => openActionModal('process', order)}
                           className='py-1 px-2 bg-blue-50 text-blue-600 rounded font-medium text-xs'
                         >
-                          প্রসেস
+                          প্রসেস করুন
                         </button>
                         <button
                           onClick={() => openActionModal('cancel', order)}
                           className='py-1 px-2 bg-red-50 text-red-600 rounded font-medium text-xs'
                         >
-                          ক্যানসেল
+                          ক্যানসেল করুন
                         </button>
                       </>
                     )}
@@ -880,13 +880,13 @@ const AdminOrders = () => {
                             onClick={() => openActionModal('process', order)}
                             className='text-blue-600 hover:text-blue-800'
                           >
-                            প্রসেস
+                            প্রসেস করুন
                           </button>
                           <button
                             onClick={() => openActionModal('cancel', order)}
                             className='text-red-600 hover:text-red-800'
                           >
-                            ক্যানসেল
+                            ক্যানসেল করুন
                           </button>
                         </>
                       )}

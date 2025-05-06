@@ -924,16 +924,10 @@ const Orders = () => {
                         {parseFloat(selectedOrder.deliveryCharge).toFixed(2)}৳
                       </p>
                     </div>
-                    <div className='flex justify-between'>
+                    <div className='flex justify-between border-t pt-2'>
                       <p className='text-sm'>ক্যাশ অন ডেলিভারি:</p>
                       <p className='text-sm'>
                         {parseFloat(selectedOrder.cashOnAmount).toFixed(2)}৳
-                      </p>
-                    </div>
-                    <div className='flex justify-between border-t pt-2'>
-                      <p className='text-sm font-medium'>সর্বমোট:</p>
-                      <p className='text-sm font-medium'>
-                        {parseFloat(selectedOrder.totalAmount).toFixed(2)}৳
                       </p>
                     </div>
                   </div>
