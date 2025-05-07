@@ -40,6 +40,7 @@ import './index.css'
 
 import * as Sentry from '@sentry/react'
 import AdminPaymentVerification from './Components/AdminPaymentVerification.tsx'
+import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
@@ -126,6 +127,8 @@ createRoot(document.getElementById('root')!).render(
                 </PublicRoute>
               }
             />
+            <Route path='passive-income' element={<ResellerPassiveIncome />} />
+
             <Route
               path='privacy-policy'
               element={
