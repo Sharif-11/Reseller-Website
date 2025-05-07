@@ -74,8 +74,6 @@ const ProductDetail = () => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
   }, [favorites])
 
-  const toggleFavorite = () => {}
-
   const downloadImage = async (url: string, name: string, id: string) => {
     try {
       setDownloadingId(id)
