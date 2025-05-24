@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 import { FiBell, FiServer, FiSettings, FiUsers, FiX } from 'react-icons/fi'
 import AnnouncementSetting from './AdminAnnouncement'
+import CommissionTable from './CommisionTable'
 
 // 1. Announcement Component
 
@@ -12,6 +13,7 @@ const SettingsPanel = () => {
 
   const settings = [
     { id: 'announcement', name: 'ঘোষণা', icon: <FiBell /> },
+    { id: 'commission', name: 'কমিশন', icon: <FiSettings /> },
     { id: 'user', name: 'ব্যবহারকারী', icon: <FiUsers /> },
     { id: 'system', name: 'সিস্টেম', icon: <FiServer /> },
   ]
@@ -97,7 +99,15 @@ const SettingsPanel = () => {
         <main className='flex-1 p-4 md:p-6'>
           {activeSetting === 'announcement' ? (
             <AnnouncementSetting />
-          ) : activeSetting ? (
+          ) : activeSetting === 'commission' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className='bg-white rounded-xl shadow-sm p-6 text-center'
+            >
+              <CommissionTable />
+            </motion.div>
+          ) : activeSetting === 'user' ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -109,7 +119,21 @@ const SettingsPanel = () => {
               <h3 className='text-xl font-medium text-gray-700 mb-2'>
                 {settings.find(s => s.id === activeSetting)?.name} সেটিংস
               </h3>
-              <p className='text-gray-500'>খুব শীঘ্রই আসছে</p>
+              <p className='text-gray-500'>ব্যবহারকারী সেটিংস কনটেন্ট এখানে আসবে</p>
+            </motion.div>
+          ) : activeSetting === 'system' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className='bg-white rounded-xl shadow-sm p-6 text-center'
+            >
+              <div className='text-gray-400 mb-4 text-5xl'>
+                {settings.find(s => s.id === activeSetting)?.icon}
+              </div>
+              <h3 className='text-xl font-medium text-gray-700 mb-2'>
+                {settings.find(s => s.id === activeSetting)?.name} সেটিংস
+              </h3>
+              <p className='text-gray-500'>সিস্টেম সেটিংস কনটেন্ট এখানে আসবে</p>
             </motion.div>
           ) : (
             <motion.div

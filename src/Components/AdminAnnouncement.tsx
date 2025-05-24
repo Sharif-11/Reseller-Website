@@ -92,15 +92,17 @@ const AnnouncementSetting = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              className='flex justify-between items-center bg-white p-3 rounded-lg shadow-sm'
+              className='relative bg-white p-3 rounded-lg shadow-sm'
             >
-              <p className='text-gray-700 text-xs truncate'>{announcement}</p>
               <button
                 onClick={() => handleDelete(index)}
-                className='text-red-500 hover:text-red-700 p-1'
+                className='absolute top-2 right-2 text-red-500 hover:text-red-700 p-1 '
               >
                 <FiX />
               </button>
+              <div className='overflow-hidden'>
+                <p className='text-gray-700 text-xs break-words'>{announcement}</p>
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>
