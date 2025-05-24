@@ -65,7 +65,7 @@ const SellerHomeDashboard = () => {
       title: 'সেলার ড্যাশবোর্ড',
       icon: <FaBoxOpen className='text-3xl text-blue-600' />,
       url: '/seller-dashboard',
-      upcoming: true,
+      // upcoming: true,
     },
     {
       title: 'সাপোর্ট টিকেট',

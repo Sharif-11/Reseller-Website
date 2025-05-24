@@ -45,6 +45,7 @@ import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
+import SellerDashboard from './Components/SellerDashboard.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
 
 Sentry.init({
@@ -166,6 +167,14 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <SellerRoute>
                   <PayDue />
+                </SellerRoute>
+              }
+            />
+            <Route
+              path='seller-dashboard'
+              element={
+                <SellerRoute>
+                  <SellerDashboard />
                 </SellerRoute>
               }
             />
