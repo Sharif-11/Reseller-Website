@@ -46,6 +46,7 @@ import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
+import SettingsPanel from './Components/SettingPanel.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
 
 Sentry.init({
@@ -160,6 +161,14 @@ createRoot(document.getElementById('root')!).render(
                 <SellerRoute>
                   <SellerHomeDashboard />
                 </SellerRoute>
+              }
+            />
+            <Route
+              path='settings'
+              element={
+                <AdminRoute>
+                  <SettingsPanel />
+                </AdminRoute>
               }
             />
             <Route

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
   FaBook,
   FaBoxOpen,
@@ -10,19 +11,26 @@ import {
   FaTicketAlt,
 } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
+import { getAllAnnouncements } from '../Api/announcements.api'
 import { useAuth } from '../Hooks/useAuth'
 
 const SellerHomeDashboard = () => {
   // Sample balance data (negative for demo)
+  const [announcements, setAnnouncements] = useState<string[]>([])
   const { user } = useAuth()
   const currentBalance = user?.balance || 0 // Example balance, replace with actual data
 
-  // Announcements data
-  const announcements: string[] = [
-    // "🎉 নতুন বছর উপলক্ষে বিশেষ ডিসকাউন্ট চলছে!",
-    // "⚠️ আগামীকাল সিস্টেম মেইন্টেন্যান্সের কারণে বিক্রয় বন্ধ থাকবে সকাল ১০টা থেকে ১২টা পর্যন্ত",
-    // "📢 নতুন সেলারদের জন্য বিশেষ ট্রেনিং সেশনের আয়োজন করা হবে ১৫ই জানুয়ারি"
-  ]
+  const fetchAnnouncements = async () => {
+    const { success, data } = await getAllAnnouncements()
+    if (success) {
+      setAnnouncements(data || [])
+    } else {
+      console.error('Failed to fetch announcements')
+    }
+  }
+  useEffect(() => {
+    fetchAnnouncements()
+  }, [])
 
   const quickLinks = [
     {
