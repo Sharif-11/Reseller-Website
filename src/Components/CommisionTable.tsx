@@ -16,13 +16,14 @@ const CommissionTable: React.FC = () => {
     success: boolean
     message: string
   } | null>(null)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
 
   // Fetch existing commission table on component mount
   useEffect(() => {
     const fetchCommissionTable = async () => {
       try {
         setIsLoading(true)
-        const response = await getCommissionTable()
+        const response = await getCommissionTable(true)
 
         if (response.success && response.data) {
           // Transform API data to UI format
@@ -49,12 +50,92 @@ const CommissionTable: React.FC = () => {
     fetchCommissionTable()
   }, [])
 
+  const validateTable = (data: TableRow[]): string[] => {
+    const errors: string[] = []
+    // the levels should be at least 1
+    if (data.length === 0) {
+      errors.push('কমিশন টেবিল খালি')
+      return errors
+    }
+    if (data.some(row => row.levels.length === 0)) {
+      errors.push('প্রতিটি সারিতে অন্তত একটি লেভেল থাকতে হবে')
+      return errors
+    }
+
+    // Check all rows have same number of levels
+    const levelCount = new Set(data.map(row => row.levels.length))
+    if (levelCount.size > 1) {
+      errors.push('সমস্ত সারিতে একই সংখ্যক লেভেল থাকতে হবে')
+    }
+
+    // Check for empty or invalid values
+    data.forEach((row, index) => {
+      if (!row.startPrice || parseFloat(row.startPrice) <= 0) {
+        errors.push(`সারি ${index + 1}: শুরু মূল্য অবশ্যই ধনাত্মক হতে হবে`)
+      }
+
+      if (index !== data.length - 1) {
+        // Not the last row
+        if (!row.endPrice || parseFloat(row.endPrice) <= 0) {
+          errors.push(`সারি ${index + 1}: শেষ মূল্য অবশ্যই ধনাত্মক হতে হবে`)
+        }
+
+        if (parseFloat(row.startPrice) > parseFloat(row.endPrice)) {
+          errors.push(`সারি ${index + 1}: শুরু মূল্য শেষ মূল্যের চেয়ে বেশি হতে পারে না`)
+        }
+      } else {
+        // Last row must have empty endPrice
+        if (row.endPrice) {
+          errors.push('শেষ সারির শেষ মূল্য ফাঁকা রাখতে হবে (খোলা-শেষ)')
+        }
+      }
+
+      row.levels.forEach((level, levelIndex) => {
+        if (!level || parseFloat(level) <= 0) {
+          errors.push(
+            `সারি ${index + 1}, লেভেল ${levelIndex + 1}: কমিশনের পরিমাণ অবশ্যই ধনাত্মক হতে হবে`
+          )
+        }
+      })
+    })
+
+    // Check for continuous ranges
+    const sortedData = [...data].sort((a, b) => parseFloat(a.startPrice) - parseFloat(b.startPrice))
+
+    for (let i = 0; i < sortedData.length - 1; i++) {
+      const current = sortedData[i]
+      const next = sortedData[i + 1]
+
+      if (parseFloat(current.endPrice) !== parseFloat(next.startPrice)) {
+        errors.push(
+          `সারি ${i + 1} এর শেষ মূল্য (${current.endPrice}) অবশ্যই সারি ${i + 2} এর শুরু মূল্য (${
+            next.startPrice
+          }) এর সমান হতে হবে`
+        )
+      }
+    }
+
+    return errors
+  }
+
   const addRow = () => {
-    setTableData([
-      ...tableData,
-      { startPrice: '', endPrice: '', levels: Array(columns.length).fill('') },
-    ])
+    const newRow: TableRow = {
+      startPrice: '',
+      endPrice: '',
+      levels: Array(columns.length).fill(''),
+    }
+
+    // If there are existing rows, set startPrice to previous endPrice + 1
+    if (tableData.length > 0) {
+      const lastRow = tableData[tableData.length - 1]
+      if (lastRow.endPrice) {
+        newRow.startPrice = (parseFloat(lastRow.endPrice) + 1).toString()
+      }
+    }
+
+    setTableData([...tableData, newRow])
     setSaveStatus(null)
+    setValidationErrors([])
   }
 
   const addColumn = () => {
@@ -67,11 +148,14 @@ const CommissionTable: React.FC = () => {
       }))
     )
     setSaveStatus(null)
+    setValidationErrors([])
   }
 
   const deleteRow = (rowIndex: number) => {
-    setTableData(tableData.filter((_, index) => index !== rowIndex))
+    const newData = tableData.filter((_, index) => index !== rowIndex)
+    setTableData(newData)
     setSaveStatus(null)
+    setValidationErrors([])
   }
 
   const deleteColumn = (colIndex: number) => {
@@ -83,6 +167,7 @@ const CommissionTable: React.FC = () => {
       }))
     )
     setSaveStatus(null)
+    setValidationErrors([])
   }
 
   const handleInputChange = (
@@ -101,12 +186,20 @@ const CommissionTable: React.FC = () => {
       return updatedTable
     })
     setSaveStatus(null)
+    setValidationErrors([])
   }
 
   const handleSave = async () => {
+    const errors = validateTable(tableData)
+    if (errors.length > 0) {
+      setValidationErrors(errors)
+      return
+    }
+
     try {
       setIsSaving(true)
-      setSaveStatus(null) // Clear previous status
+      setSaveStatus(null)
+      setValidationErrors([])
 
       // Transform UI data to API format
       const apiData = tableData.map(row => ({
@@ -119,16 +212,12 @@ const CommissionTable: React.FC = () => {
 
       setSaveStatus({
         success: response.success,
-        message: response.message || 'Commission table saved successfully',
+        message: response.message || 'কমিশন টেবিল সফলভাবে সেভ হয়েছে',
       })
-
-      if (!response.success) {
-        console.error('Save failed:', response.message)
-      }
-    } catch (error) {
+    } catch (error: any) {
       setSaveStatus({
         success: false,
-        message: 'Failed to save commission table',
+        message: error.message || 'কমিশন টেবিল সেভ করতে ব্যর্থ হয়েছে',
       })
       console.error('Save error:', error)
     } finally {
@@ -147,6 +236,14 @@ const CommissionTable: React.FC = () => {
   return (
     <div className='container mx-auto p-4'>
       <h1 className='text-2xl font-bold text-gray-800 mb-6'>কমিশন টেবিল</h1>
+
+      {validationErrors.length > 0 && (
+        <div className='mb-4 p-3 rounded-lg bg-red-100 text-red-800'>
+          {validationErrors.map((error, index) => (
+            <p key={index}>{error}</p>
+          ))}
+        </div>
+      )}
 
       <div className='flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 mb-4'>
         <button
@@ -250,14 +347,16 @@ const CommissionTable: React.FC = () => {
                   className='px-4 py-2 border border-gray-300 text-left bg-gray-100 whitespace-nowrap'
                 >
                   লেভেল {level}
-                  <button
-                    onClick={() => deleteColumn(index)}
-                    className='ml-2 text-red-500 hover:text-red-700'
-                    aria-label='Delete column'
-                    disabled={isSaving}
-                  >
-                    ❌
-                  </button>
+                  {columns.length > 1 && (
+                    <button
+                      onClick={() => deleteColumn(index)}
+                      className='ml-2 text-red-500 hover:text-red-700'
+                      aria-label='Delete column'
+                      disabled={isSaving}
+                    >
+                      ❌
+                    </button>
+                  )}
                 </th>
               ))}
               <th className='px-4 py-2 border border-gray-300 text-left bg-gray-100'>অপশন</th>
@@ -282,7 +381,11 @@ const CommissionTable: React.FC = () => {
                       placeholder='শুরু মূল্য'
                       min='0.01'
                       step='0.01'
-                      className='w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      className={`w-full px-2 py-1 border ${
+                        validationErrors.some(e => e.includes(`সারি ${rowIndex + 1}: শুরু মূল্য`))
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
                       disabled={isSaving}
                     />
                   </td>
@@ -292,11 +395,15 @@ const CommissionTable: React.FC = () => {
                       name='endPrice'
                       value={row.endPrice}
                       onChange={e => handleInputChange(e, rowIndex, null)}
-                      placeholder={rowIndex === tableData.length - 1 ? '' : 'শেষ মূল্য'}
+                      placeholder={rowIndex === tableData.length - 1 ? 'খোলা-শেষ' : 'শেষ মূল্য'}
                       min='0.01'
                       step='0.01'
                       disabled={rowIndex === tableData.length - 1 || isSaving}
-                      className={`w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`w-full px-2 py-1 border ${
+                        validationErrors.some(e => e.includes(`সারি ${rowIndex + 1}: শেষ মূল্য`))
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         rowIndex === tableData.length - 1 ? 'bg-gray-100' : ''
                       }`}
                     />
@@ -310,7 +417,13 @@ const CommissionTable: React.FC = () => {
                         placeholder={`লেভেল ${columns[colIndex]}`}
                         min='0.01'
                         step='0.01'
-                        className='w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        className={`w-full px-2 py-1 border ${
+                          validationErrors.some(e =>
+                            e.includes(`সারি ${rowIndex + 1}, লেভেল ${colIndex + 1}`)
+                          )
+                            ? 'border-red-500'
+                            : 'border-gray-300'
+                        } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
                         disabled={isSaving}
                       />
                     </td>
@@ -337,8 +450,9 @@ const CommissionTable: React.FC = () => {
           <p className='font-semibold'>নির্দেশনা:</p>
           <ul className='list-disc pl-5 space-y-1'>
             <li>শেষ সারির শেষ মূল্য ফাঁকা রাখুন (যেমন: 1500+)</li>
+            <li>সমস্ত সারিতে একই সংখ্যক লেভেল থাকতে হবে</li>
+            <li>প্রতিটি সারির শেষ মূল্য পরবর্তী সারির শুরু মূল্যের সমান হতে হবে</li>
             <li>সমস্ত মূল্য ০ এর বেশি হতে হবে</li>
-            <li>পরিসীমা ওভারল্যাপ করা যাবে না</li>
           </ul>
         </div>
       )}
