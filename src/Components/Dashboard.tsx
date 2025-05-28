@@ -423,6 +423,33 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               {user.role === 'Admin' && (
                 <>
                   <NavLink
+                    to='/admin-dashboard'
+                    className={({ isActive }) => `
+                      flex items-center px-4 py-3 rounded-lg transition-all
+                      ${
+                        isActive
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-indigo-100 hover:bg-indigo-600/50'
+                      }
+                    `}
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    <svg
+                      className='w-5 h-5 mr-3'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M3 7h18M3 12h18m-7 5h7'
+                      />
+                    </svg>
+                    অ্যাডমিন ড্যাশবোর্ড
+                  </NavLink>
+                  <NavLink
                     to='/add-product'
                     className={({ isActive }) => `
                       flex items-center px-4 py-3 rounded-lg transition-all

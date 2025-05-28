@@ -39,6 +39,7 @@ import { useAuth } from './Hooks/useAuth.tsx'
 import './index.css'
 
 import * as Sentry from '@sentry/react'
+import AdminDashboard from './Components/AdminDashboard.tsx'
 import AdminPaymentVerification from './Components/AdminPaymentVerification.tsx'
 import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
@@ -161,6 +162,14 @@ createRoot(document.getElementById('root')!).render(
                 <SellerRoute>
                   <SellerHomeDashboard />
                 </SellerRoute>
+              }
+            />
+            <Route
+              path='admin-dashboard'
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
               }
             />
             <Route
