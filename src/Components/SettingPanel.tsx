@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { FiBell, FiServer, FiSettings, FiUsers, FiX } from 'react-icons/fi'
 import AnnouncementSetting from './AdminAnnouncement'
 import CommissionTable from './CommisionTable'
+import UserSettings from './UserSetting'
 
 // 1. Announcement Component
 
@@ -113,13 +114,7 @@ const SettingsPanel = () => {
               animate={{ opacity: 1, y: 0 }}
               className='bg-white rounded-xl shadow-sm p-6 text-center'
             >
-              <div className='text-gray-400 mb-4 text-5xl'>
-                {settings.find(s => s.id === activeSetting)?.icon}
-              </div>
-              <h3 className='text-xl font-medium text-gray-700 mb-2'>
-                {settings.find(s => s.id === activeSetting)?.name} সেটিংস
-              </h3>
-              <p className='text-gray-500'>ব্যবহারকারী সেটিংস কনটেন্ট এখানে আসবে</p>
+              <UserSettings />
             </motion.div>
           ) : activeSetting === 'system' ? (
             <motion.div
