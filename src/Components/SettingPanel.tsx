@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
-import { FiBell, FiServer, FiSettings, FiUsers, FiX } from 'react-icons/fi'
+import { FiBell, FiSettings, FiUsers, FiX } from 'react-icons/fi'
 import AnnouncementSetting from './AdminAnnouncement'
 import CommissionTable from './CommisionTable'
 import UserSettings from './UserSetting'
@@ -13,10 +13,10 @@ const SettingsPanel = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const settings = [
+    { id: 'commission', name: 'কমিশন টেবিল', icon: <FiSettings /> },
     { id: 'announcement', name: 'ঘোষণা', icon: <FiBell /> },
-    { id: 'commission', name: 'কমিশন', icon: <FiSettings /> },
-    { id: 'user', name: 'ব্যবহারকারী', icon: <FiUsers /> },
-    { id: 'system', name: 'সিস্টেম', icon: <FiServer /> },
+    { id: 'user', name: 'ইউজার', icon: <FiUsers /> },
+    // { id: 'system', name: 'সিস্টেম', icon: <FiServer /> },
   ]
 
   return (

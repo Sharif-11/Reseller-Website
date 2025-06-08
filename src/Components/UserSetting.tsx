@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { FiChevronLeft, FiChevronRight, FiSearch } from 'react-icons/fi'
-import { getAllUsers } from '../Api/admin.api'
+import { FiChevronLeft, FiChevronRight, FiMessageSquare, FiSearch } from 'react-icons/fi'
+import { getAllUsers, sendDirectMessageToSeller } from '../Api/admin.api'
 
 interface User {
   userId: string
@@ -27,7 +27,15 @@ const UserSettings = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [pageSize] = useState(10)
   const [tableLoading, setTableLoading] = useState(false)
-  const [totalUsers, setTotalUsers] = useState(0) // Added for user statistics
+  const [totalUsers, setTotalUsers] = useState(0)
+  const [messageModal, setMessageModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [messageContent, setMessageContent] = useState('')
+  const [messageStatus, setMessageStatus] = useState<{
+    type: 'success' | 'error' | null
+    message: string
+  }>({ type: null, message: '' })
+  const [sendingMessage, setSendingMessage] = useState(false)
 
   // Fetch users data
   useEffect(() => {
@@ -44,7 +52,7 @@ const UserSettings = () => {
         if (response.success) {
           setUsers(response.data.users)
           setTotalPages(Math.ceil(response.data.totalPages / pageSize))
-          setTotalUsers(response.data.totalUsers) // Set total user count
+          setTotalUsers(response.data.totalUsers)
         }
       } catch (error) {
         console.error('Error loading users:', error)
@@ -67,13 +75,70 @@ const UserSettings = () => {
     setCurrentPage(1)
   }
 
-  // Format balance to Bangladeshi Taka
   const formatBalance = (balance: number) => {
     return new Intl.NumberFormat('bn-BD', {
       style: 'currency',
       currency: 'BDT',
       minimumFractionDigits: 2,
     }).format(balance)
+  }
+
+  const openMessageModal = (user: User) => {
+    setSelectedUser(user)
+    setMessageModal(true)
+    setMessageStatus({ type: null, message: '' }) // Reset status when opening modal
+  }
+
+  const closeMessageModal = () => {
+    setMessageModal(false)
+    setSelectedUser(null)
+    setMessageContent('')
+    setMessageStatus({ type: null, message: '' })
+    setSendingMessage(false)
+  }
+
+  const sendMessage = async () => {
+    if (!messageContent.trim()) {
+      setMessageStatus({
+        type: 'error',
+        message: 'Message cannot be empty',
+      })
+      return
+    }
+
+    setSendingMessage(true)
+    setMessageStatus({ type: null, message: '' })
+
+    try {
+      const { success, message } = await sendDirectMessageToSeller({
+        phoneNo: selectedUser?.phoneNo || '',
+        message: messageContent,
+      })
+
+      if (success) {
+        setMessageStatus({
+          type: 'success',
+          message: 'Message sent successfully!',
+        })
+        setMessageContent('')
+        // Auto-close after 2 seconds if successful
+        setTimeout(() => {
+          closeMessageModal()
+        }, 2000)
+      } else {
+        setMessageStatus({
+          type: 'error',
+          message: message || 'Failed to send message. Please try again.',
+        })
+      }
+    } catch (error) {
+      setMessageStatus({
+        type: 'error',
+        message: 'An unexpected error occurred. Please try again.',
+      })
+    } finally {
+      setSendingMessage(false)
+    }
   }
 
   if (loading && !users.length) {
@@ -91,6 +156,81 @@ const UserSettings = () => {
       animate={{ opacity: 1, y: 0 }}
       className='bg-white rounded-lg shadow-sm p-3 md:p-6'
     >
+      {/* Message Modal */}
+      {messageModal && selectedUser && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+          <div className='bg-white rounded-lg p-6 w-full max-w-md'>
+            <h3 className='text-lg font-medium mb-4'>Send message to {selectedUser.name}</h3>
+
+            {/* Status Message */}
+            {messageStatus.type && (
+              <div
+                className={`mb-4 p-3 rounded-md ${
+                  messageStatus.type === 'success'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800'
+                }`}
+              >
+                {messageStatus.message}
+              </div>
+            )}
+
+            <textarea
+              className='w-full border border-gray-300 rounded-lg p-3 mb-4'
+              rows={5}
+              placeholder='Type your message here...'
+              value={messageContent}
+              onChange={e => setMessageContent(e.target.value)}
+              disabled={sendingMessage}
+            />
+
+            <div className='flex justify-end space-x-3'>
+              <button
+                onClick={closeMessageModal}
+                className='px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
+                disabled={sendingMessage}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendMessage}
+                className='px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center min-w-24'
+                disabled={sendingMessage}
+              >
+                {sendingMessage ? (
+                  <>
+                    <svg
+                      className='animate-spin -ml-1 mr-2 h-4 w-4 text-white'
+                      xmlns='http://www.w3.org/2000/svg'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                    >
+                      <circle
+                        className='opacity-25'
+                        cx='12'
+                        cy='12'
+                        r='10'
+                        stroke='currentColor'
+                        strokeWidth='4'
+                      ></circle>
+                      <path
+                        className='opacity-75'
+                        fill='currentColor'
+                        d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                      ></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  'Send Message'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rest of the component remains the same */}
       <div className='flex flex-col gap-3 mb-4 md:mb-6'>
         <h2 className='text-lg md:text-xl font-semibold text-gray-800'>ইউজার ম্যানেজমেন্ট</h2>
 
@@ -109,7 +249,7 @@ const UserSettings = () => {
           </div>
 
           <div className='bg-amber-50 p-3 rounded-lg border border-amber-100'>
-            <p className='text-sm text-amber-700'>অভেরিফাইড ইউজার</p>
+            <p className='text-sm text-amber-700'>আনভেরিফাইড ইউজার</p>
             <p className='text-xl font-bold text-amber-900'>
               {users.filter(u => !u.isVerified).length}
             </p>
@@ -169,6 +309,9 @@ const UserSettings = () => {
                   <th className='px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     অবস্থা
                   </th>
+                  <th className='px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody className='bg-white divide-y divide-gray-200'>
@@ -225,11 +368,20 @@ const UserSettings = () => {
                           </span>
                         </div>
                       </td>
+                      <td className='px-4 py-3 text-right'>
+                        <button
+                          onClick={() => openMessageModal(user)}
+                          className='text-indigo-600 hover:text-indigo-900 flex items-center justify-end gap-1'
+                        >
+                          <FiMessageSquare className='h-4 w-4' />
+                          <span className='text-xs'>Message</span>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className='px-6 py-4 text-center text-sm text-gray-500'>
+                    <td colSpan={5} className='px-6 py-4 text-center text-sm text-gray-500'>
                       কোন ব্যবহারকারী পাওয়া যায়নি
                     </td>
                   </tr>
@@ -292,6 +444,16 @@ const UserSettings = () => {
                       <span className='text-xs text-gray-500'>
                         {new Date(user.createdAt).toLocaleDateString('bn-BD')}
                       </span>
+                    </div>
+
+                    <div className='mt-3 flex justify-end'>
+                      <button
+                        onClick={() => openMessageModal(user)}
+                        className='text-indigo-600 hover:text-indigo-900 flex items-center gap-1 text-xs'
+                      >
+                        <FiMessageSquare className='h-3 w-3' />
+                        <span>Message</span>
+                      </button>
                     </div>
                   </div>
                 ))
