@@ -1,21 +1,41 @@
 import { useFormik } from 'formik'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FiLock, FiPhone, FiUser } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
 import * as Yup from 'yup'
-import { register, RegisterInfo } from '../Api/auth.api'
+import { RegisterInfo, checkExistingCustomer, registerCustomer } from '../Api/auth.api'
 import { omitEmptyStringKeys } from '../utils/omitEmptyStrings'
+import CustomerLogin from './CustomerLogin'
 
-const CustomerRegistration = ({
-  mobileNumber,
-  referralCode,
-}: {
+interface CustomerRegistrationProps {
   mobileNumber: string
   referralCode: string | null
-}) => {
+}
+
+const CustomerRegistration = ({ mobileNumber, referralCode }: CustomerRegistrationProps) => {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [customerExists, setCustomerExists] = useState(false)
+  const [checkingExistingCustomer, setCheckingExistingCustomer] = useState(true)
+
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const exists = await checkExistingCustomer(mobileNumber)
+        setCustomerExists(exists.data)
+        if (exists.data) {
+          setError('এই মোবাইল নম্বর দিয়ে ইতিমধ্যে রেজিস্ট্রেশন করা হয়েছে। লগইন করুন।')
+        }
+      } catch (error) {
+        setError('গ্রাহক তথ্য চেক করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।')
+      } finally {
+        setCheckingExistingCustomer(false)
+      }
+    }
+
+    check()
+  }, [mobileNumber])
 
   const validationSchema = Yup.object({
     name: Yup.string().max(48, 'নামটি আরও ছোট হতে হবে').required('নাম আবশ্যক'),
@@ -39,7 +59,7 @@ const CustomerRegistration = ({
       password: '',
       confirmPassword: '',
       referralCode: referralCode || '',
-      role: 'customer', // Explicitly set role to customer
+      role: 'customer',
     },
     validationSchema,
     onSubmit: async values => {
@@ -48,10 +68,16 @@ const CustomerRegistration = ({
       try {
         const { confirmPassword, ...payload } = values
         const registrationData = omitEmptyStringKeys(payload) as RegisterInfo
-        const { success, message } = await register(registrationData)
+
+        const { success, message } = await registerCustomer({
+          phoneNo: registrationData.phoneNo,
+          name: registrationData.name,
+          password: registrationData.password,
+          sellerCode: registrationData.referralCode || '',
+        })
 
         if (success) {
-          navigate('/login')
+          navigate('/login', { state: { registrationSuccess: true } })
         } else {
           setError(message || 'রেজিস্ট্রেশন ব্যর্থ হয়েছে')
         }
@@ -62,6 +88,21 @@ const CustomerRegistration = ({
       }
     },
   })
+
+  if (checkingExistingCustomer) {
+    return (
+      <div className='flex items-center justify-center min-h-screen'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto'></div>
+          <p className='mt-4 text-gray-600'>গ্রাহক তথ্য যাচাই করা হচ্ছে...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (customerExists) {
+    return <CustomerLogin phoneNumber={mobileNumber} />
+  }
 
   return (
     <div className='flex items-center justify-center min-h-screen p-4'>
@@ -81,7 +122,6 @@ const CustomerRegistration = ({
           )}
 
           <form onSubmit={formik.handleSubmit} className='grid md:grid-cols-2 gap-4'>
-            {/* Phone Number (Readonly) - Full width */}
             <div className='md:col-span-2'>
               <label className='block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2'>
                 <FiPhone />
@@ -95,7 +135,6 @@ const CustomerRegistration = ({
               />
             </div>
 
-            {/* Name - Left column */}
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2'>
                 <FiUser />
@@ -113,7 +152,6 @@ const CustomerRegistration = ({
               )}
             </div>
 
-            {/* Referral Code - Right column */}
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-1'>
                 রেফারাল কোড (ঐচ্ছিক)
@@ -135,7 +173,6 @@ const CustomerRegistration = ({
               )}
             </div>
 
-            {/* Password - Left column */}
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2'>
                 <FiLock />
@@ -155,7 +192,6 @@ const CustomerRegistration = ({
               )}
             </div>
 
-            {/* Confirm Password - Right column */}
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-1'>
                 পাসওয়ার্ড নিশ্চিত করুন *
@@ -174,7 +210,6 @@ const CustomerRegistration = ({
               )}
             </div>
 
-            {/* Submit Button - Full width */}
             <div className='md:col-span-2'>
               <button
                 type='submit'

@@ -347,6 +347,7 @@ createRoot(document.getElementById('root')!).render(
                 </PublicRoute>
               }
             />
+
             <Route
               path='forgot-password'
               element={

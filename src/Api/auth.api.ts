@@ -57,9 +57,100 @@ export const register = async ({
     }
   }
 }
+export const registerCustomer = async ({
+  phoneNo,
+  name,
+  password,
+  sellerCode,
+}: {
+  phoneNo: string
+  name: string
+  password: string
+  sellerCode: string
+}) => {
+  try {
+    const { data } = await axiosInstance.post('auth/create-customer', {
+      customerPhoneNo: phoneNo,
+      customerName: name,
+      password,
+      sellerCode,
+    })
+    const { success, message, statusCode } = data
+    const responseData = data?.data
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    }
+  } catch (error: any) {
+    const data = error?.response?.data
+    const responseData = data?.data
+    return {
+      success: data?.success,
+      message: data?.message,
+      statusCode: data?.statusCode,
+      data: responseData,
+    }
+  }
+}
+export const checkExistingCustomer = async (phoneNo: string) => {
+  try {
+    const { data } = await axiosInstance.get(`auth/check-customer/${phoneNo}`)
+    const { success, message, statusCode } = data
+    const responseData = data?.data
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    }
+  } catch (error: any) {
+    const data = error?.response?.data
+    const responseData = data?.data
+    return {
+      success: data?.success,
+      message: data?.message,
+      statusCode: data?.statusCode,
+      data: responseData,
+    }
+  }
+}
 export const login = async ({ phoneNo, password }: { phoneNo: string; password: string }) => {
   try {
     const { data } = await axiosInstance.post('auth/login', {
+      phoneNo,
+      password,
+    })
+    const { success, message, statusCode } = data
+    const responseData = data?.data
+    return {
+      success,
+      message,
+      data: responseData,
+      statusCode,
+    }
+  } catch (error: any) {
+    const data = error.response.data
+    const { success, message, statusCode } = data
+    const responseData = data?.data
+    return {
+      success,
+      message,
+      statusCode,
+      data: responseData,
+    }
+  }
+}
+export const customerLogin = async ({
+  phoneNo,
+  password,
+}: {
+  phoneNo: string
+  password: string
+}) => {
+  try {
+    const { data } = await axiosInstance.post('auth/customer-login', {
       phoneNo,
       password,
     })
