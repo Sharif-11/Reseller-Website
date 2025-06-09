@@ -41,6 +41,7 @@ import './index.css'
 import * as Sentry from '@sentry/react'
 import AdminDashboard from './Components/AdminDashboard.tsx'
 import AdminPaymentVerification from './Components/AdminPaymentVerification.tsx'
+import CustomerRegister from './Components/CustomerRegister.tsx'
 import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
@@ -327,6 +328,14 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <PublicRoute>
                   <Register />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path='customer-register'
+              element={
+                <PublicRoute>
+                  <CustomerRegister />
                 </PublicRoute>
               }
             />

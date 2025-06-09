@@ -9,15 +9,21 @@ export const ReferralDetails = () => {
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
   const [showShareOptions, setShowShareOptions] = useState(false)
+  const [activeTab, setActiveTab] = useState('seller') // 'seller' or 'customer'
 
   if (!user?.referralCode) {
     return null
   }
 
-  const referralLink = `${window.location.origin}/register?ref=${user.referralCode}`
+  const sellerReferralLink = `${window.location.origin}/register?ref=${user.referralCode}`
+  const customerReferralLink = `${window.location.origin}/customer-register?customer_ref=${user.referralCode}`
+
+  const currentLink = activeTab === 'seller' ? sellerReferralLink : customerReferralLink
+  const linkDescription =
+    activeTab === 'seller' ? 'সেলারদের সাথে শেয়ার করার লিংক' : 'কাস্টমারদের সাথে শেয়ার করার লিংক'
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(referralLink)
+    navigator.clipboard.writeText(currentLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -28,7 +34,7 @@ export const ReferralDetails = () => {
         await navigator.share({
           title: 'আমার রেফারেল লিংক',
           text: `আমার রেফারেল কোড ${user.referralCode} ব্যবহার করে রেজিস্টার করুন`,
-          url: referralLink,
+          url: currentLink,
         })
       } else {
         setShowShareOptions(!showShareOptions)
@@ -75,13 +81,37 @@ export const ReferralDetails = () => {
             </div>
           </div>
 
+          {/* Tab Selection */}
+          <div className='flex border-b'>
+            <button
+              onClick={() => setActiveTab('seller')}
+              className={`flex-1 py-2 text-xs font-medium ${
+                activeTab === 'seller'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600'
+                  : 'text-gray-500'
+              }`}
+            >
+              সেলার লিংক
+            </button>
+            <button
+              onClick={() => setActiveTab('customer')}
+              className={`flex-1 py-2 text-xs font-medium ${
+                activeTab === 'customer'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600'
+                  : 'text-gray-500'
+              }`}
+            >
+              কাস্টমার লিংক
+            </button>
+          </div>
+
           {/* Referral Link */}
           <div className='p-3 border-b'>
-            <h2 className='text-xs font-medium text-gray-600 mb-1'>শেয়ার করার লিংক</h2>
+            <h2 className='text-xs font-medium text-gray-600 mb-1'>{linkDescription}</h2>
             <div className='flex flex-col xs:flex-row gap-1'>
               <input
                 type='text'
-                value={referralLink}
+                value={currentLink}
                 readOnly
                 className='flex-1 text-xs px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-700 truncate'
               />
@@ -100,7 +130,7 @@ export const ReferralDetails = () => {
               <div className='grid grid-cols-2 gap-1'>
                 <a
                   href={`whatsapp://send?text=${encodeURIComponent(
-                    `আমার রেফারেল কোড ${user.referralCode} ব্যবহার করে রেজিস্টার করুন: ${referralLink}`
+                    `আমার রেফারেল কোড ${user.referralCode} ব্যবহার করে রেজিস্টার করুন: ${currentLink}`
                   )}`}
                   className='text-xs bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded text-center'
                 >
@@ -108,7 +138,7 @@ export const ReferralDetails = () => {
                 </a>
                 <a
                   href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                    referralLink
+                    currentLink
                   )}`}
                   target='_blank'
                   rel='noopener noreferrer'
@@ -120,15 +150,14 @@ export const ReferralDetails = () => {
             </div>
           )}
 
-          {/* CTA */}
-          {/* <div className="p-3">
-            <button
-              onClick={navigateToPassiveIncome}
-              className="w-full text-xs bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded flex items-center justify-center gap-1"
-            >
-              আপনার রেফারেল আয় দেখুন <FiArrowRight />
-            </button>
-          </div> */}
+          {/* Note about different links */}
+          <div className='p-3 bg-yellow-50 border-b'>
+            <p className='text-md text-gray-600 text-center'>
+              {activeTab === 'seller'
+                ? 'এই লিংকটি সেলারদের সাথে শেয়ার করুন '
+                : 'এই লিংকটি কাস্টমারদের সাথে শেয়ার করুন'}
+            </p>
+          </div>
         </div>
 
         {/* Footer Note */}
