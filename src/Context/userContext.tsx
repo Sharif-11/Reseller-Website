@@ -25,6 +25,7 @@ export interface User {
   nomineePhone?: string | null
   role: 'Seller' | 'Admin'
   wallets?: Wallet[] // Optional property for wallets
+  facebookProfileLink?: string | null
 }
 
 interface UserContextType {

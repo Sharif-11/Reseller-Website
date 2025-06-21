@@ -25,7 +25,7 @@ export const register = async ({
   referralCode,
 }: RegisterInfo) => {
   try {
-    const { data } = await axiosInstance.post('auth/create-seller', {
+    const { data } = await axiosInstance.post('auth/seller', {
       name,
       phoneNo,
       password,
@@ -265,6 +265,7 @@ export const updateProfile = async ({
   upazilla,
   address,
   nomineePhone,
+  facebookProfileLink,
 }: {
   name: string
   email: string
@@ -273,9 +274,10 @@ export const updateProfile = async ({
   upazilla: string
   address: string
   nomineePhone: string
+  facebookProfileLink: string
 }) => {
   try {
-    const { data } = await axiosInstance.patch('auth/update-profile', {
+    const { data } = await axiosInstance.patch('auth/profile', {
       name,
       email,
       shopName,
@@ -283,6 +285,7 @@ export const updateProfile = async ({
       upazilla,
       address,
       nomineePhone,
+      facebookProfileLink,
     })
     const { success, message, statusCode } = data
     const responseData = data?.data

@@ -2,13 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AboutUs from './Components/AboutUs.tsx'
-import AddProduct from './Components/AddProduct.tsx'
-import AddWallet from './Components/AddWallet.tsx'
-import AdminOrders from './Components/AdminOrders.tsx'
-import AdminProducts from './Components/AdminProducts.tsx'
-import AdminTransactionHistory from './Components/AdminTransactionHistory.tsx'
-import AdminWalletManagement from './Components/AdminWallet.tsx'
-import AdminWithdrawRequests from './Components/AdminWithdrawRequest.tsx'
 import BalanceStatement from './Components/BalanceStatement.tsx'
 import Cart from './Components/Cart.tsx'
 import CatchAllRoute from './Components/CatchAllRoutes.tsx'
@@ -39,8 +32,7 @@ import { useAuth } from './Hooks/useAuth.tsx'
 import './index.css'
 
 import * as Sentry from '@sentry/react'
-import AdminDashboard from './Components/AdminDashboard.tsx'
-import AdminPaymentVerification from './Components/AdminPaymentVerification.tsx'
+import AddWallet from './Components/AddWallet.tsx'
 import CustomerRegister from './Components/CustomerRegister.tsx'
 import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
@@ -48,7 +40,6 @@ import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
-import SettingsPanel from './Components/SettingPanel.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
 
 Sentry.init({
@@ -57,43 +48,25 @@ Sentry.init({
 
 const PublicRoute = ({ children }: { children: JSX.Element }) => {
   const { user } = useAuth()
-  // const location = useLocation();
 
   if (user) {
-    const role = user.role
-
-    const from = role === 'Seller' ? '/home' : '/profile'
-
-    return <Navigate to={from} replace />
+    return <Navigate to='/home' replace />
   }
 
   return children
 }
+
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { user } = useAuth()
   const location = useLocation()
 
   if (!user) {
-    // Redirect to login page while preserving the current location
     return <Navigate to='/login' state={{ from: location }} replace />
   }
 
   return children
 }
-const AdminRoute = ({ children }: { children: JSX.Element }) => {
-  const { user } = useAuth()
-  const location = useLocation()
 
-  if (!user) {
-    return <Navigate to='/login' state={{ from: location }} replace />
-  }
-
-  if (user.role !== 'Admin') {
-    return <Navigate to='/not-authorized' replace />
-  }
-
-  return children
-}
 const SellerRoute = ({ children }: { children: JSX.Element }) => {
   const { user } = useAuth()
   const location = useLocation()
@@ -166,22 +139,6 @@ createRoot(document.getElementById('root')!).render(
               }
             />
             <Route
-              path='admin-dashboard'
-              element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path='settings'
-              element={
-                <AdminRoute>
-                  <SettingsPanel />
-                </AdminRoute>
-              }
-            />
-            <Route
               path='pay-due'
               element={
                 <SellerRoute>
@@ -243,14 +200,6 @@ createRoot(document.getElementById('root')!).render(
               }
             />
             <Route
-              path='add-admin-wallets'
-              element={
-                <AdminRoute>
-                  <AdminWalletManagement />
-                </AdminRoute>
-              }
-            />
-            <Route
               path='request-withdraw'
               element={
                 <SellerRoute>
@@ -267,31 +216,6 @@ createRoot(document.getElementById('root')!).render(
               }
             />
             <Route
-              path='transactions-history'
-              element={
-                <AdminRoute>
-                  <AdminTransactionHistory />
-                </AdminRoute>
-              }
-            />
-
-            <Route
-              path='admin-withdraw-request'
-              element={
-                <AdminRoute>
-                  <AdminWithdrawRequests />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path='admin-orders'
-              element={
-                <AdminRoute>
-                  <AdminOrders />
-                </AdminRoute>
-              }
-            />
-            <Route
               path='withdraw-history'
               element={
                 <SellerRoute>
@@ -305,14 +229,6 @@ createRoot(document.getElementById('root')!).render(
                 <SellerRoute>
                   <PaymentHistory />
                 </SellerRoute>
-              }
-            />
-            <Route
-              path='payment-verification'
-              element={
-                <AdminRoute>
-                  <AdminPaymentVerification />
-                </AdminRoute>
               }
             />
             <Route
@@ -347,7 +263,6 @@ createRoot(document.getElementById('root')!).render(
                 </PublicRoute>
               }
             />
-
             <Route
               path='forgot-password'
               element={
@@ -378,23 +293,6 @@ createRoot(document.getElementById('root')!).render(
                 <SellerRoute>
                   <Referral />
                 </SellerRoute>
-              }
-            />
-
-            <Route
-              path='add-product'
-              element={
-                <AdminRoute>
-                  <AddProduct />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path='admin-products'
-              element={
-                <AdminRoute>
-                  <AdminProducts />
-                </AdminRoute>
               }
             />
             <Route
