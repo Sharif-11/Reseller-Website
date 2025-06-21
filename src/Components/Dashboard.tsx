@@ -59,35 +59,26 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
             </div>
 
             <nav className='flex-1 overflow-y-auto p-4 space-y-1'>
-              {user?.role === 'Seller' && (
-                <NavLink
-                  to='/home'
-                  className={({ isActive }) => `
-                    flex items-center px-4 py-3 rounded-lg transition-all
-                    ${
-                      isActive
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-indigo-100 hover:bg-indigo-600/50'
-                    }
-                  `}
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  <svg
-                    className='w-5 h-5 mr-3'
-                    fill='none'
-                    stroke='currentColor'
-                    viewBox='0 0 24 24'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'
-                    />
-                  </svg>
-                  হোম
-                </NavLink>
-              )}
+              <NavLink
+                to='/home'
+                className={({ isActive }) => `
+                  flex items-center px-4 py-3 rounded-lg transition-all
+                  ${
+                    isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'
+                  }
+                `}
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <svg className='w-5 h-5 mr-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'
+                  />
+                </svg>
+                হোম
+              </NavLink>
 
               <NavLink
                 to='/profile'
@@ -110,492 +101,127 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 প্রোফাইল
               </NavLink>
 
-              {user?.role === 'Seller' && (
-                <>
-                  {/* Products Accordion */}
-                  <div className='border-b border-indigo-600/30 pb-1'>
-                    <button
-                      onClick={() => toggleAccordion('products')}
-                      className='w-full flex items-center justify-between px-4 py-3 text-indigo-100 hover:bg-indigo-600/30 rounded-lg transition-all'
+              {/* Products Accordion */}
+              <div className='border-b border-indigo-600/30 pb-1'>
+                <button
+                  onClick={() => toggleAccordion('products')}
+                  className='w-full flex items-center justify-between px-4 py-3 text-indigo-100 hover:bg-indigo-600/30 rounded-lg transition-all'
+                >
+                  <div className='flex items-center'>
+                    <svg
+                      className='w-5 h-5 mr-3'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
                     >
-                      <div className='flex items-center'>
-                        <svg
-                          className='w-5 h-5 mr-3'
-                          fill='none'
-                          stroke='currentColor'
-                          viewBox='0 0 24 24'
-                        >
-                          <path
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                            strokeWidth={2}
-                            d='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'
-                          />
-                        </svg>
-                        পণ্য ব্যবস্থাপনা
-                      </div>
-                      <svg
-                        className={`w-4 h-4 transition-transform duration-200 ${
-                          openAccordions.products ? 'transform rotate-180' : ''
-                        }`}
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M19 9l-7 7-7-7'
-                        />
-                      </svg>
-                    </button>
-
-                    {openAccordions.products && (
-                      <div className='ml-8 mt-1 space-y-1'>
-                        <NavLink
-                          to='/products'
-                          className={({ isActive }) => `
-                            flex items-center px-3 py-2 rounded-lg text-sm transition-all
-                            ${
-                              isActive
-                                ? 'bg-indigo-600 text-white'
-                                : 'text-indigo-100 hover:bg-indigo-600/30'
-                            }
-                          `}
-                          onClick={() => setIsSidebarOpen(false)}
-                        >
-                          সকল প্রোডাক্টস
-                        </NavLink>
-                        <NavLink
-                          to='/favorites'
-                          className={({ isActive }) => `
-                            flex items-center px-3 py-2 rounded-lg text-sm transition-all
-                            ${
-                              isActive
-                                ? 'bg-indigo-600 text-white'
-                                : 'text-indigo-100 hover:bg-indigo-600/30'
-                            }
-                          `}
-                          onClick={() => setIsSidebarOpen(false)}
-                        >
-                          ফেভরিট প্রোডাক্টস
-                        </NavLink>
-                      </div>
-                    )}
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'
+                      />
+                    </svg>
+                    পণ্য ব্যবস্থাপনা
                   </div>
-
-                  <NavLink
-                    to='/cart'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      openAccordions.products ? 'transform rotate-180' : ''
+                    }`}
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
                   >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'
-                      />
-                    </svg>
-                    কার্ট
-                  </NavLink>
-                  <NavLink
-                    to='/orders'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
-                      />
-                    </svg>
-                    অর্ডার
-                  </NavLink>
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M19 9l-7 7-7-7'
+                    />
+                  </svg>
+                </button>
 
-                  {/* Withdraw Accordion */}
-                  <div className='border-b border-indigo-600/30 pb-1'>
-                    <button
-                      onClick={() => toggleAccordion('withdraw')}
-                      className='w-full flex items-center justify-between px-4 py-3 text-indigo-100 hover:bg-indigo-600/30 rounded-lg transition-all'
-                    >
-                      <div className='flex items-center'>
-                        <svg
-                          className='w-5 h-5 mr-3'
-                          fill='none'
-                          stroke='currentColor'
-                          viewBox='0 0 24 24'
-                        >
-                          <path
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                            strokeWidth={2}
-                            d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                          />
-                        </svg>
-                        টাকা উত্তোলন
-                      </div>
-                      <svg
-                        className={`w-4 h-4 transition-transform duration-200 ${
-                          openAccordions.withdraw ? 'transform rotate-180' : ''
-                        }`}
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M19 9l-7 7-7-7'
-                        />
-                      </svg>
-                    </button>
-
-                    {openAccordions.withdraw && (
-                      <div className='ml-8 mt-1 space-y-1'>
-                        <NavLink
-                          to='/add-wallet'
-                          className={({ isActive }) => `
-                            flex items-center px-3 py-2 rounded-lg text-sm transition-all
-                            ${
-                              isActive
-                                ? 'bg-indigo-600 text-white'
-                                : 'text-indigo-100 hover:bg-indigo-600/30'
-                            }
-                          `}
-                          onClick={() => setIsSidebarOpen(false)}
-                        >
-                          ওয়ালেট যোগ করুন
-                        </NavLink>
-                        <NavLink
-                          to='/request-withdraw'
-                          className={({ isActive }) => `
-                            flex items-center px-3 py-2 rounded-lg text-sm transition-all
-                            ${
-                              isActive
-                                ? 'bg-indigo-600 text-white'
-                                : 'text-indigo-100 hover:bg-indigo-600/30'
-                            }
-                          `}
-                          onClick={() => setIsSidebarOpen(false)}
-                        >
-                          উত্তোলন করুন
-                        </NavLink>
-                        <NavLink
-                          to='/withdraw-history'
-                          className={({ isActive }) => `
-                            flex items-center px-3 py-2 rounded-lg text-sm transition-all
-                            ${
-                              isActive
-                                ? 'bg-indigo-600 text-white'
-                                : 'text-indigo-100 hover:bg-indigo-600/30'
-                            }
-                          `}
-                          onClick={() => setIsSidebarOpen(false)}
-                        >
-                          উত্তোলনের হিস্ট্রি
-                        </NavLink>
-                      </div>
-                    )}
-                  </div>
-
-                  <NavLink
-                    to='/payment-history'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M3 7h18M3 12h18m-7 5h7'
-                      />
-                    </svg>
-                    পেমেন্ট হিস্ট্রি
-                  </NavLink>
-                  <NavLink
-                    to='/balance-statement'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-                      />
-                    </svg>
-                    ব্যালেন্স স্টেটমেন্ট
-                  </NavLink>
-
-                  {user?.isVerified && (
+                {openAccordions.products && (
+                  <div className='ml-8 mt-1 space-y-1'>
                     <NavLink
-                      to='/add-referral-code'
+                      to='/products'
                       className={({ isActive }) => `
-                        flex items-center px-4 py-3 rounded-lg transition-all
+                        flex items-center px-3 py-2 rounded-lg text-sm transition-all
                         ${
                           isActive
                             ? 'bg-indigo-600 text-white'
-                            : 'text-indigo-100 hover:bg-indigo-600/50'
+                            : 'text-indigo-100 hover:bg-indigo-600/30'
                         }
                       `}
                       onClick={() => setIsSidebarOpen(false)}
                     >
-                      <svg
-                        className='w-5 h-5 mr-3'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
-                        />
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
-                        />
-                      </svg>
-                      রেফারেল কোড যোগ করুন
+                      সকল প্রোডাক্টস
                     </NavLink>
-                  )}
-                </>
-              )}
+                    <NavLink
+                      to='/favorites'
+                      className={({ isActive }) => `
+                        flex items-center px-3 py-2 rounded-lg text-sm transition-all
+                        ${
+                          isActive
+                            ? 'bg-indigo-600 text-white'
+                            : 'text-indigo-100 hover:bg-indigo-600/30'
+                        }
+                      `}
+                      onClick={() => setIsSidebarOpen(false)}
+                    >
+                      ফেভরিট প্রোডাক্টস
+                    </NavLink>
+                  </div>
+                )}
+              </div>
 
-              {user.role === 'Admin' && (
-                <>
-                  <NavLink
-                    to='/admin-dashboard'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M3 7h18M3 12h18m-7 5h7'
-                      />
-                    </svg>
-                    অ্যাডমিন ড্যাশবোর্ড
-                  </NavLink>
-                  <NavLink
-                    to='/add-product'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M12 6v6m0 0v6m0-6h6m-6 0H6'
-                      />
-                    </svg>
-                    পণ্য যোগ করুন
-                  </NavLink>
-                  <NavLink
-                    to='/admin-products'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'
-                      />
-                    </svg>
-                    পণ্য সমূহ
-                  </NavLink>
-                  <NavLink
-                    to='/admin-orders'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M3 7h18M3 12h18m-7 5h7'
-                      />
-                    </svg>
-                    অর্ডারসমূহ
-                  </NavLink>
-                  <NavLink
-                    to='/payment-verification'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M3 7h18M3 12h18m-7 5h7'
-                      />
-                    </svg>
-                    পেমেন্ট ভেরিফিকেশন
-                  </NavLink>
-                  <NavLink
-                    to='/add-admin-wallets'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'
-                      />
-                    </svg>
-                    অ্যাডমিন ওয়ালেটস
-                  </NavLink>
-                  <NavLink
-                    to='/admin-withdraw-request'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
+              <NavLink
+                to='/cart'
+                className={({ isActive }) => `
+                  flex items-center px-4 py-3 rounded-lg transition-all
+                  ${
+                    isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'
+                  }
+                `}
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <svg className='w-5 h-5 mr-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'
+                  />
+                </svg>
+                কার্ট
+              </NavLink>
+              <NavLink
+                to='/orders'
+                className={({ isActive }) => `
+                  flex items-center px-4 py-3 rounded-lg transition-all
+                  ${
+                    isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'
+                  }
+                `}
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <svg className='w-5 h-5 mr-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
+                  />
+                </svg>
+                অর্ডার
+              </NavLink>
+
+              {/* Withdraw Accordion */}
+              <div className='border-b border-indigo-600/30 pb-1'>
+                <button
+                  onClick={() => toggleAccordion('withdraw')}
+                  className='w-full flex items-center justify-between px-4 py-3 text-indigo-100 hover:bg-indigo-600/30 rounded-lg transition-all'
+                >
+                  <div className='flex items-center'>
                     <svg
                       className='w-5 h-5 mr-3'
                       fill='none'
@@ -609,65 +235,148 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                         d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
                       />
                     </svg>
-                    টাকা উত্তোলনের অনুরোধ
-                  </NavLink>
-                  <NavLink
-                    to='/transactions-history'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
+                    টাকা উত্তোলন
+                  </div>
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      openAccordions.withdraw ? 'transform rotate-180' : ''
+                    }`}
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
                   >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M19 9l-7 7-7-7'
+                    />
+                  </svg>
+                </button>
+
+                {openAccordions.withdraw && (
+                  <div className='ml-8 mt-1 space-y-1'>
+                    <NavLink
+                      to='/add-wallet'
+                      className={({ isActive }) => `
+                        flex items-center px-3 py-2 rounded-lg text-sm transition-all
+                        ${
+                          isActive
+                            ? 'bg-indigo-600 text-white'
+                            : 'text-indigo-100 hover:bg-indigo-600/30'
+                        }
+                      `}
+                      onClick={() => setIsSidebarOpen(false)}
                     >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M3 7h18M3 12h18m-7 5h7'
-                      />
-                    </svg>
-                    লেনদেনের ইতিহাস
-                  </NavLink>
-                  <NavLink
-                    to='/settings'
-                    className={({ isActive }) => `
-                      flex items-center px-4 py-3 rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-indigo-100 hover:bg-indigo-600/50'
-                      }
-                    `}
-                    onClick={() => setIsSidebarOpen(false)}
+                      ওয়ালেট যোগ করুন
+                    </NavLink>
+                    <NavLink
+                      to='/request-withdraw'
+                      className={({ isActive }) => `
+                        flex items-center px-3 py-2 rounded-lg text-sm transition-all
+                        ${
+                          isActive
+                            ? 'bg-indigo-600 text-white'
+                            : 'text-indigo-100 hover:bg-indigo-600/30'
+                        }
+                      `}
+                      onClick={() => setIsSidebarOpen(false)}
+                    >
+                      উত্তোলন করুন
+                    </NavLink>
+                    <NavLink
+                      to='/withdraw-history'
+                      className={({ isActive }) => `
+                        flex items-center px-3 py-2 rounded-lg text-sm transition-all
+                        ${
+                          isActive
+                            ? 'bg-indigo-600 text-white'
+                            : 'text-indigo-100 hover:bg-indigo-600/30'
+                        }
+                      `}
+                      onClick={() => setIsSidebarOpen(false)}
+                    >
+                      উত্তোলনের হিস্ট্রি
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+
+              <NavLink
+                to='/payment-history'
+                className={({ isActive }) => `
+                  flex items-center px-4 py-3 rounded-lg transition-all
+                  ${
+                    isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'
+                  }
+                `}
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <svg className='w-5 h-5 mr-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M3 7h18M3 12h18m-7 5h7'
+                  />
+                </svg>
+                পেমেন্ট হিস্ট্রি
+              </NavLink>
+              <NavLink
+                to='/balance-statement'
+                className={({ isActive }) => `
+                  flex items-center px-4 py-3 rounded-lg transition-all
+                  ${
+                    isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'
+                  }
+                `}
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <svg className='w-5 h-5 mr-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+                  />
+                </svg>
+                ব্যালেন্স স্টেটমেন্ট
+              </NavLink>
+
+              {user?.isVerified && (
+                <NavLink
+                  to='/add-referral-code'
+                  className={({ isActive }) => `
+                    flex items-center px-4 py-3 rounded-lg transition-all
+                    ${
+                      isActive
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-indigo-100 hover:bg-indigo-600/50'
+                    }
+                  `}
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  <svg
+                    className='w-5 h-5 mr-3'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
                   >
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      xmlns='http://www.w3.org/2000/svg'
-                      width='24'
-                      height='24'
-                      viewBox='0 0 24 24'
-                      fill='none'
-                      stroke='currentColor'
-                      stroke-width='2'
-                      stroke-linecap='round'
-                      stroke-linejoin='round'
-                    >
-                      <circle cx='12' cy='12' r='3'></circle>
-                      <path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z'></path>
-                    </svg>
-                    অতিরিক্ত সেটিংস
-                  </NavLink>
-                </>
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
+                    />
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
+                    />
+                  </svg>
+                  রেফারেল কোড যোগ করুন
+                </NavLink>
               )}
 
               <NavLink
@@ -723,29 +432,27 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 </svg>
                 পাসওয়ার্ড পরিবর্তন
               </NavLink>
-              {user?.role === 'Seller' && (
-                <div className='relative'>
-                  <div className='flex items-center px-4 py-3 rounded-lg text-indigo-100 opacity-80'>
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z'
-                      />
-                    </svg>
-                    সাপোর্ট টিকিট
-                    <span className='absolute top-2 right-4 bg-yellow-100 text-yellow-800 text-[8px] px-1 py-0.5 rounded-full'>
-                      শীঘ্রই আসছে
-                    </span>
-                  </div>
+              <div className='relative'>
+                <div className='flex items-center px-4 py-3 rounded-lg text-indigo-100 opacity-80'>
+                  <svg
+                    className='w-5 h-5 mr-3'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z'
+                    />
+                  </svg>
+                  সাপোর্ট টিকিট
+                  <span className='absolute top-2 right-4 bg-yellow-100 text-yellow-800 text-[8px] px-1 py-0.5 rounded-full'>
+                    শীঘ্রই আসছে
+                  </span>
                 </div>
-              )}
+              </div>
               <button
                 className='flex items-center px-4 py-3 rounded-lg transition-all text-indigo-100 hover:bg-indigo-600/50 w-full text-left'
                 onClick={handleLogout}

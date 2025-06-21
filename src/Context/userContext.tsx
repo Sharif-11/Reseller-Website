@@ -25,6 +25,7 @@ export interface User {
   nomineePhone?: string | null
   role: 'Seller' | 'Admin'
   wallets?: Wallet[] // Optional property for wallets
+  facebookProfileLink?: string | null
 }
 
 interface UserContextType {
@@ -32,7 +33,7 @@ interface UserContextType {
   setUser: (user: User | null) => void
   loading: boolean
   error: Error | null
-  reloadUser: () => Promise<void> // Add reload function to context type
+  reloadUser: () => Promise<null | User> // Add reload function to context type
 }
 
 // Create the context
@@ -41,7 +42,7 @@ export const UserContext = createContext<UserContextType>({
   setUser: () => {},
   loading: true,
   error: null,
-  reloadUser: async () => {}, // Add default reload function
+  reloadUser: async () => null, // Add default reload function
 })
 
 // Provider Component
@@ -80,9 +81,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       const result = await verifyLogin()
       if (result?.success) {
         setUser(result.data?.user || null)
+        return result.data?.user || null
       }
     } catch (error) {
       console.error('Error reloading user data:', error)
+      return null
     }
   }
 

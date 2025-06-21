@@ -1,16 +1,14 @@
-import { Outlet } from "react-router-dom";
-import DashboardLayout from "./Dashboard";
+import { Outlet } from 'react-router-dom'
+import DashboardLayout from './Dashboard'
 
 const Home = () => {
   return (
     <div>
-    
-        <DashboardLayout>
-          <Outlet />
-        </DashboardLayout>
-     
+      <DashboardLayout>
+        <Outlet />
+      </DashboardLayout>
     </div>
-  );
-};
+  )
+}
 
-export default Home;
+export default Home
