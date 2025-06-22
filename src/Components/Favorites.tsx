@@ -1,242 +1,308 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FiDownload } from 'react-icons/fi';
-import { FaHeart, FaSpinner, FaRegSadTear } from 'react-icons/fa';
-import { FavoriteProduct } from '../types/product.types';
-import { ITEMS_PER_PAGE, FAVORITES_KEY } from '../utils/utils.variables';
+import { ChevronLeft, ChevronRight, Download, Heart, MapPin, Package } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Product } from '../Api/shop.api'
+import { FAVORITES_KEY } from '../utils/utils.variables'
 
 const Favorites = () => {
-  const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const navigate = useNavigate();
+  const [favorites, setFavorites] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({})
+  const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  const navigate = useNavigate()
+  const itemsPerPage = 12
 
   // Load favorites from localStorage
   useEffect(() => {
     const loadFavorites = () => {
       try {
-        setLoading(true);
-        const savedFavorites = localStorage.getItem(FAVORITES_KEY);
-        
+        setLoading(true)
+        const savedFavorites = localStorage.getItem(FAVORITES_KEY)
+
         if (savedFavorites) {
-          const parsed = JSON.parse(savedFavorites);
+          const parsed = JSON.parse(savedFavorites)
           if (Array.isArray(parsed)) {
-            setFavorites(parsed);
+            setFavorites(parsed)
           }
         }
       } catch (err) {
-        setError('Failed to load favorites. Please try again.');
-        console.error('Error loading favorites:', err);
+        console.error('Error loading favorites:', err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    loadFavorites();
-  }, []);
+    loadFavorites()
+  }, [])
 
   const removeFavorite = (productId: number) => {
-    const updatedFavorites = favorites.filter(fav => fav.productId !== productId);
-    setFavorites(updatedFavorites);
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));
-  };
+    const updatedFavorites = favorites.filter(fav => fav.productId !== productId)
+    setFavorites(updatedFavorites)
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites))
+  }
 
-  const downloadImage = async (imageUrl: string, productName: string, productId: number) => {
+  const downloadAllImages = async (product: Product) => {
+    if (!product.ProductImage) return
+
     try {
-      setDownloadingId(productId);
-      const response = await fetch(imageUrl);
-      if (!response.ok) throw new Error('Failed to fetch image');
-      
-      const blob = await response.blob();
-      const extension = imageUrl.split('.').pop()?.split('?')[0] || 
-                       blob.type.split('/')[1] || 
-                       'jpg';
-      
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `${productName.replace(/\s+/g, '_')}.${extension}`;
-      document.body.appendChild(link);
-      link.click();
-      
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
-        setDownloadingId(null);
-      }, 100);
+      setDownloadingId(product.productId)
+      for (let i = 0; i < product.ProductImage.length; i++) {
+        const image = product.ProductImage[i]
+        const response = await fetch(image.imageUrl)
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${product.name.replace(/[^a-z0-9]/gi, '_')}_image_${i + 1}.jpg`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      }
     } catch (error) {
-      console.error('Error downloading image:', error);
-      setError('Failed to download image. Please try again.');
-      setDownloadingId(null);
+      console.error('Error downloading images:', error)
+    } finally {
+      setDownloadingId(null)
     }
-  };
+  }
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-BD', {
-      style: 'currency',
-      currency: 'BDT',
-      minimumFractionDigits: 2
-    }).format(price).replace('BDT', '৳');
-  };
+    return `৳${price.toLocaleString()}`
+  }
 
-  const navigateToProductDetail = (product: FavoriteProduct) => {
-    navigate(`/products/${product.productId}`, {
-      state: { product }
-    });
-  };
+  const nextImage = (productId: number, totalImages: number) => {
+    setCurrentImageIndex(prev => ({
+      ...prev,
+      [productId]: ((prev[productId] || 0) + 1) % totalImages,
+    }))
+  }
 
-  // Pagination logic
-  const totalPages = Math.ceil(favorites.length / ITEMS_PER_PAGE);
+  const prevImage = (productId: number, totalImages: number) => {
+    setCurrentImageIndex(prev => ({
+      ...prev,
+      [productId]: ((prev[productId] || 0) - 1 + totalImages) % totalImages,
+    }))
+  }
+
+  const navigateToProductDetail = (productId: number) => {
+    navigate(`/products/${productId}`)
+  }
+
+  // Pagination
+  const totalPages = Math.ceil(favorites.length / itemsPerPage)
   const paginatedFavorites = favorites.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <FaSpinner className="animate-spin text-2xl text-blue-500" />
-        <span className="ml-2">Loading favorites...</span>
+      <div className='flex justify-center items-center h-64'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500'></div>
       </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12 text-red-500">
-        {error}
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
-      </div>
-    );
+    )
   }
 
   if (favorites.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-        <FaRegSadTear className="text-4xl mb-4" />
-        <p className="text-xl">No favorite products yet</p>
-        <p className="text-sm mt-2">Add products to your favorites to see them here</p>
+      <div className='flex flex-col items-center justify-center py-12 text-gray-500'>
+        <Heart className='text-4xl mb-4 text-gray-300' />
+        <p className='text-xl font-medium mb-2'>No favorite products yet</p>
+        <p className='text-sm'>Add products to your favorites to see them here</p>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Your Favorite Products ({favorites.length})</h1>
-      
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-        {paginatedFavorites.map(product => (
-          <div
-            key={product.productId}
-            className="relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 group"
-          >
-            <div 
-              className="cursor-pointer"
-              onClick={() => navigateToProductDetail(product)}
-            >
-              <div className="aspect-square overflow-hidden">
-                <img
-                  src={product.imageUrl || '/placeholder-product.jpg'}
-                  alt={product.name}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/placeholder-product.jpg';
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="p-3">
-              <h3 className="text-sm font-medium text-gray-800 truncate">
-                {product.name}
-              </h3>
-              <p className="text-md font-bold text-gray-900 mt-1">
-                {formatPrice(product.basePrice)}
-              </p>
-            </div>
-
-            <div className="absolute top-2 right-2 flex flex-col gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  downloadImage(product.imageUrl, product.name, product.productId);
-                }}
-                className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                aria-label={`Download ${product.name} image`}
-                title="Download image"
-                disabled={downloadingId === product.productId}
-              >
-                {downloadingId === product.productId ? (
-                  <FaSpinner className="animate-spin text-blue-500" />
-                ) : (
-                  <FiDownload className="text-gray-700" />
-                )}
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  removeFavorite(product.productId);
-                }}
-                className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                aria-label={`Remove ${product.name} from favorites`}
-                title="Remove from favorites"
-              >
-                <FaHeart className="text-red-500" />
-              </button>
+    <div className='min-h-screen bg-gray-50'>
+      {/* Header */}
+      <div className='bg-white shadow-sm border-b sticky top-0 z-40'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='flex items-center justify-between h-16'>
+            <h1 className='text-xl font-bold text-gray-900'>Your Favorite Products</h1>
+            <div className='text-sm text-gray-600'>
+              {favorites.length} {favorites.length === 1 ? 'item' : 'items'}
             </div>
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Pagination controls */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-8">
-          <nav className="inline-flex rounded-md shadow">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1 border-t border-b border-gray-300 bg-white text-sm font-medium ${
-                  currentPage === page 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-            
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </nav>
-        </div>
-      )}
-    </div>
-  );
-};
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Products Grid */}
+        <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'>
+          {paginatedFavorites.map(product => {
+            const currentImg = currentImageIndex[product.productId] || 0
+            const totalImages = product.ProductImage?.length || 0
 
-export default Favorites;
+            return (
+              <div
+                key={`${product.productId}-${currentImg}`}
+                className='bg-white rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 group overflow-hidden'
+              >
+                {/* Image Section with Slider */}
+                <div className='relative aspect-square'>
+                  {product.ProductImage && product.ProductImage.length > 0 ? (
+                    <img
+                      src={product.ProductImage[currentImg]?.imageUrl}
+                      alt={product.name}
+                      className='w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer'
+                      onClick={() => navigateToProductDetail(product.productId)}
+                    />
+                  ) : (
+                    <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
+                      <Package className='h-12 w-12 text-gray-400' />
+                    </div>
+                  )}
+
+                  {/* Image Navigation */}
+                  {totalImages > 1 && (
+                    <>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation()
+                          prevImage(product.productId, totalImages)
+                        }}
+                        className='absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                      >
+                        <ChevronLeft className='h-4 w-4' />
+                      </button>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation()
+                          nextImage(product.productId, totalImages)
+                        }}
+                        className='absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                      >
+                        <ChevronRight className='h-4 w-4' />
+                      </button>
+                    </>
+                  )}
+
+                  {/* Image Indicators */}
+                  {totalImages > 1 && (
+                    <div className='absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1'>
+                      {product.ProductImage.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={e => {
+                            e.stopPropagation()
+                            setCurrentImageIndex(prev => ({
+                              ...prev,
+                              [product.productId]: index,
+                            }))
+                          }}
+                          className={`w-2 h-2 rounded-full transition-colors ${
+                            index === currentImg ? 'bg-white' : 'bg-white/50'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className='absolute top-3 right-3 flex flex-col space-y-2'>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation()
+                        removeFavorite(product.productId)
+                      }}
+                      className='p-2 bg-white/90 text-red-500 hover:bg-white rounded-full shadow-lg transition-all'
+                    >
+                      <Heart className='h-4 w-4 fill-current' />
+                    </button>
+
+                    {totalImages > 0 && (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation()
+                          downloadAllImages(product)
+                        }}
+                        className='p-2 bg-white/90 text-gray-700 hover:bg-white rounded-full shadow-lg transition-all'
+                        disabled={downloadingId === product.productId}
+                      >
+                        {downloadingId === product.productId ? (
+                          <div className='animate-spin h-4 w-4 border-b-2 border-blue-500 rounded-full'></div>
+                        ) : (
+                          <Download className='h-4 w-4' />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Product Info */}
+                <div
+                  className='p-4 cursor-pointer'
+                  onClick={() => navigateToProductDetail(product.productId)}
+                >
+                  <h3 className='font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors text-sm'>
+                    {product.name}
+                  </h3>
+
+                  <div className='flex items-center justify-between mb-3'>
+                    <div>
+                      <span className='text-lg font-bold text-gray-900'>
+                        {formatPrice(product.basePrice)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Shop Info */}
+                  {product.shop && (
+                    <div className='text-xs text-gray-500 space-y-1 border-t border-gray-100 pt-3'>
+                      <div className='flex items-center'>
+                        <Package className='h-3 w-3 mr-1' />
+                        <span>{product.shop.shopName}</span>
+                      </div>
+                      <div className='flex items-center'>
+                        <MapPin className='h-3 w-3 mr-1' />
+                        <span>{product.shop.shopLocation}</span>
+                      </div>
+                      {/* <div className='flex items-center'>
+                        <Truck className='h-3 w-3 mr-1' />
+                        <span>
+                          Delivery: ৳{product.shop.deliveryChargeInside} (inside), ৳
+                          {product.shop.deliveryChargeOutside} (outside)
+                        </span>
+                      </div> */}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className='flex justify-center mt-8'>
+            <nav className='flex items-center space-x-2'>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+              >
+                <ChevronLeft className='h-4 w-4' />
+              </button>
+
+              <span className='px-4 py-2 text-sm text-gray-600'>
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+              >
+                <ChevronRight className='h-4 w-4' />
+              </button>
+            </nav>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default Favorites

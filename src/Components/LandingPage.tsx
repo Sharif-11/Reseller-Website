@@ -1,6 +1,5 @@
 import HomeIntroduction from './CompanyIntro'
 import Footer from './Footer'
-import { PublicProducts } from './Products'
 
 const LandingPage = () => {
   return (
@@ -69,11 +68,6 @@ const LandingPage = () => {
         </section>
 
         {/* Products Section */}
-        <section id='products' className='py-12 md:py-16 bg-gray-50'>
-          <div className='container mx-auto px-4 flex items-center justify-center'>
-            <PublicProducts />
-          </div>
-        </section>
       </main>
 
       {/* Footer */}
