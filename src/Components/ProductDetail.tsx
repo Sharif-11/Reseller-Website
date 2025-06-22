@@ -1,51 +1,73 @@
 import { useEffect, useState } from 'react'
-import { FaSpinner } from 'react-icons/fa'
-import { FiCopy, FiDownload, FiShoppingCart, FiYoutube } from 'react-icons/fi'
+import { FaHeart, FaRegHeart, FaSpinner } from 'react-icons/fa'
+import { FiChevronLeft, FiCopy, FiDownload, FiShoppingCart, FiYoutube } from 'react-icons/fi'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
-import { getProduct } from '../Api/seller.api'
-import { CartItem } from '../types/cart.types'
-import { Product } from '../types/product.types'
+import { productApi } from '../Api/product.api'
+import { Product } from '../Api/shop.api'
+
+type CartItem = {
+  shopId: number
+  shopName: string
+  shopLocation?: string
+  deliveryChargeInside?: number
+  deliveryChargeOutside?: number
+  productId: number
+  name: string
+  basePrice: number
+  sellingPrice: number
+  quantity: number
+  imageUrl: string
+  selectedOptions: Record<string, string>
+  cartItemId: string
+}
+
 import { CART_ITEMS_KEY, FAVORITES_KEY } from '../utils/utils.variables'
 
 const ProductDetail = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { productId } = useParams()
+  const { productId } = useParams<{ productId: string }>()
   const [product, setProduct] = useState<Product | null>(location.state?.product || null)
   const [loading, setLoading] = useState(!location.state?.product)
+  const [error, setError] = useState<string | null>(null)
 
-  const [favorites, setFavorites] = useState<number[]>([])
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
-  const [downloadingAll, setDownloadingAll] = useState(false)
-  const [quantity, setQuantity] = useState('1')
-  const [sellingPrice, setSellingPrice] = useState('0')
-  const [selectedMeta, setSelectedMeta] = useState<Record<string, string>>({})
+  // User selections
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const [hoveredImage, setHoveredImage] = useState<string>('')
-  const [copied, setCopied] = useState(false)
-  const [inputErrors, setInputErrors] = useState({
-    quantity: '',
-    sellingPrice: '',
-    options: '',
-    image: '',
-  })
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
+  const [quantity, setQuantity] = useState(1)
+  const [sellingPrice, setSellingPrice] = useState('')
+  const [validationError, setValidationError] = useState<string | null>('একটি ছবি নির্বাচন করুন')
 
-  // Fetch product if not passed via location state
+  // UI states
+  const [isFavorite, setIsFavorite] = useState(
+    (JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]') as Product[]).some(
+      fav => fav.productId === Number(productId)
+    )
+  )
+  const [downloading, setDownloading] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [priceError, setPriceError] = useState('')
+
+  // Initialize product data
   useEffect(() => {
     if (!location.state?.product && productId) {
       const fetchProduct = async () => {
         try {
           setLoading(true)
-          const response = await getProduct(productId)
-          if (response.success && response.data) {
-            setProduct(response.data)
-            setSellingPrice(response.data.basePrice.toString())
+
+          const { success, data, message } = await productApi.getProductDetailForSeller(
+            parseInt(productId)
+          )
+          if (success) {
+            setProduct(data.product)
+            setSellingPrice(data.product.basePrice.toString())
           } else {
-            console.error('Failed to fetch product:', response.message)
+            setError(message || 'Product not found')
           }
-        } catch (error) {
-          console.error('Error fetching product:', error)
+        } catch (err) {
+          setError('Failed to load product')
+          setLoading(false)
         } finally {
           setLoading(false)
         }
@@ -56,486 +78,506 @@ const ProductDetail = () => {
     }
   }, [productId, location.state])
 
-  // Load favorites
+  // Load favorites from localStorage
+
+  // Handle price validation
   useEffect(() => {
-    const savedFavorites = localStorage.getItem(FAVORITES_KEY)
-    if (savedFavorites) {
-      try {
-        setFavorites(JSON.parse(savedFavorites))
-      } catch (err) {
-        console.error('ফেভারিট লোড করতে সমস্যা:', err)
-        localStorage.removeItem(FAVORITES_KEY)
+    if (!product) return
+
+    const price = parseFloat(sellingPrice) || 0
+    if (price < product.basePrice) {
+      setPriceError(`ন্যূনতম মূল্য ${product.basePrice} টাকা`)
+    } else {
+      setPriceError('')
+    }
+  }, [sellingPrice, product])
+  useEffect(() => {
+    if (!selectedImage) {
+      setValidationError('একটি ছবি নির্বাচন করুন')
+    } else {
+      const absentOptions = Object.keys(selectedOptions).filter(key => !selectedOptions[key])
+      if (absentOptions.length > 0) {
+        setValidationError(`অনুগ্রহ করে ${absentOptions[0]} নির্বাচন করুন`)
+      } else {
+        setValidationError(null) // Clear validation error if all options are selected
       }
     }
-  }, [])
+  }, [selectedImage, selectedOptions, quantity, sellingPrice])
 
-  // Save favorites
-  useEffect(() => {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
-  }, [favorites])
+  // Handle image selection
+  const handleImageSelect = (imageUrl: string) => {
+    setSelectedImage(imageUrl)
+    // setValidationError(null) // Clear validation error when image is selected
+  }
 
-  const downloadImage = async (url: string, name: string, id: string) => {
+  // Handle variant selection
+  const handleOptionSelect = (key: string, value: string) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [key]: value,
+    }))
+  }
+
+  // Download single image
+  const downloadImage = async (url: string, name: string) => {
     try {
-      setDownloadingId(id)
+      setDownloading(true)
       const response = await fetch(url)
       const blob = await response.blob()
-      const extension = url.split('.').pop()?.split('?')[0] || 'jpg'
       const blobUrl = URL.createObjectURL(blob)
 
       const link = document.createElement('a')
       link.href = blobUrl
-      link.download = `${name.replace(/\s+/g, '_')}_${id}.${extension}`
+      link.download = `${name.replace(/\s+/g, '_')}_${Date.now()}.jpg`
       document.body.appendChild(link)
       link.click()
 
       setTimeout(() => {
         document.body.removeChild(link)
         URL.revokeObjectURL(blobUrl)
-        setDownloadingId(null)
+        setDownloading(false)
       }, 100)
-    } catch (error) {
-      console.error('ডাউনলোড ব্যর্থ:', error)
-      setDownloadingId(null)
+    } catch (err) {
+      setDownloading(false)
     }
   }
 
+  // Download all images
   const downloadAllImages = async () => {
     if (!product) return
 
-    setDownloadingAll(true)
+    setDownloading(true)
     try {
-      const allImages = [
-        { imageUrl: product.imageUrl, isMain: true },
-        ...(product.images || []).map(img => ({ imageUrl: img.imageUrl, isMain: false })),
-      ]
-
-      for (let i = 0; i < allImages.length; i++) {
-        const img = allImages[i]
-        await downloadImage(img.imageUrl, product.name, `all_${i}`)
+      for (const image of product.ProductImage) {
+        await downloadImage(image.imageUrl, product.name)
         await new Promise(resolve => setTimeout(resolve, 300))
       }
     } finally {
-      setDownloadingAll(false)
+      setDownloading(false)
     }
   }
 
+  // Copy description to clipboard
   const copyDescription = () => {
     if (!product) return
     navigator.clipboard.writeText(product.description)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-
-  const handleMetaSelect = (key: string, value: string) => {
-    setSelectedMeta(prev => ({ ...prev, [key]: value }))
-    if (inputErrors.options) {
-      setInputErrors(prev => ({ ...prev, options: '' }))
-    }
+  const checkIsFavorite = (product: Product): boolean => {
+    const savedFavorites: Product[] = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
+    return savedFavorites.some(fav => fav.productId === product.productId)
   }
 
-  const handleImageClick = (imageUrl: string) => {
-    if (selectedImage === imageUrl) {
-      setSelectedImage('')
+  // Toggle favorite status
+  const toggleFavorite = () => {
+    if (!product) return
+
+    const isFavorited = checkIsFavorite(product)
+    const savedFavorites: Product[] = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
+    if (isFavorited) {
+      // Remove from favorites
+      const updatedFavorites = savedFavorites.filter(fav => fav.productId !== product.productId)
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites))
+      setIsFavorite(false)
     } else {
-      setSelectedImage(imageUrl)
-    }
-    if (inputErrors.image) {
-      setInputErrors(prev => ({ ...prev, image: '' }))
+      // Add to favorites
+      savedFavorites.push(product)
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(savedFavorites))
+      setIsFavorite(true)
     }
   }
 
-  const handleImageHover = (imageUrl: string) => {
-    setHoveredImage(imageUrl)
-  }
-
-  const handleImageLeave = () => {
-    setHoveredImage('')
-  }
-
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setQuantity(value)
-
-    if (value === '') {
-      setInputErrors(prev => ({ ...prev, quantity: 'পরিমাণ লিখুন' }))
-      return
-    }
-
-    const numValue = parseFloat(value)
-    if (isNaN(numValue)) {
-      setInputErrors(prev => ({ ...prev, quantity: 'সংখ্যা লিখুন' }))
-      return
-    }
-
-    if (numValue < 1) {
-      setInputErrors(prev => ({ ...prev, quantity: 'ন্যূনতম পরিমাণ ১' }))
-      return
-    }
-
-    setInputErrors(prev => ({ ...prev, quantity: '' }))
-  }
-
-  const handleSellingPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setSellingPrice(value)
-
-    if (value === '') {
-      setInputErrors(prev => ({ ...prev, sellingPrice: 'মূল্য লিখুন' }))
-      return
-    }
-
-    const numValue = parseFloat(value)
-    if (isNaN(numValue)) {
-      setInputErrors(prev => ({ ...prev, sellingPrice: 'সংখ্যা লিখুন' }))
-      return
-    }
-
-    if (product && numValue < product.basePrice) {
-      setInputErrors(prev => ({ ...prev, sellingPrice: `ন্যূনতম মূল্য ৳${product.basePrice}` }))
-      return
-    }
-
-    setInputErrors(prev => ({ ...prev, sellingPrice: '' }))
-  }
-
+  // Add to cart
   const addToCart = () => {
     if (!product) return
 
-    const allOptionsSelected = (product.metas || []).every(meta => selectedMeta[meta.key])
-    if (!allOptionsSelected && (product.metas || []).length > 0) {
-      setInputErrors(prev => ({ ...prev, options: 'সব অপশন সিলেক্ট করুন' }))
+    // Validate selections
+    if (!selectedImage) {
+      setValidationError('একটি ছবি নির্বাচন করুন')
       return
     }
 
-    const currentImage = selectedImage
-    if (!currentImage) {
-      setInputErrors(prev => ({ ...prev, image: 'একটি ইমেজ সিলেক্ট করুন' }))
+    // Check if all variant options are selected
+    const variantKeys = [...new Set(product.ProductVariant?.map(v => v.name) || [])]
+    // const allOptionsSelected = variantKeys.every(key => selectedOptions[key])
+    const absentOptions = variantKeys.filter(key => !selectedOptions[key])
+
+    if (absentOptions.length > 0) {
+      setValidationError(`অনুগ্রহ করে ${absentOptions[0]} নির্বাচন করুন`)
       return
     }
 
-    const quantityNum = parseFloat(quantity)
-    const priceNum = parseFloat(sellingPrice)
-
-    if (isNaN(quantityNum)) {
-      setInputErrors(prev => ({ ...prev, quantity: 'অবৈধ পরিমাণ' }))
+    // Validate price
+    const price = parseFloat(sellingPrice) || 0
+    if (price < product.basePrice) {
+      setValidationError(`ন্যূনতম মূল্য ${product.basePrice} টাকা`)
       return
     }
 
-    if (isNaN(priceNum)) {
-      setInputErrors(prev => ({ ...prev, sellingPrice: 'অবৈধ মূল্য' }))
+    // Validate quantity
+    if (quantity < 1) {
       return
     }
 
-    if (quantityNum < 1) {
-      setInputErrors(prev => ({ ...prev, quantity: 'ন্যূনতম পরিমাণ ১' }))
-      return
-    }
-
-    if (priceNum < product.basePrice) {
-      setInputErrors(prev => ({ ...prev, sellingPrice: `ন্যূনতম মূল্য ৳${product.basePrice}` }))
-      return
-    }
-
+    // Create cart item
     const cartItem: CartItem = {
       productId: product.productId,
+      shopId: product.shopId,
+      shopName: product.shop.shopName,
+      shopLocation: product.shop.shopLocation,
       name: product.name,
       basePrice: product.basePrice,
-      sellingPrice: priceNum,
-      quantity: quantityNum,
-      imageUrl: currentImage,
-      selectedOptions: { ...selectedMeta },
+      sellingPrice: price,
+      quantity: quantity,
+      imageUrl: selectedImage,
+      selectedOptions: selectedOptions,
       cartItemId: uuidv4(),
     }
 
+    // Get existing cart items from localStorage
     const existingCart = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
-    const updatedCart = [...existingCart, cartItem]
 
-    localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCart))
+    // Check if shop already has items in cart
+    const shopCartIndex = existingCart.findIndex(
+      (item: CartItem) => item.shopId === product.shopId && item.productId === product.productId
+    )
+    if (shopCartIndex === -1) {
+      existingCart.push(cartItem)
+    }
+
+    // Save to localStorage
+    localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(existingCart))
+
+    // Navigate to cart
     navigate('/cart')
   }
 
   if (loading) {
     return (
-      <div className='flex justify-center items-center min-h-screen'>
-        <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500'></div>
+      <div className='flex items-center justify-center min-h-screen'>
+        <FaSpinner className='animate-spin text-2xl text-blue-500' />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className='flex items-center justify-center min-h-screen'>
+        <p className='text-red-500'>{error}</p>
       </div>
     )
   }
 
   if (!product) {
     return (
-      <div className='text-center py-12'>
-        <p className='text-gray-500'>পণ্য খুঁজে পাওয়া যায়নি</p>
+      <div className='flex items-center justify-center min-h-screen'>
+        <p>পণ্য খুঁজে পাওয়া যায়নি</p>
       </div>
     )
   }
 
-  const metaInfo = (product.metas || []).reduce<Record<string, string[]>>((acc, meta) => {
-    if (!acc[meta.key]) {
-      acc[meta.key] = []
-    }
-    if (!acc[meta.key].includes(meta.value)) {
-      acc[meta.key].push(meta.value)
-    }
-    return acc
-  }, {})
-
-  // প্রধান ইমেজ এবং অতিরিক্ত ইমেজ একসাথে করুন
-  const allImages = [
-    { imageUrl: product.imageUrl, isMain: true },
-    ...(product.images || []).map(img => ({ imageUrl: img.imageUrl, isMain: false })),
-  ]
+  // Group variants by key
+  const variantGroups =
+    product.ProductVariant?.reduce<Record<string, string[]>>((acc, variant) => {
+      if (!acc[variant.name]) {
+        acc[variant.name] = []
+      }
+      if (!acc[variant.name].includes(variant.value)) {
+        acc[variant.name].push(variant.value)
+      }
+      return acc
+    }, {}) || {}
 
   return (
-    <div className='container mx-auto px-4 py-8'>
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
-        {/* বাম কলাম - পণ্যের ছবি */}
-        <div className='bg-white rounded-lg shadow-md overflow-hidden'>
-          <div className='relative aspect-square'>
-            <img
-              src={hoveredImage || selectedImage || product.imageUrl}
-              alt={product.name}
-              className='w-full h-full object-contain'
-              loading='lazy'
-              onError={e => {
-                ;(e.target as HTMLImageElement).src = '/placeholder-product.jpg'
-              }}
-            />
+    <div className='bg-gray-50 min-h-screen pb-20'>
+      {/* Mobile Header */}
+      <header className='lg:hidden sticky top-0 bg-white shadow-sm z-10'>
+        <div className='container mx-auto px-4 py-3 flex items-center'>
+          <button onClick={() => navigate(-1)} className='mr-4 text-gray-700'>
+            <FiChevronLeft className='text-xl' />
+          </button>
+          <h1 className='text-lg font-semibold truncate flex-1'>{product.name}</h1>
+          <button onClick={toggleFavorite} className='text-xl text-red-500'>
+            {isFavorite ? <FaHeart /> : <FaRegHeart />}
+          </button>
+        </div>
+      </header>
 
-            <div className='absolute top-4 right-4 flex gap-2'>
-              <button
-                onClick={() =>
-                  downloadImage(
-                    hoveredImage || selectedImage || product.imageUrl,
-                    product.name,
-                    'main'
-                  )
-                }
-                className='bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors'
-                disabled={downloadingId === 'main'}
-                title='ছবি ডাউনলোড করুন'
-              >
-                {downloadingId === 'main' ? (
-                  <FaSpinner className='animate-spin text-blue-500' />
-                ) : (
-                  <FiDownload className='text-gray-700' />
+      <main className='container mx-auto px-4'>
+        {/* Desktop Header */}
+        <header className='hidden lg:block py-4'>
+          <button
+            onClick={() => navigate(-1)}
+            className='flex items-center text-gray-700 hover:text-blue-600'
+          >
+            <FiChevronLeft className='text-xl mr-1' />
+            <span>পিছনে</span>
+          </button>
+        </header>
+
+        <div className='lg:grid lg:grid-cols-2 lg:gap-8'>
+          {/* Left Column - Images and Description */}
+          <div className='bg-white rounded-lg shadow-sm mb-4 lg:sticky lg:top-4 lg:h-fit'>
+            {/* Main Image */}
+            <div className='relative aspect-square'>
+              <img
+                src={selectedImage || product.ProductImage[0]?.imageUrl || '/placeholder.jpg'}
+                alt={product.name}
+                className='w-full h-full object-contain'
+                onError={e => {
+                  ;(e.target as HTMLImageElement).src = '/placeholder.jpg'
+                }}
+              />
+
+              {/* Image Actions */}
+              <div className='absolute top-3 right-3 flex gap-2'>
+                {product.videoUrl && (
+                  <a
+                    href={product.videoUrl}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='bg-white p-2 rounded-full shadow-md hover:bg-gray-100'
+                    title='ভিডিও দেখুন'
+                  >
+                    <FiYoutube className='text-red-500' />
+                  </a>
                 )}
-              </button>
-
-              {product.videoUrl && (
-                <a
-                  href={product.videoUrl}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors'
-                  title='ইউটিউব ভিডিও দেখুন'
-                >
-                  <FiYoutube className='text-red-600' />
-                </a>
-              )}
-            </div>
-          </div>
-
-          {/* ইমেজ সিলেকশন */}
-          <div className='p-4 border-t'>
-            <div className='flex justify-between items-center mb-2 text-xs'>
-              <h3 className='font-medium text-xs'>ইমেজ সিলেক্ট করুন</h3>
-              {allImages.length > 1 && (
                 <button
-                  onClick={downloadAllImages}
-                  disabled={downloadingAll}
-                  className='flex items-center text-sm text-blue-600 hover:text-blue-800'
+                  onClick={() =>
+                    downloadImage(
+                      selectedImage || product.ProductImage[0]?.imageUrl || '',
+                      product.name
+                    )
+                  }
+                  disabled={downloading}
+                  className='bg-white p-2 rounded-full shadow-md hover:bg-gray-100'
+                  title='ছবি ডাউনলোড করুন'
                 >
-                  {downloadingAll ? (
-                    <>
-                      <FaSpinner className='animate-spin mr-1' />
-                      ডাউনলোড হচ্ছে...
-                    </>
+                  {downloading ? (
+                    <FaSpinner className='animate-spin text-blue-500' />
                   ) : (
-                    <>
-                      <FiDownload className='mr-1 text-xs' />
-                      সব ছবি ডাউনলোড
-                    </>
+                    <FiDownload className='text-gray-700' />
                   )}
                 </button>
-              )}
-            </div>
-            {inputErrors.image && <p className='text-red-500 text-sm mb-2'>{inputErrors.image}</p>}
-            <div className='grid grid-cols-4 gap-2'>
-              {allImages.map((img, index) => (
-                <div
-                  key={index}
-                  onClick={() => handleImageClick(img.imageUrl)}
-                  onMouseEnter={() => handleImageHover(img.imageUrl)}
-                  onMouseLeave={handleImageLeave}
-                  className={`relative cursor-pointer border-2 rounded-md overflow-hidden ${
-                    selectedImage === img.imageUrl ? 'border-blue-500' : 'border-transparent'
-                  }`}
-                >
-                  <img
-                    src={img.imageUrl}
-                    alt={`${product.name} - ${index + 1}`}
-                    className='w-full h-20 object-cover'
-                  />
-                  <div className='absolute inset-0 flex items-start top-0 justify-end opacity-0 hover:opacity-100 bg-black bg-opacity-30 transition-opacity'>
-                    <button
-                      onClick={e => {
-                        e.stopPropagation()
-                        downloadImage(img.imageUrl, product.name, `thumb_${index}`)
-                      }}
-                      className='p-1 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors'
-                      title='ছবি ডাউনলোড করুন'
-                    >
-                      {downloadingId === `thumb_${index}` ? (
-                        <FaSpinner className='animate-spin text-blue-500 text-xs' />
-                      ) : (
-                        <FiDownload className='text-gray-700 text-xs' />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ডান কলাম - পণ্যের তথ্য */}
-        <div className='space-y-6'>
-          <div className='flex justify-between items-start'>
-            <h1 className='text-2xl font-bold text-gray-900'>{product.name}</h1>
-          </div>
-
-          {/* মূল্য তথ্য */}
-          <div className='space-y-2'>
-            <div className='flex items-center gap-1'>
-              <span className='text-lg font-semibold'>দাম:</span>
-              <span className='text-xl font-bold text-gray-900'>{product.basePrice}</span>
-              <span className='text-lg font-semibold'>টাকা</span>
-              {product.stockSize > 0 ? (
-                <span className='px-2 py-1 bg-green-100 text-green-800 text-sm rounded'>
-                  স্টকে আছে
-                </span>
-              ) : (
-                <span className='px-2 py-1 bg-red-100 text-red-800 text-sm rounded'>স্টকে নেই</span>
-              )}
+              </div>
             </div>
 
-            <div className='flex items-center gap-1'>
-              <span className='text-sm font-semibold'>সাজেস্টেড সর্বোচ্চ মূল্য:</span>
-              <span className='text-lg text-[#e5307e] font-bold'>{product.suggestedMaxPrice}</span>
-              টাকা
-            </div>
-          </div>
+            {/* Thumbnail Images */}
+            <div className='p-3 border-t'>
+              <div className='flex justify-between items-center mb-2'>
+                <h3 className='text-sm font-medium'>ছবিসমূহ</h3>
+                {product.ProductImage.length > 1 && (
+                  <button
+                    onClick={downloadAllImages}
+                    disabled={downloading}
+                    className='text-xs text-blue-600 flex items-center'
+                  >
+                    {downloading ? (
+                      <>
+                        <FaSpinner className='animate-spin mr-1' />
+                        ডাউনলোড হচ্ছে...
+                      </>
+                    ) : (
+                      <>
+                        <FiDownload className='mr-1' />
+                        সব ছবি ডাউনলোড
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
 
-          {/* মেটা তথ্য */}
-          {Object.entries(metaInfo).map(([key, values]) => (
-            <div key={key} className='space-y-2'>
-              <h3 className='font-medium capitalize'>{key}</h3>
-              <div className='flex flex-wrap gap-2'>
-                {values.map(value => (
-                  <label key={value} className='flex items-center space-x-2 cursor-pointer'>
-                    <input
-                      type='radio'
-                      name={key}
-                      checked={selectedMeta[key] === value}
-                      onChange={() => handleMetaSelect(key, value)}
-                      className='h-4 w-4 text-blue-600 focus:ring-blue-500'
+              <div className='grid grid-cols-4 gap-2'>
+                {product.ProductImage.map(image => (
+                  <button
+                    key={image.imageId}
+                    onClick={() => handleImageSelect(image.imageUrl)}
+                    className={`aspect-square border-2 rounded overflow-hidden ${
+                      selectedImage === image.imageUrl ? 'border-blue-500' : 'border-transparent'
+                    }`}
+                  >
+                    <img
+                      src={image.imageUrl}
+                      alt={`${product.name} - ${image.imageId}`}
+                      className='w-full h-full object-cover'
                     />
-                    <span className='text-gray-700'>{value}</span>
-                  </label>
+                  </button>
                 ))}
               </div>
             </div>
-          ))}
-          {inputErrors.options && <p className='text-red-500 text-sm'>{inputErrors.options}</p>}
 
-          {/* পরিমাণ এবং বিক্রয় মূল্য */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>পরিমাণ</label>
-              <input
-                type='text'
-                inputMode='numeric'
-                pattern='[0-9]*'
-                value={quantity}
-                onChange={handleQuantityChange}
-                className={`w-full px-3 py-2 border ${
-                  inputErrors.quantity ? 'border-red-500' : 'border-gray-300'
-                } rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
-                placeholder='পরিমাণ লিখুন'
-              />
-              {inputErrors.quantity && (
-                <p className='text-red-500 text-xs mt-1'>{inputErrors.quantity}</p>
-              )}
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                বিক্রয় মূল্য (ন্যূনতম ৳{product.basePrice.toLocaleString('bn-BD')})
-              </label>
-              <input
-                type='text'
-                inputMode='numeric'
-                pattern='[0-9]*'
-                value={sellingPrice}
-                onChange={handleSellingPriceChange}
-                className={`w-full px-3 py-2 border ${
-                  inputErrors.sellingPrice ? 'border-red-500' : 'border-gray-300'
-                } rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
-                placeholder='মূল্য লিখুন'
-              />
-              {inputErrors.sellingPrice && (
-                <p className='text-red-500 text-xs mt-1'>{inputErrors.sellingPrice}</p>
-              )}
+            {/* Description */}
+            <div className='p-4 border-t'>
+              <div className='flex justify-between items-center mb-3'>
+                <h3 className='text-sm font-medium'>বিবরণ</h3>
+                <button
+                  onClick={copyDescription}
+                  className='text-sm text-blue-600 flex items-center'
+                >
+                  <FiCopy className='mr-1' />
+                  {copied ? 'কপি হয়েছে!' : 'কপি করুন'}
+                </button>
+              </div>
+              <p className='text-gray-700 whitespace-pre-line text-sm'>{product.description}</p>
             </div>
           </div>
 
-          {/* কার্টে যোগ করুন বাটন */}
-          <button
-            onClick={addToCart}
-            className={`w-full py-3 px-4 rounded-md font-medium ${
-              !!(
-                inputErrors.quantity ||
-                inputErrors.sellingPrice ||
-                inputErrors.options ||
-                inputErrors.image
-              )
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            }`}
-            disabled={
-              !!(
-                inputErrors.quantity ||
-                inputErrors.sellingPrice ||
-                inputErrors.options ||
-                inputErrors.image
-              )
-            }
-          >
-            <div className='flex items-center justify-center gap-2'>
-              <FiShoppingCart />
-              <span>কার্টে যোগ করুন</span>
-            </div>
-          </button>
-
-          {/* বিবরণ */}
-          <div className='border-t pt-4'>
-            <div className='flex justify-between items-center mb-2'>
-              <h3 className='font-medium'>বিবরণ</h3>
-              <button
-                onClick={copyDescription}
-                className='flex items-center text-sm text-blue-600 hover:text-blue-800'
-              >
-                <FiCopy className='mr-1' />
-                {copied ? 'কপি হয়েছে!' : 'কপি করুন'}
+          {/* Right Column - Product Info */}
+          <div className='space-y-4'>
+            {/* Desktop Title and Favorite */}
+            <div className='hidden lg:flex justify-between items-start mb-2'>
+              <h1 className='text-2xl font-bold'>{product.name}</h1>
+              <button onClick={toggleFavorite} className='text-2xl text-red-500'>
+                {isFavorite ? <FaHeart /> : <FaRegHeart />}
               </button>
             </div>
-            <p className='text-gray-700 whitespace-pre-line'>
-              {product.description || 'কোন বিবরণ পাওয়া যায়নি'}
-            </p>
+
+            {/* Shop Info */}
+            <div className='bg-white rounded-lg shadow-sm p-4'>
+              <h2 className='text-lg font-semibold mb-2'>দোকানের তথ্য</h2>
+              <div className='space-y-2'>
+                <div className='flex items-center'>
+                  <span className='text-gray-600 w-24'>দোকান:</span>
+                  <span className='font-medium'>{product.shop.shopName}</span>
+                </div>
+                <div className='flex items-center'>
+                  <span className='text-gray-600 w-24'>লোকেশন:</span>
+                  <span>{product.shop.shopLocation}</span>
+                </div>
+                <div className='flex items-center'>
+                  <span className='text-gray-600 w-24'>ডেলিভারি চার্জ:</span>
+                  <div>
+                    <p>শহরের ভিতরে: ৳{product.shop.deliveryChargeInside}</p>
+                    <p>শহরের বাইরে: ৳{product.shop.deliveryChargeOutside}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Price Info */}
+            <div className='bg-white rounded-lg shadow-sm p-4'>
+              <div className='space-y-2'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-gray-600'>পাইকারি মূল্য:</span>
+                  <span className='text-lg font-bold text-blue-600'>
+                    ৳{product.basePrice.toLocaleString('bn-BD')}
+                  </span>
+                </div>
+                <div className='flex items-center justify-between'>
+                  <span className='text-gray-600'>সর্বোচ্চ পাইকারি মূল্য:</span>
+                  <span className='text-lg text-[#e5307e] font-bold'>
+                    ৳{product.suggestedMaxPrice.toLocaleString('bn-BD')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Variants */}
+            {Object.entries(variantGroups).length > 0 && (
+              <div className='bg-white rounded-lg shadow-sm p-4'>
+                {Object.entries(variantGroups).map(([key, values]) => (
+                  <div key={key} className='mb-4 last:mb-0'>
+                    <h3 className='text-sm font-medium mb-2 capitalize'>{key}</h3>
+                    <div className='flex flex-wrap gap-2'>
+                      {values.map(value => (
+                        <button
+                          key={value}
+                          onClick={() => handleOptionSelect(key, value)}
+                          className={`px-3 py-1 border rounded-full text-sm ${
+                            selectedOptions[key] === value
+                              ? 'border-blue-500 bg-blue-50 text-blue-600'
+                              : 'border-gray-300 hover:border-gray-400'
+                          }`}
+                        >
+                          {value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Quantity and Price Input */}
+            <div className='bg-white rounded-lg shadow-sm p-4'>
+              <h2 className='text-lg font-semibold mb-3'>অর্ডার করুন</h2>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div>
+                  <label className='block text-sm font-medium mb-1'>পরিমাণ</label>
+                  <input
+                    type='number'
+                    min='1'
+                    value={quantity}
+                    onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className='w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                  />
+                </div>
+                <div>
+                  <label className='block text-sm font-medium mb-1'>
+                    আপনার মূল্য (ন্যূনতম ৳{product.basePrice})
+                  </label>
+                  <input
+                    type='text'
+                    inputMode='numeric'
+                    value={sellingPrice}
+                    onChange={e => {
+                      const value = e.target.value
+                      // Allow only numbers and empty string
+                      if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+                        setSellingPrice(value)
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border ${
+                      priceError ? 'border-red-500' : 'border-gray-300'
+                    } rounded focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                  />
+                  {priceError && <p className='text-red-500 text-xs mt-1'>{priceError}</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Image Selection Warning */}
+            {validationError && (
+              <div className='text-red-500 text-sm bg-white p-3 rounded-lg shadow-sm'>
+                {validationError}
+              </div>
+            )}
+
+            {/* Mobile Add to Cart Button */}
+            <div className='lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg p-3 border-t'>
+              <button
+                onClick={addToCart}
+                disabled={!selectedImage || !!priceError}
+                className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
+                  !selectedImage || priceError
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
+              >
+                <FiShoppingCart />
+                কার্টে যোগ করুন
+              </button>
+            </div>
+
+            {/* Desktop Add to Cart Button */}
+            <div className='hidden lg:block'>
+              <button
+                onClick={addToCart}
+                disabled={!selectedImage || !!priceError}
+                className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
+                  !selectedImage || priceError
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
+              >
+                <FiShoppingCart />
+                কার্টে যোগ করুন
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

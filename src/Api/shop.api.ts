@@ -39,10 +39,13 @@ export type Product = {
   suggestedMaxPrice: number
   createdAt: Date
   updatedAt: Date
+  ProductVariant?: Record<string, any>[]
   shop: {
     shopId: number
     shopName: string
     shopLocation: string
+    deliveryChargeInside?: number
+    deliveryChargeOutside?: number
   }
   ProductImage: [
     {
