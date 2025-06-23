@@ -39,14 +39,23 @@ const Products = () => {
   const [totalPages] = useState<number>(1)
   const itemsPerPage = 12
   const navigate = useNavigate()
+
   // Image slider states
   const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({})
+  const [autoSlideIntervals, setAutoSlideIntervals] = useState<{ [key: number]: NodeJS.Timeout }>(
+    {}
+  )
 
   // Load shops on component mount
   useEffect(() => {
     loadShops()
     loadFavorites()
+    return () => {
+      // Clear all intervals on unmount
+      Object.values(autoSlideIntervals).forEach(interval => clearInterval(interval))
+    }
   }, [])
+
   useEffect(() => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
   }, [favorites])
@@ -70,6 +79,7 @@ const Products = () => {
       setLoading(false)
     }
   }
+
   const loadFavorites = () => {
     const storedFavorites = localStorage.getItem(FAVORITES_KEY)
     if (storedFavorites) {
@@ -109,14 +119,47 @@ const Products = () => {
 
       setProducts(response.data || [])
       setFilteredProducts(response.data || [])
-      // If your API returns pagination info, update these:
-      // setTotalPages(response.totalPages || 1)
-      // setTotalProducts(response.total || 0)
+
+      // Initialize auto-slide for each product
+      response.data.forEach((product: Product) => {
+        if (product.ProductImage && product.ProductImage.length > 1) {
+          startAutoSlide(product.productId, product.ProductImage.length)
+        }
+      })
     } catch (error) {
       console.error('Error loading products:', error)
       setProducts([])
       setFilteredProducts([])
-    } finally {
+    }
+  }
+
+  const startAutoSlide = (productId: number, totalImages: number) => {
+    // Clear existing interval if any
+    if (autoSlideIntervals[productId]) {
+      clearInterval(autoSlideIntervals[productId])
+    }
+
+    const interval = setInterval(() => {
+      setCurrentImageIndex(prev => ({
+        ...prev,
+        [productId]: ((prev[productId] || 0) + 1) % totalImages,
+      }))
+    }, 3000) // Change image every 3 seconds
+
+    setAutoSlideIntervals(prev => ({
+      ...prev,
+      [productId]: interval,
+    }))
+  }
+
+  const stopAutoSlide = (productId: number) => {
+    if (autoSlideIntervals[productId]) {
+      clearInterval(autoSlideIntervals[productId])
+      setAutoSlideIntervals(prev => {
+        const newIntervals = { ...prev }
+        delete newIntervals[productId]
+        return newIntervals
+      })
     }
   }
 
@@ -133,22 +176,17 @@ const Products = () => {
   }
 
   const toggleFavorite = (product: Product) => {
-    let result: Product[] = []
     setFavorites(prev => {
       const isFavorite = prev.some(p => p.productId === product.productId)
-
       if (isFavorite) {
-        result = prev.filter(p => p.productId !== product.productId)
-        return result
+        return prev.filter(p => p.productId !== product.productId)
       } else {
-        result = [...prev, product]
-        return result
+        return [...prev, product]
       }
     })
   }
 
   const downloadAllImages = async (product: Product) => {
-    // const corsProxyUrl = 'https://cors-anywhere.herokuapp.com/'
     try {
       for (let i = 0; i < product.ProductImage.length; i++) {
         const image = product.ProductImage[i]
@@ -177,6 +215,11 @@ const Products = () => {
       ...prev,
       [productId]: ((prev[productId] || 0) + 1) % totalImages,
     }))
+    // Reset auto-slide timer
+    if (autoSlideIntervals[productId]) {
+      clearInterval(autoSlideIntervals[productId])
+      startAutoSlide(productId, totalImages)
+    }
   }
 
   const prevImage = (productId: number, totalImages: number) => {
@@ -184,6 +227,11 @@ const Products = () => {
       ...prev,
       [productId]: ((prev[productId] || 0) - 1 + totalImages) % totalImages,
     }))
+    // Reset auto-slide timer
+    if (autoSlideIntervals[productId]) {
+      clearInterval(autoSlideIntervals[productId])
+      startAutoSlide(productId, totalImages)
+    }
   }
 
   const clearFilters = () => {
@@ -191,6 +239,7 @@ const Products = () => {
     setPriceRange([0, 10000])
     setCurrentPage(1)
   }
+
   const handleNavigate = (productId: number) => {
     navigate(`/products/${productId}`)
   }
@@ -198,7 +247,7 @@ const Products = () => {
   if (loading) {
     return (
       <div className='flex justify-center items-center h-64'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500'></div>
+        <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500'></div>
       </div>
     )
   }
@@ -206,8 +255,7 @@ const Products = () => {
   return (
     <div className='min-h-screen bg-gray-50'>
       {/* Header */}
-
-      <div className='bg-white shadow-sm border-b sticky top-0 z-40 md:z-auto'>
+      <div className='bg-white shadow-sm border-b sticky top-0 z-40'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='flex items-center justify-between h-16'>
             {/* Breadcrumb */}
@@ -283,7 +331,7 @@ const Products = () => {
             {/* Search and Filter Header */}
             <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6'>
               {/* Search Bar */}
-              <div className='relative flex-grow'>
+              <div className='relative flex-grow max-w-2xl'>
                 <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
                   <svg className='h-5 w-5 text-gray-400' fill='currentColor' viewBox='0 0 20 20'>
                     <path
@@ -319,7 +367,7 @@ const Products = () => {
               {/* Filter Controls */}
               <div className='flex items-center justify-between gap-3'>
                 {/* Results Count */}
-                <div className='text-sm text-gray-600 whitespace-nowrap'>
+                <div className='text-sm text-gray-600 whitespace-nowrap hidden sm:block'>
                   {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
                 </div>
 
@@ -342,10 +390,7 @@ const Products = () => {
                 {/* Clear Filters */}
                 {(searchTerm || priceRange[0] > 0 || priceRange[1] < 10000) && (
                   <button
-                    onClick={() => {
-                      setSearchTerm('')
-                      setPriceRange([0, 10000])
-                    }}
+                    onClick={clearFilters}
                     className='text-sm text-blue-600 hover:text-blue-800 whitespace-nowrap'
                   >
                     Clear all
@@ -404,35 +449,37 @@ const Products = () => {
         {/* Shops View */}
         {view === 'shops' && (
           <div>
-            <h1 className='text-3xl font-bold text-gray-900 mb-8'>Choose Your Shop</h1>
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+            <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8'>
+              Choose Your Shop
+            </h1>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'>
               {shops.map(shop => (
                 <div
                   key={shop.shopId}
                   onClick={() => handleShopSelect(shop)}
                   className='bg-white rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer group overflow-hidden'
                 >
-                  <div className='p-6'>
+                  <div className='p-4 sm:p-6'>
                     <div className='flex items-start justify-between'>
                       <div className='flex-1'>
-                        <h3 className='text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors'>
+                        <h3 className='text-lg sm:text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors'>
                           {shop.shopName}
                         </h3>
-                        <div className='flex items-center text-gray-600 mt-2'>
+                        <div className='flex items-center text-gray-600 mt-1 sm:mt-2'>
                           <MapPin className='h-4 w-4 mr-1' />
-                          <span className='text-sm'>{shop.shopLocation}</span>
+                          <span className='text-xs sm:text-sm'>{shop.shopLocation}</span>
                         </div>
                       </div>
-                      <div className='bg-blue-50 p-3 rounded-full'>
-                        <Package className='h-6 w-6 text-blue-600' />
+                      <div className='bg-blue-50 p-2 sm:p-3 rounded-full'>
+                        <Package className='h-5 sm:h-6 w-5 sm:w-6 text-blue-600' />
                       </div>
                     </div>
 
-                    <div className='mt-4 pt-4 border-t border-gray-100'>
-                      <div className='flex items-center text-sm text-gray-600'>
+                    <div className='mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100'>
+                      <div className='flex items-center text-xs sm:text-sm text-gray-600'>
                         <Truck className='h-4 w-4 mr-2' />
                         <span>
-                          Delivery Charge: ৳{shop.deliveryChargeInside} (inside) / ৳
+                          Delivery: ৳{shop.deliveryChargeInside} (inside) / ৳
                           {shop.deliveryChargeOutside} (outside)
                         </span>
                       </div>
@@ -447,47 +494,51 @@ const Products = () => {
         {/* Categories View */}
         {view === 'categories' && selectedShop && (
           <div>
-            <div className='flex items-center mb-8'>
+            <div className='flex items-center mb-6 sm:mb-8'>
               <button
                 onClick={() => setView('shops')}
                 className='flex items-center text-gray-600 hover:text-gray-900 mr-4'
               >
                 <ArrowLeft className='h-5 w-5 mr-1' />
-                Back
+                <span className='hidden sm:inline'>Back</span>
               </button>
-              <h1 className='text-xl md:text-2xl lg:text-3xl font-bold text-gray-900'>
+              <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
                 Categories in {selectedShop.shopName}
               </h1>
             </div>
 
-            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6'>
+            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6'>
               {categories.map(category => (
                 <div
                   key={category.categoryId}
                   onClick={() => handleCategorySelect(category)}
-                  className='bg-white rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer group p-6 text-center'
+                  className='bg-white rounded-lg sm:rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer group p-3 sm:p-4 md:p-6 text-center'
                 >
-                  <div className='mb-4'>
+                  <div className='mb-2 sm:mb-4'>
                     {category.categoryIcon ? (
                       <img
                         src={category.categoryIcon}
                         alt={category.name}
-                        className='w-12 h-12 mx-auto mb-2 object-cover '
+                        className='w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-1 sm:mb-2 object-cover'
                       />
                     ) : (
-                      <Package className='h-12 w-12 text-gray-300 mx-auto mb-2' />
+                      <Package className='h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-1 sm:mb-2' />
                     )}
                   </div>
-                  <h3 className='font-semibold text-gray-900 group-hover:text-blue-600 transition-colors'>
+                  <h3 className='font-semibold text-sm sm:text-base text-gray-900 group-hover:text-blue-600 transition-colors'>
                     {category.name}
                   </h3>
                 </div>
               ))}
               {categories.length === 0 && (
-                <div className='col-span-full text-center py-16 bg-white rounded-xl'>
-                  <Package className='h-16 w-16 text-gray-300 mx-auto mb-4' />
-                  <h3 className='text-xl font-semibold text-gray-900 mb-2'>No categories found</h3>
-                  <p className='text-gray-600 mb-6'>This shop has no categories available</p>
+                <div className='col-span-full text-center py-12 sm:py-16 bg-white rounded-xl'>
+                  <Package className='h-12 sm:h-16 w-12 sm:w-16 text-gray-300 mx-auto mb-3 sm:mb-4' />
+                  <h3 className='text-lg sm:text-xl font-semibold text-gray-900 mb-1 sm:mb-2'>
+                    No categories found
+                  </h3>
+                  <p className='text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base'>
+                    This shop has no categories available
+                  </p>
                 </div>
               )}
             </div>
@@ -497,58 +548,67 @@ const Products = () => {
         {/* Products View */}
         {view === 'products' && selectedCategory && (
           <div>
-            <div className='flex items-center mb-8'>
+            <div className='flex items-center mb-6 sm:mb-8'>
               <button
                 onClick={() => setView('categories')}
                 className='flex items-center text-gray-600 hover:text-gray-900 mr-4'
               >
                 <ArrowLeft className='h-5 w-5 mr-1' />
-                Back
+                <span className='hidden sm:inline'>Back</span>
               </button>
-              <h1 className='text-xl md:text-2xl lg:text-3xl font-bold text-gray-900'>
+              <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
                 {selectedCategory.name} Products
               </h1>
             </div>
 
             {filteredProducts.length === 0 ? (
-              <div className='text-center py-16 bg-white rounded-xl'>
-                <Package className='h-16 w-16 text-gray-300 mx-auto mb-4' />
-                <h3 className='text-xl font-semibold text-gray-900 mb-2'>No products found</h3>
-                <p className='text-gray-600 mb-6'>Try adjusting your search or filters</p>
+              <div className='text-center py-12 sm:py-16 bg-white rounded-xl'>
+                <Package className='h-12 sm:h-16 w-12 sm:w-16 text-gray-300 mx-auto mb-3 sm:mb-4' />
+                <h3 className='text-lg sm:text-xl font-semibold text-gray-900 mb-1 sm:mb-2'>
+                  No products found
+                </h3>
+                <p className='text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base'>
+                  Try adjusting your search or filters
+                </p>
                 <button
                   onClick={clearFilters}
-                  className='px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                  className='px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base'
                 >
                   Clear Filters
                 </button>
               </div>
             ) : (
               <>
-                {/* Products Grid - Ensures at least 2 products per row on mobile */}
+                {/* Products Grid */}
                 <div
-                  className={`grid gap-4 ${
+                  className={`grid gap-3 sm:gap-4 ${
                     viewMode === 'grid'
-                      ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4'
+                      ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
                       : 'grid-cols-1'
                   }`}
                 >
                   {filteredProducts.map(product => {
                     const currentImg = currentImageIndex[product.productId] || 0
                     const totalImages = product.ProductImage?.length || 0
-                    const isFavorite =
-                      favorites.filter(p => p.productId === product.productId).length > 0
+                    const isFavorite = favorites.some(p => p.productId === product.productId)
 
                     return (
                       <div
                         key={`${product.productId}-${currentImg}`}
-                        className={`bg-white rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 group overflow-hidden ${
-                          viewMode === 'list' ? 'flex' : ''
+                        className={`bg-white rounded-lg sm:rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 group overflow-hidden ${
+                          viewMode === 'list' ? 'flex flex-col sm:flex-row' : ''
                         }`}
+                        onMouseEnter={() =>
+                          totalImages > 1 && startAutoSlide(product.productId, totalImages)
+                        }
+                        onMouseLeave={() => stopAutoSlide(product.productId)}
                       >
                         {/* Image Section with Slider */}
                         <div
                           className={`relative ${
-                            viewMode === 'list' ? 'w-64 flex-shrink-0' : 'aspect-square'
+                            viewMode === 'list'
+                              ? 'w-full sm:w-64 h-48 sm:h-64 flex-shrink-0' // Fixed height for list view
+                              : 'aspect-[3/4]' // Taller aspect ratio
                           }`}
                         >
                           {product.ProductImage && product.ProductImage.length > 0 ? (
@@ -567,13 +627,19 @@ const Products = () => {
                           {totalImages > 1 && (
                             <>
                               <button
-                                onClick={() => prevImage(product.productId, totalImages)}
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  prevImage(product.productId, totalImages)
+                                }}
                                 className='absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
                               >
                                 <ChevronLeft className='h-4 w-4' />
                               </button>
                               <button
-                                onClick={() => nextImage(product.productId, totalImages)}
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  nextImage(product.productId, totalImages)
+                                }}
                                 className='absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
                               >
                                 <ChevronRight className='h-4 w-4' />
@@ -587,12 +653,13 @@ const Products = () => {
                               {product.ProductImage.map((_, index) => (
                                 <button
                                   key={index}
-                                  onClick={() =>
+                                  onClick={e => {
+                                    e.stopPropagation()
                                     setCurrentImageIndex(prev => ({
                                       ...prev,
                                       [product.productId]: index,
                                     }))
-                                  }
+                                  }}
                                   className={`w-2 h-2 rounded-full transition-colors ${
                                     index === currentImg ? 'bg-white' : 'bg-white/50'
                                   }`}
@@ -602,25 +669,35 @@ const Products = () => {
                           )}
 
                           {/* Action Buttons */}
-                          <div className='absolute top-3 right-3 flex flex-col space-y-2'>
+                          <div className='absolute top-2 right-2 flex flex-col space-y-2'>
                             <button
-                              onClick={() => toggleFavorite(product)}
-                              className={`p-2 rounded-full shadow-lg transition-all ${
+                              onClick={e => {
+                                e.stopPropagation()
+                                toggleFavorite(product)
+                              }}
+                              className={`p-1 sm:p-2 rounded-full shadow-lg transition-all ${
                                 isFavorite
                                   ? 'bg-red-500 text-white'
                                   : 'bg-white/90 text-gray-700 hover:bg-white'
                               }`}
                             >
-                              <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                              <Heart
+                                className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                                  isFavorite ? 'fill-current' : ''
+                                }`}
+                              />
                             </button>
 
                             {totalImages > 1 && (
                               <button
-                                onClick={() => downloadAllImages(product)}
-                                className='p-2 bg-white/90 text-gray-700 hover:bg-white rounded-full shadow-lg transition-all'
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  downloadAllImages(product)
+                                }}
+                                className='p-1 sm:p-2 bg-white/90 text-gray-700 hover:bg-white rounded-full shadow-lg transition-all'
                                 title='Download all images'
                               >
-                                <Download className='h-4 w-4' />
+                                <Download className='h-3 w-3 sm:h-4 sm:w-4' />
                               </button>
                             )}
                           </div>
@@ -628,16 +705,16 @@ const Products = () => {
 
                         {/* Product Info */}
                         <div
-                          className={`p-4 ${viewMode === 'list' ? 'flex-1' : ''}`}
+                          className={`p-3 sm:p-4 ${viewMode === 'list' ? 'flex-1' : ''}`}
                           onClick={() => handleNavigate(product.productId)}
                         >
-                          <h3 className='font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors text-sm'>
+                          <h3 className='font-bold text-gray-900 mb-1 sm:mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors text-sm sm:text-base'>
                             {product.name}
                           </h3>
 
-                          <div className='flex items-center justify-between mb-3'>
+                          <div className='flex items-center justify-between mb-2 sm:mb-3'>
                             <div>
-                              <span className='text-lg font-bold text-gray-900'>
+                              <span className='text-sm sm:text-base font-bold text-gray-900'>
                                 {formatPrice(product.basePrice)}
                               </span>
                             </div>
@@ -646,17 +723,17 @@ const Products = () => {
                           <div className='text-xs text-gray-500 space-y-1'>
                             <div className='flex items-center'>
                               <Package className='h-3 w-3 mr-1' />
-                              <span>{product.shop?.shopName}</span>
+                              <span className='truncate'>{product.shop?.shopName}</span>
                             </div>
                             <div className='flex items-center'>
                               <MapPin className='h-3 w-3 mr-1' />
-                              <span>{product.shop?.shopLocation}</span>
+                              <span className='truncate'>{product.shop?.shopLocation}</span>
                             </div>
                           </div>
 
                           {viewMode === 'list' && (
-                            <div className='mt-4 pt-4 border-t border-gray-100'>
-                              <button className='w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors'>
+                            <div className='mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100'>
+                              <button className='w-full bg-blue-600 text-white py-1 sm:py-2 px-3 sm:px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base'>
                                 View Details
                               </button>
                             </div>
@@ -669,24 +746,24 @@ const Products = () => {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className='flex justify-center mt-8'>
+                  <div className='flex justify-center mt-6 sm:mt-8'>
                     <nav className='flex items-center space-x-2'>
                       <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
-                        className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+                        className='px-3 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
                       >
                         <ChevronLeft className='h-4 w-4' />
                       </button>
 
-                      <span className='px-4 py-2 text-sm text-gray-600'>
+                      <span className='px-3 sm:px-4 py-1 sm:py-2 text-sm text-gray-600'>
                         Page {currentPage} of {totalPages}
                       </span>
 
                       <button
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                         disabled={currentPage === totalPages}
-                        className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+                        className='px-3 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
                       >
                         <ChevronRight className='h-4 w-4' />
                       </button>

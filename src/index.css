@@ -4,4 +4,8 @@
 html {
     scroll-behavior: smooth;
   }
-  
+  /* Add to your global CSS */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FiPlus, FiX } from 'react-icons/fi'
-import { addWallet, getWalletList, sendWalletOTP, verifyWalletOTP } from '../Api/seller.api'
+import { walletApi } from '../Api/wallet.api'
 import { useAuth } from '../Hooks/useAuth'
 
 interface Wallet {
@@ -29,6 +29,7 @@ const AddWallet = () => {
     otp: '',
   })
   const [countdown, setCountdown] = useState(0)
+  const [otpExpiry, setOtpExpiry] = useState<Date | null>(null)
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -38,21 +39,32 @@ const AddWallet = () => {
     }
   }, [countdown])
 
+  // Check OTP expiry periodically
+  useEffect(() => {
+    if (!otpExpiry) return
+
+    const checkExpiry = setInterval(() => {
+      if (new Date() >= otpExpiry) {
+        setIsOtpSent(false)
+        setOtp('')
+        setOtpExpiry(null)
+        clearInterval(checkExpiry)
+      }
+    }, 1000)
+
+    return () => clearInterval(checkExpiry)
+  }, [otpExpiry])
+
   // Fetch wallets on component mount
   useEffect(() => {
     const fetchWallets = async () => {
+      if (!user?.phoneNo) return
+
       try {
         setIsFetching(true)
-        const response = await getWalletList()
-        if (response.success && response.data) {
-          setWallets(response.data)
-          localStorage.setItem(`wallets-${user?.phoneNo}`, JSON.stringify(response.data))
-        } else {
-          setErrors(prev => ({
-            ...prev,
-            form: response.message || 'Failed to load wallets',
-          }))
-        }
+        const response = await walletApi.getWalletsOfASeller(user.phoneNo)
+        setWallets(response.data || [])
+        localStorage.setItem(`wallets-${user.phoneNo}`, JSON.stringify(response.data || []))
       } catch (error) {
         setErrors(prev => ({
           ...prev,
@@ -99,25 +111,37 @@ const AddWallet = () => {
 
   const handleSendOtp = async () => {
     if (!validatePhoneNumber(formData.number)) return
+
     setIsLoading(true)
+    setErrors(prev => ({ ...prev, form: '', otp: '' }))
+
     try {
-      const response = await sendWalletOTP(formData.number)
-      if (response.success) {
-        // Check if phone is already verified
-        if (response.data?.otpVerified || response.data?.alreadyVerified) {
-          setIsAlreadyVerified(true)
-          await addNewWallet() // Add directly if already verified
-        } else {
-          setIsOtpSent(true)
-          setCountdown(120) // 2 minutes countdown
-        }
+      const { success, data, message } = await walletApi.sendOtpToWallet({
+        walletPhoneNo: formData.number,
+      })
+
+      if (success && data?.alreadyVerified) {
+        setIsAlreadyVerified(true)
+        await addNewWallet() // Add directly if already verified
+      } else if (!success) {
+        setErrors(prev => ({
+          ...prev,
+          form: message || 'OTP পাঠাতে ব্যর্থ',
+        }))
+        console.error('Error sending OTP:', message)
+        return
       } else {
-        throw new Error(response.message || 'Failed to send OTP')
+        setIsOtpSent(true)
+        setCountdown(300) // 5 minutes countdown (300 seconds)
+        // Set OTP expiry time (current time + 5 minutes)
+        const expiryTime = new Date()
+        expiryTime.setMinutes(expiryTime.getMinutes() + 5)
+        setOtpExpiry(expiryTime)
       }
-    } catch (error) {
+    } catch (error: any) {
       setErrors(prev => ({
         ...prev,
-        form: (error as Error).message || 'OTP পাঠাতে ব্যর্থ',
+        form: error.response?.data?.message || 'OTP পাঠাতে ব্যর্থ',
       }))
       console.error('Error sending OTP:', error)
     } finally {
@@ -132,17 +156,26 @@ const AddWallet = () => {
     }
 
     setIsVerifying(true)
+    setErrors(prev => ({ ...prev, form: '', otp: '' }))
+
     try {
-      const response = await verifyWalletOTP(formData.number, otp)
-      if (response.success) {
+      const { success, data, message } = await walletApi.verifyOtpForWallet({
+        walletPhoneNo: formData.number,
+        otp: otp,
+      })
+
+      if (success && data?.isVerified) {
         await addNewWallet()
       } else {
-        throw new Error(response.message || 'OTP verification failed')
+        setErrors(prev => ({
+          ...prev,
+          otp: message || 'OTP ভেরিফিকেশন ব্যর্থ',
+        }))
       }
-    } catch (error) {
+    } catch (error: any) {
       setErrors(prev => ({
         ...prev,
-        otp: (error as Error).message || 'OTP ভেরিফিকেশন ব্যর্থ',
+        otp: error.response?.data?.message || 'OTP ভেরিফিকেশন ব্যর্থ',
       }))
       console.error('Error verifying OTP:', error)
     } finally {
@@ -152,22 +185,28 @@ const AddWallet = () => {
 
   const addNewWallet = async () => {
     try {
-      const response = await addWallet(formData.number, formData.type)
+      const { success, message, data } = await walletApi.createWalletForSeller({
+        walletName: formData.type,
+        walletPhoneNo: formData.number,
+      })
 
-      if (response.success && response.data) {
-        setWallets(prev => [...prev, response.data])
-        localStorage.setItem(
-          `wallets-${user?.phoneNo}`,
-          JSON.stringify([...wallets, response.data])
-        )
+      if (success && data) {
+        setWallets(prev => [...prev, data])
+        if (user?.phoneNo) {
+          localStorage.setItem(`wallets-${user.phoneNo}`, JSON.stringify([...wallets, data]))
+        }
         resetForm()
       } else {
-        throw new Error(response.message || 'Failed to add wallet')
+        setErrors(prev => ({
+          ...prev,
+          form: message || 'ওয়ালেট যোগ করতে ব্যর্থ',
+        }))
+        console.error('Error adding wallet:', message)
       }
-    } catch (error) {
+    } catch (error: any) {
       setErrors(prev => ({
         ...prev,
-        form: (error as Error).message || 'ওয়ালেট যোগ করতে ব্যর্থ',
+        form: error.response?.data?.message || 'ওয়ালেট যোগ করতে ব্যর্থ',
       }))
       console.error('Error adding wallet:', error)
     }
@@ -183,24 +222,35 @@ const AddWallet = () => {
     setIsFormOpen(false)
     setIsOtpSent(false)
     setIsAlreadyVerified(false)
+    setOtpExpiry(null)
   }
 
   const handleResendOtp = async () => {
     if (countdown > 0) return
 
     setIsLoading(true)
-    try {
-      const response = await sendWalletOTP(formData.number)
+    setErrors(prev => ({ ...prev, form: '' }))
 
-      if (response.success) {
-        setCountdown(120) // Reset 2 minutes countdown
+    try {
+      const { success, data, message } = await walletApi.sendOtpToWallet({
+        walletPhoneNo: formData.number,
+      })
+      if (success && data.sendOTP) {
+        setCountdown(300) // Reset 5 minutes countdown
+        // Set new OTP expiry time
+        const expiryTime = new Date()
+        expiryTime.setMinutes(expiryTime.getMinutes() + 5)
+        setOtpExpiry(expiryTime)
       } else {
-        throw new Error(response.message || 'Failed to resend OTP')
+        setErrors(prev => ({
+          ...prev,
+          form: message || 'OTP পুনরায় পাঠাতে ব্যর্থ',
+        }))
       }
-    } catch (error) {
+    } catch (error: any) {
       setErrors(prev => ({
         ...prev,
-        form: (error as Error).message || 'OTP পুনরায় পাঠাতে ব্যর্থ',
+        form: error.response?.data?.message || 'OTP পুনরায় পাঠাতে ব্যর্থ',
       }))
       console.error('Error resending OTP:', error)
     } finally {
@@ -212,7 +262,7 @@ const AddWallet = () => {
     <div className='container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-3xl'>
       <div className='flex justify-between items-center mb-4 sm:mb-6'>
         <h1 className='text-xl sm:text-2xl font-bold'>আমার ওয়ালেট</h1>
-        {wallets.length < 3 && (
+        {wallets.length < 2 && (
           <button
             onClick={() => setIsFormOpen(true)}
             className='flex items-center gap-1 sm:gap-2 bg-blue-500 text-white px-3 sm:px-4 py-1 sm:py-2 rounded hover:bg-blue-600 transition-colors text-sm sm:text-base'
@@ -246,6 +296,12 @@ const AddWallet = () => {
           {isAlreadyVerified && (
             <div className='mb-3 p-2 bg-green-100 text-green-700 rounded text-sm'>
               এই মোবাইল নাম্বারটি ইতিমধ্যে যাচাইকৃত, ওয়ালেট যোগ করা হচ্ছে...
+            </div>
+          )}
+
+          {otpExpiry && new Date() >= otpExpiry && (
+            <div className='mb-3 p-2 bg-red-100 text-red-700 rounded text-sm'>
+              OTP এর মেয়াদ শেষ হয়ে গেছে। নতুন OTP পাঠান
             </div>
           )}
 
@@ -284,7 +340,7 @@ const AddWallet = () => {
               )}
             </div>
 
-            {isOtpSent && !isAlreadyVerified && (
+            {isOtpSent && !isAlreadyVerified && otpExpiry && new Date() < otpExpiry && (
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-1'>OTP কোড</label>
                 <input
@@ -304,8 +360,8 @@ const AddWallet = () => {
                 <div className='mt-1 text-xs sm:text-sm text-gray-600'>
                   {countdown > 0 ? (
                     <span>
-                      আপনি OTP পুনরায় পাঠাতে পারবেন {Math.floor(countdown / 60)}:
-                      {String(countdown % 60).padStart(2, '0')} মিনিটে
+                      OTP এর মেয়াদ শেষ হতে {Math.floor(countdown / 60)}:
+                      {String(countdown % 60).padStart(2, '0')} মিনিট বাকি
                     </span>
                   ) : (
                     <button
@@ -366,7 +422,7 @@ const AddWallet = () => {
                   'OTP পাঠান'
                 )}
               </button>
-            ) : isOtpSent ? (
+            ) : isOtpSent && otpExpiry && new Date() < otpExpiry ? (
               <button
                 type='button'
                 onClick={handleVerifyOtp}
@@ -407,11 +463,11 @@ const AddWallet = () => {
       )}
 
       {/* Wallet limit message */}
-      {wallets.length >= 3 && (
+      {/* {wallets.length >= 2 && (
         <div className='mb-4 p-3 bg-blue-50 text-blue-700 rounded text-sm sm:text-base'>
-          আপনি সর্বোচ্চ ৩টি ওয়ালেট যোগ করতে পারবেন
+          আপনি সর্বোচ্চ ২টি ওয়ালেট যোগ করতে পারবেন
         </div>
-      )}
+      )} */}
 
       {/* Wallets List */}
       {isFetching && wallets.length === 0 ? (
@@ -440,6 +496,12 @@ const AddWallet = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {wallets.length > 0 && (
+        <div className='mt-4 sm:mt-6 text-sm sm:text-base text-red-600'>
+          ওয়ালেট ডিলিট করতে চাইলে সাপোর্ট এ যোগাযোগ করুন।
         </div>
       )}
     </div>
