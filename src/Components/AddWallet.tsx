@@ -164,7 +164,7 @@ const AddWallet = () => {
         otp: otp,
       })
 
-      if (success && data?.isVerified) {
+      if (success && (data?.isVerified || data?.alreadyVerified)) {
         await addNewWallet()
       } else {
         setErrors(prev => ({
