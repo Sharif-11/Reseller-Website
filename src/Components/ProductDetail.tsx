@@ -35,7 +35,7 @@ const ProductDetail = () => {
   // User selections
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState<string>('1')
   const [sellingPrice, setSellingPrice] = useState('')
   const [validationError, setValidationError] = useState<string | null>('একটি ছবি নির্বাচন করুন')
 
@@ -81,28 +81,27 @@ const ProductDetail = () => {
   // Load favorites from localStorage
 
   // Handle price validation
+
   useEffect(() => {
     if (!product) return
-
-    const price = parseFloat(sellingPrice) || 0
-    if (price < product.basePrice) {
-      setPriceError(`ন্যূনতম মূল্য ${product.basePrice} টাকা`)
+    if (parseInt(quantity) < 1 || isNaN(parseInt(quantity))) {
+      setValidationError('কোয়ান্টিটি কমপক্ষে 1 হতে হবে')
+    } else if (parseFloat(sellingPrice) < product?.basePrice) {
+      setValidationError(`মূল্য কমপক্ষে ${product?.basePrice} টাকা হতে হবে`)
+      setPriceError(`মূল্য কমপক্ষে ${product?.basePrice} টাকা হতে হবে`)
+    } else if (!selectedImage) {
+      setValidationError('একটি ছবি সিলেক্ট করুন')
     } else {
-      setPriceError('')
-    }
-  }, [sellingPrice, product])
-  useEffect(() => {
-    if (!selectedImage) {
-      setValidationError('একটি ছবি নির্বাচন করুন')
-    } else {
-      const absentOptions = Object.keys(selectedOptions).filter(key => !selectedOptions[key])
+      const variantKeys = [...new Set(product.ProductVariant?.map(v => v.name) || [])]
+      const absentOptions = variantKeys.filter(key => !selectedOptions[key])
       if (absentOptions.length > 0) {
-        setValidationError(`অনুগ্রহ করে ${absentOptions[0]} নির্বাচন করুন`)
+        setValidationError(`${absentOptions[0]} সিলেক্ট করুন`)
       } else {
-        setValidationError(null) // Clear validation error if all options are selected
+        setValidationError(null)
+        setPriceError('')
       }
     }
-  }, [selectedImage, selectedOptions, quantity, sellingPrice])
+  }, [quantity, sellingPrice, product, selectedImage, selectedOptions])
 
   // Handle image selection
   const handleImageSelect = (imageUrl: string) => {
@@ -194,7 +193,7 @@ const ProductDetail = () => {
 
     // Validate selections
     if (!selectedImage) {
-      setValidationError('একটি ছবি নির্বাচন করুন')
+      setValidationError('একটি ছবি সিলেক্ট করুন')
       return
     }
 
@@ -204,19 +203,20 @@ const ProductDetail = () => {
     const absentOptions = variantKeys.filter(key => !selectedOptions[key])
 
     if (absentOptions.length > 0) {
-      setValidationError(`অনুগ্রহ করে ${absentOptions[0]} নির্বাচন করুন`)
+      setValidationError(`${absentOptions[0]} সিলেক্ট করুন`)
       return
     }
 
     // Validate price
     const price = parseFloat(sellingPrice) || 0
     if (price < product.basePrice) {
-      setValidationError(`ন্যূনতম মূল্য ${product.basePrice} টাকা`)
+      setValidationError(`মূল্য কমপক্ষে ${product.basePrice} টাকা হতে হবে`)
       return
     }
 
     // Validate quantity
-    if (quantity < 1) {
+    if (parseInt(quantity) < 1 || isNaN(parseInt(quantity))) {
+      setValidationError('কোয়ান্টিটি কমপক্ষে 1 হতে হবে')
       return
     }
 
@@ -229,22 +229,18 @@ const ProductDetail = () => {
       name: product.name,
       basePrice: product.basePrice,
       sellingPrice: price,
-      quantity: quantity,
+      quantity: parseInt(quantity),
       imageUrl: selectedImage,
       selectedOptions: selectedOptions,
+      deliveryChargeInside: product.shop.deliveryChargeInside,
+      deliveryChargeOutside: product.shop.deliveryChargeOutside,
       cartItemId: uuidv4(),
     }
 
     // Get existing cart items from localStorage
     const existingCart = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
 
-    // Check if shop already has items in cart
-    const shopCartIndex = existingCart.findIndex(
-      (item: CartItem) => item.shopId === product.shopId && item.productId === product.productId
-    )
-    if (shopCartIndex === -1) {
-      existingCart.push(cartItem)
-    }
+    existingCart.push(cartItem)
 
     // Save to localStorage
     localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(existingCart))
@@ -506,10 +502,16 @@ const ProductDetail = () => {
                 <div>
                   <label className='block text-sm font-medium mb-1'>পরিমাণ</label>
                   <input
-                    type='number'
-                    min='1'
+                    type='text'
+                    inputMode='numeric'
                     value={quantity}
-                    onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={e => {
+                      const value = e.target.value
+                      // Allow only numbers and empty string
+                      if (value === '' || /^[1-9][0-9]*$/.test(value)) {
+                        setQuantity(value)
+                      }
+                    }}
                     className='w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
                   />
                 </div>
@@ -548,9 +550,9 @@ const ProductDetail = () => {
             <div className='lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg p-3 border-t'>
               <button
                 onClick={addToCart}
-                disabled={!selectedImage || !!priceError}
+                disabled={!!validationError}
                 className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
-                  !selectedImage || priceError
+                  !!validationError
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                 }`}
@@ -564,9 +566,9 @@ const ProductDetail = () => {
             <div className='hidden lg:block'>
               <button
                 onClick={addToCart}
-                disabled={!selectedImage || !!priceError}
+                disabled={!!validationError}
                 className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
-                  !selectedImage || priceError
+                  !!validationError
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                 }`}

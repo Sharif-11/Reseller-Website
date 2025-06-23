@@ -9,7 +9,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     withdraw: false,
-    products: false,
   })
   const userContext = useContext(UserContext)
   const user = userContext ? userContext.user : null
@@ -38,13 +37,14 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       {user ? (
         <div className='flex h-full'>
           {/* Sidebar */}
+
           <aside
             className={`
-              fixed md:relative w-64 bg-gradient-to-b from-indigo-700 to-indigo-800
-              text-white shadow-xl transform transition-transform duration-300 ease-in-out
-              ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-              z-40 flex flex-col h-[calc(100vh-64px)] md:h-auto
-            `}
+    fixed md:relative w-64 bg-gradient-to-b from-indigo-700 to-indigo-800
+    text-white shadow-xl transform transition-transform duration-300 ease-in-out
+    ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+    z-50 flex flex-col h-[calc(100vh-64px)] md:h-auto
+  `}
           >
             <div className='p-4 border-b border-indigo-600'>
               <div className='flex items-center space-x-3'>
@@ -101,78 +101,49 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 প্রোফাইল
               </NavLink>
 
-              {/* Products Accordion */}
-              <div className='border-b border-indigo-600/30 pb-1'>
-                <button
-                  onClick={() => toggleAccordion('products')}
-                  className='w-full flex items-center justify-between px-4 py-3 text-indigo-100 hover:bg-indigo-600/30 rounded-lg transition-all'
-                >
-                  <div className='flex items-center'>
-                    <svg
-                      className='w-5 h-5 mr-3'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'
-                      />
-                    </svg>
-                    পণ্য ব্যবস্থাপনা
-                  </div>
-                  <svg
-                    className={`w-4 h-4 transition-transform duration-200 ${
-                      openAccordions.products ? 'transform rotate-180' : ''
-                    }`}
-                    fill='none'
-                    stroke='currentColor'
-                    viewBox='0 0 24 24'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M19 9l-7 7-7-7'
-                    />
-                  </svg>
-                </button>
+              {/* Standalone Products Link */}
+              <NavLink
+                to='/products'
+                className={({ isActive }) => `
+                  flex items-center px-4 py-3 rounded-lg transition-all
+                  ${
+                    isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'
+                  }
+                `}
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <svg className='w-5 h-5 mr-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'
+                  />
+                </svg>
+                সকল প্রোডাক্টস
+              </NavLink>
 
-                {openAccordions.products && (
-                  <div className='ml-8 mt-1 space-y-1'>
-                    <NavLink
-                      to='/products'
-                      className={({ isActive }) => `
-                        flex items-center px-3 py-2 rounded-lg text-sm transition-all
-                        ${
-                          isActive
-                            ? 'bg-indigo-600 text-white'
-                            : 'text-indigo-100 hover:bg-indigo-600/30'
-                        }
-                      `}
-                      onClick={() => setIsSidebarOpen(false)}
-                    >
-                      সকল প্রোডাক্টস
-                    </NavLink>
-                    <NavLink
-                      to='/favorites'
-                      className={({ isActive }) => `
-                        flex items-center px-3 py-2 rounded-lg text-sm transition-all
-                        ${
-                          isActive
-                            ? 'bg-indigo-600 text-white'
-                            : 'text-indigo-100 hover:bg-indigo-600/30'
-                        }
-                      `}
-                      onClick={() => setIsSidebarOpen(false)}
-                    >
-                      ফেভরিট প্রোডাক্টস
-                    </NavLink>
-                  </div>
-                )}
-              </div>
+              {/* Standalone Favorites Link */}
+              <NavLink
+                to='/favorites'
+                className={({ isActive }) => `
+                  flex items-center px-4 py-3 rounded-lg transition-all
+                  ${
+                    isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/50'
+                  }
+                `}
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <svg className='w-5 h-5 mr-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'
+                  />
+                </svg>
+                ফেভরিট প্রোডাক্টস
+              </NavLink>
 
               <NavLink
                 to='/cart'
@@ -469,7 +440,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               </button>
             </nav>
           </aside>
-
           {/* Main Content */}
           <main className='flex-1 w-full p-0 md:p-6 bg-white md:bg-transparent md:rounded-tl-lg overflow-hidden'>
             <div className='bg-white min-h-[calc(100vh-4rem)] md:rounded-lg md:shadow-sm p-4 md:p-6'>

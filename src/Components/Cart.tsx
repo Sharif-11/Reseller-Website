@@ -189,17 +189,16 @@ const Cart = () => {
             </div>
 
             <div className='p-4 text-sm space-y-3'>
-              <p>১. ডেলিভারি ফি আগাম পরিশোধ বাধ্যতামূলক।</p>
               <p>
-                ২. ডেলিভারি কর্মী উপস্থিত থাকা অবস্থাতেই পণ্য পরীক্ষা করে নিতে হবে - কোনো ত্রুটি
+                ১. ডেলিভারি কর্মী উপস্থিত থাকা অবস্থাতেই পণ্য পরীক্ষা করে নিতে হবে - কোনো ত্রুটি
                 পাওয়া গেলে সাথে সাথে রিটার্ন করতে হবে।
               </p>
               <p>
-                ৩. ডেলিভারি কর্মী চলে যাওয়ার পর পণ্য ফেরত বা বদল করতে চাইলে অতিরিক্ত ডেলিভারি চার্জ
+                ২. ডেলিভারি কর্মী চলে যাওয়ার পর পণ্য ফেরত বা বদল করতে চাইলে অতিরিক্ত ডেলিভারি চার্জ
                 দিতে হবে।
               </p>
-              <p>৪. ৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</p>
-              <p>৫. ৩টির বেশি পণ্য হলে অতিরিক্ত চার্জ প্রযোজ্য হবে।</p>
+              <p>৩. ৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</p>
+              <p>৪. ৩টির বেশি পণ্য হলে অতিরিক্ত চার্জ প্রযোজ্য হবে।</p>
             </div>
 
             <div className='p-4 border-t flex justify-end space-x-3 sticky bottom-0 bg-white text-xs'>
@@ -233,7 +232,7 @@ const Cart = () => {
               <div>
                 <h2 className='font-medium text-gray-900'>{shopCart.shopName}</h2>
                 {shopCart.shopLocation && (
-                  <p className='text-xs text-gray-600 mt-1'>অবস্থান: {shopCart.shopLocation}</p>
+                  <p className='text-xs text-gray-600 mt-1'>{shopCart.shopLocation}</p>
                 )}
               </div>
               <div className='text-right'>
