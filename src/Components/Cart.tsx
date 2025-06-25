@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { CartItem } from '../types/cart.types'
 import { CART_ITEMS_KEY } from '../utils/utils.variables'
 
-type ShopCart = {
+export type ShopCart = {
   shopId: number
   shopName: string
   shopLocation?: string

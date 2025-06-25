@@ -1,109 +1,39 @@
 import { useFormik } from 'formik'
 import { useEffect, useState } from 'react'
-import {
-  FiChevronLeft,
-  FiCreditCard,
-  FiDollarSign,
-  FiEdit2,
-  FiInfo,
-  FiMapPin,
-  FiPhone,
-  FiUser,
-  FiX,
-} from 'react-icons/fi'
+import { FiChevronLeft, FiEdit2, FiMapPin, FiPhone, FiUser } from 'react-icons/fi'
 import { useLocation, useNavigate } from 'react-router-dom'
 import * as Yup from 'yup'
 import districts from '../../public/zillasInfo.json'
-import { createOrder, getAdminWallets, verifyOrderProducts } from '../Api/seller.api'
-import { Wallet } from '../Context/userContext'
-import { useAuth } from '../Hooks/useAuth'
 import { OrderData } from '../types/order.types'
-import { dhakaDeliveryCharge, outsideDhakaDeliveryCharge } from '../utils/config.utils'
-import { CART_ITEMS_KEY } from '../utils/utils.variables'
+import { ShopCart } from './Cart'
 
-interface CartItem {
-  productId: number
-  cartItemId: string
-  name: string
-  imageUrl: string
-  sellingPrice: number
-  basePrice: number
-  quantity: number
-  selectedOptions: Record<string, string>
+// Draft data interface
+interface DraftData {
+  customerPhone: string
+  customerName: string
+  zilla: string
+  upazilla: string
+  deliveryAddress: string
+  comments: string
 }
+
+const DRAFT_KEY = 'checkout_draft'
 
 const Checkout = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, reloadUser } = useAuth()
   const [upazillas, setUpazillas] = useState<string[]>([])
-  const [productsVerified, setProductsVerified] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [adminWallets, setAdminWallets] = useState<Wallet[]>([])
   const [formErrors, setFormErrors] = useState<string[]>([])
-  const [mustPayAdvance, setMustPayAdvance] = useState(false)
-  const [paymentFormFilled, setPaymentFormFilled] = useState(false)
 
   // Cart items and price calculation
-  const cartItems = (location.state?.cartItems as CartItem[]) || []
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-  const subtotal = cartItems.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
-
-  // Calculate extra delivery charge based on product count
-  const calculateExtraDeliveryCharge = (productCount: number) => {
-    if (productCount <= 3) return 0
-    if (productCount === 4) return 10
-
-    // For 5+ products: 10 tk for the 4th product + 5 tk for every 2 additional products
-    const additionalProducts = productCount - 4
-    let temp = 0
-    if (additionalProducts % 2 === 0) {
-      temp = (additionalProducts / 2) * 5
-    } else {
-      temp = ((additionalProducts - 1) / 2) * 5
-    }
-    return 10 + temp
-  }
-
-  // Fetch admin wallets
-  const fetchAdminWallets = async () => {
-    try {
-      const { success, message, data } = await getAdminWallets()
-      if (success) {
-        setAdminWallets(data)
-      } else {
-        console.error(message)
-      }
-    } catch (error) {
-      console.error('Error fetching admin wallets:', error)
-    }
-  }
-  const verifyProducts = async () => {
-    const products = cartItems.map(item => ({
-      productId: item.productId,
-      productImage: item.imageUrl,
-      productQuantity: item.quantity,
-      productSellingPrice: item.sellingPrice,
-      selectedOptions: item.selectedOptions,
-    }))
-    const { success, message, data } = await verifyOrderProducts(products)
-    setProductsVerified(data)
-    if (success) {
-      !data && setFormErrors(['পণ্যের তথ্য সঠিক নয়'])
-      if (data) {
-        return true
-      }
-    } else {
-      setFormErrors([message])
-      return false
-    }
-  }
-
-  useEffect(() => {
-    fetchAdminWallets()
-    reloadUser()
-    verifyProducts()
-  }, [])
+  const shopCart = location.state?.shopCart as ShopCart
+  const totalItems = shopCart.items.reduce((sum, item) => sum + item.quantity, 0)
+  const subtotal = shopCart.items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
+  const totalCommission = shopCart.items.reduce(
+    (sum, item) => sum + (item.sellingPrice - item.basePrice) * item.quantity,
+    0
+  )
 
   // Form validation schema
   const validationSchema = Yup.object({
@@ -116,23 +46,24 @@ const Checkout = () => {
       .required('থানা/এলাকা নির্বাচন করুন')
       .max(48, 'থানা/এলাকার নাম আরও ছোট হতে হবে'),
     deliveryAddress: Yup.string().max(255, 'ঠিকানা আরও ছোট হতে হবে').required('ঠিকানা আবশ্যক'),
-    needsPayment: Yup.boolean().required(),
-    adminWalletId: Yup.number().when('needsPayment', {
-      is: true,
-      then: () => Yup.number().required('এডমিন ওয়ালেট নির্বাচন করুন'),
-    }),
-    transactionId: Yup.string().when('needsPayment', {
-      is: true,
-      then: () => Yup.string().required('ট্রানজেকশন আইডি দিন'),
-    }),
-    sellerWalletPhoneNo: Yup.string().when('needsPayment', {
-      is: true,
-      then: () =>
-        Yup.string()
-          .matches(/^01\d{9}$/, 'সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)')
-          .required('ওয়ালেট নাম্বার দিন'),
-    }),
+    comments: Yup.string().max(500, 'কমেন্টস আরও ছোট হতে হবে'),
   })
+
+  // Load draft data from localStorage
+  const loadDraft = (): DraftData | null => {
+    const draft = localStorage.getItem(DRAFT_KEY)
+    return draft ? JSON.parse(draft) : null
+  }
+
+  // Save draft data to localStorage
+  const saveDraft = (data: DraftData) => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(data))
+  }
+
+  // Clear draft data
+  // const clearDraft = () => {
+  //   localStorage.removeItem(DRAFT_KEY)
+  // }
 
   const formik = useFormik({
     initialValues: {
@@ -141,55 +72,38 @@ const Checkout = () => {
       zilla: '',
       upazilla: '',
       deliveryAddress: '',
-      needsPayment: false,
-      adminWalletId: 0,
-      transactionId: '',
-      sellerWalletPhoneNo: '',
       comments: '',
-      sellerWalletName: '',
     },
     validationSchema,
     onSubmit: async values => {
       setIsSubmitting(true)
       try {
-        const orderData: Partial<OrderData> = {
+        const orderData: OrderData = {
+          shopId: shopCart.shopId,
           customerName: values.customerName,
           customerPhoneNo: values.customerPhone,
           customerZilla: values.zilla,
           customerUpazilla: values.upazilla,
           deliveryAddress: values.deliveryAddress,
           comments: values.comments,
-
-          products: cartItems.map(item => ({
-            productId: item.productId,
-            productImage: item.imageUrl,
-            productQuantity: item.quantity,
-            productSellingPrice: item.sellingPrice,
-            selectedOptions: item.selectedOptions,
+          products: shopCart.items.map(item => ({
+            id: item.productId,
+            imageUrl: item.imageUrl,
+            imageId: item.imageId,
+            quantity: item.quantity,
+            sellingPrice: item.sellingPrice,
+            selectedVariants: item.selectedOptions,
           })),
-
-          isDeliveryChargePaidBySeller: values.needsPayment,
-          sellerWalletName: values.sellerWalletName,
-          sellerWalletPhoneNo: values.sellerWalletPhoneNo,
-          adminWalletId: values.adminWalletId,
-          deliveryChargePaidBySeller: values.needsPayment ? calculateTotalDeliveryCharge() : 0,
         }
-        if (values.needsPayment) {
-          orderData.transactionId = values.transactionId.trim()
-        }
-        const isValid = await verifyProducts()
-        if (!isValid) {
-          setFormErrors(['অর্ডার পণ্যগুলো সঠিক নয়।'])
-          return
-        }
-
-        const { success, message } = await createOrder(orderData as OrderData)
-        if (success) {
-          localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([]))
-          navigate('/orders', { state: { orderSuccess: true } })
-        } else {
-          setFormErrors([message])
-        }
+        console.log('Order Data:', orderData)
+        // const { success, message } = await createOrder(orderData as OrderData)
+        // if (success) {
+        //   clearDraft() // Clear draft on successful submission
+        //   localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([]))
+        //   navigate('/orders', { state: { orderSuccess: true } })
+        // } else {
+        //   setFormErrors([message])
+        // }
       } catch (error) {
         console.error('Order submission error:', error)
         setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
@@ -199,114 +113,38 @@ const Checkout = () => {
     },
   })
 
-  // Calculate total delivery charge
-  const calculateTotalDeliveryCharge = () => {
-    const baseDeliveryCharge = formik.values.zilla.toLowerCase().includes('dhaka')
-      ? dhakaDeliveryCharge
-      : outsideDhakaDeliveryCharge
-    const extraDeliveryCharge = calculateExtraDeliveryCharge(totalItems)
-    return baseDeliveryCharge + extraDeliveryCharge
-  }
-
   // Handle district change
   const handleZillaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedZilla = e.target.value as keyof typeof districts
     formik.setFieldValue('zilla', selectedZilla)
     formik.setFieldValue('upazilla', '')
     setUpazillas(selectedZilla ? districts[selectedZilla] || [] : [])
+    saveDraft({ ...formik.values, zilla: selectedZilla, upazilla: '' })
   }
 
-  // Handle admin wallet selection
-  const handleAdminWalletSelect = (walletId: number) => {
-    const selectedWallet = adminWallets.find(w => w.walletId === walletId)
-    if (selectedWallet) {
-      formik.setFieldValue('adminWalletId', walletId)
-      formik.setFieldValue('sellerWalletName', selectedWallet.walletName) // Auto-set seller wallet type
-      formik.setFieldTouched('adminWalletId', true)
-    }
-  }
-
-  // Check payment requirements before confirming order
-  const handleConfirmOrder = () => {
-    // First validate the basic form fields
-    formik.validateForm().then(errors => {
-      const basicFields = ['customerPhone', 'customerName', 'zilla', 'upazilla', 'deliveryAddress']
-      const hasBasicErrors = basicFields.some(field => errors[field as keyof typeof errors])
-
-      if (hasBasicErrors) {
-        // If basic fields have errors, don't proceed
-        return
-      }
-
-      const currentBalance = user?.balance || 0
-      let needsPayment = false
-
-      if (!user?.isVerified) {
-        // Unverified user
-        needsPayment = currentBalance < calculateTotalDeliveryCharge()
-        setMustPayAdvance(needsPayment)
-      } else {
-        // Verified user
-        if (currentBalance < 0) {
-          // Negative balance - must pay
-          needsPayment = true
-          setMustPayAdvance(true)
-        } else {
-          // Positive balance - let them choose
-          needsPayment = formik.values.needsPayment
-          setMustPayAdvance(false)
-        }
-      }
-
-      formik.setFieldValue('needsPayment', needsPayment)
-
-      if (needsPayment) {
-        // For payment needed case, validate payment fields
-        formik.validateField('adminWalletId').then(() => {
-          if (formik.errors.adminWalletId) {
-            // Show error if wallet not selected
-            setFormErrors(['অনুগ্রহ করে একটি এডমিন ওয়ালেট নির্বাচন করুন'])
-            setTimeout(() => {
-              const paymentSection = document.getElementById('payment-section')
-              if (paymentSection) {
-                paymentSection.scrollIntoView({ behavior: 'smooth' })
-              }
-            }, 100)
-          } else if (paymentFormFilled) {
-            // If payment form was already filled, submit now
-            formik.handleSubmit()
-          } else {
-            // Scroll to payment section if payment is needed
-            setTimeout(() => {
-              const paymentSection = document.getElementById('payment-section')
-              if (paymentSection) {
-                paymentSection.scrollIntoView({ behavior: 'smooth' })
-              }
-            }, 100)
-          }
-        })
-      } else {
-        // If no payment needed, submit directly
-        formik.handleSubmit()
-      }
-    })
-  }
-
-  // Check if payment form is filled
+  // Save form data to draft when values change
   useEffect(() => {
-    if (formik.values.needsPayment) {
-      const paymentFields = ['adminWalletId', 'transactionId', 'sellerWalletPhoneNo']
-      const isPaymentFormValid = paymentFields.every(
-        field =>
-          !formik.errors[field as keyof typeof formik.errors] &&
-          formik.values[field as keyof typeof formik.errors]
-      )
-      setPaymentFormFilled(isPaymentFormValid)
+    const timer = setTimeout(() => {
+      if (Object.values(formik.values).some(value => value)) {
+        saveDraft(formik.values)
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [formik.values])
+
+  // Load draft data on component mount
+  useEffect(() => {
+    const draft = loadDraft()
+    if (draft) {
+      formik.setValues(draft)
+      if (draft.zilla) {
+        setUpazillas(districts[draft.zilla as keyof typeof districts] || [])
+      }
     }
-  }, [formik.values, formik.errors])
+  }, [])
 
   // Empty cart handling
-  if (cartItems.length === 0) {
+  if (shopCart.items.length === 0) {
     return (
       <div className='flex items-center justify-center min-h-screen p-4'>
         <div className='bg-white rounded-lg shadow-md p-8 max-w-md w-full text-center'>
@@ -324,11 +162,6 @@ const Checkout = () => {
     )
   }
 
-  // Delivery charge calculation
-  const totalDeliveryCharge = calculateTotalDeliveryCharge()
-  const totalAmount = subtotal + totalDeliveryCharge
-  const userBalance = user?.balance || 0
-
   return (
     <div className='min-h-screen bg-gray-50 py-4 px-4 sm:px-6'>
       <div className='max-w-6xl mx-auto'>
@@ -343,11 +176,46 @@ const Checkout = () => {
 
         <h1 className='text-2xl font-bold text-gray-900 mb-6'>চেকআউট</h1>
 
+        {/* Shop information */}
+        <div className='bg-white rounded-lg shadow-md p-4 mb-6 lg:hidden'>
+          <div className='flex items-center gap-3 mb-3'>
+            <FiMapPin className='text-blue-600' size={18} />
+            <h2 className='text-lg font-medium text-gray-900'>{shopCart.shopName}</h2>
+          </div>
+
+          {shopCart.shopLocation && (
+            <div className='flex items-start gap-3 text-sm text-gray-700 mb-3'>
+              <FiMapPin className='text-gray-500 mt-0.5 flex-shrink-0' size={14} />
+              <p>{shopCart.shopLocation}</p>
+            </div>
+          )}
+
+          <div className='flex flex-wrap gap-4 text-sm'>
+            {shopCart.deliveryChargeInside && (
+              <div className='flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full'>
+                <span className='text-blue-700 font-medium'>এলাকার ভিতরে:</span>
+                <span className='text-blue-800 font-semibold'>
+                  ৳{shopCart.deliveryChargeInside.toLocaleString('bn-BD')}
+                </span>
+              </div>
+            )}
+
+            {shopCart.deliveryChargeOutside && (
+              <div className='flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-full'>
+                <span className='text-green-700 font-medium'>এলাকার বাইরে:</span>
+                <span className='text-green-800 font-semibold'>
+                  ৳{shopCart.deliveryChargeOutside.toLocaleString('bn-BD')}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Mobile order summary */}
         <div className='lg:hidden bg-white rounded-lg shadow-md p-4 mb-6'>
           <h2 className='text-lg font-medium text-gray-900 mb-3'>আপনার অর্ডার</h2>
           <div className='border-b pb-3 mb-3'>
-            {cartItems.map(item => (
+            {shopCart.items.map(item => (
               <div key={item.cartItemId} className='flex items-start py-2'>
                 <div className='h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border border-gray-200'>
                   <img
@@ -368,6 +236,10 @@ const Checkout = () => {
                   </div>
                   <p className='text-xs text-gray-500'>
                     পরিমাণ: {item.quantity} × ৳{item.sellingPrice.toLocaleString('bn-BD')}
+                  </p>
+                  <p className='text-xs text-green-600'>
+                    কমিশন: ৳
+                    {((item.sellingPrice - item.basePrice) * item.quantity).toLocaleString('bn-BD')}
                   </p>
                   {Object.entries(item.selectedOptions).length > 0 && (
                     <div className='mt-1 text-xs text-gray-500'>
@@ -392,45 +264,9 @@ const Checkout = () => {
               <span className='text-gray-600'>পণ্যের মূল্য:</span>
               <span className='text-gray-900'>৳{subtotal.toLocaleString('bn-BD')}</span>
             </div>
-
-            <div className='flex justify-between items-center'>
-              <span className='text-gray-600'>ডেলিভারি চার্জ:</span>
-              <div className='text-right'>
-                <span className='text-gray-900'>
-                  ৳{totalDeliveryCharge.toLocaleString('bn-BD')}
-                </span>
-              </div>
-            </div>
-
-            <div className='flex justify-between border-t pt-2 font-medium'>
-              <span>সর্বমোট:</span>
-              <span>৳{totalAmount.toLocaleString('bn-BD')}</span>
-            </div>
-          </div>
-
-          {/* Balance info */}
-          <div className='mt-3 p-2 bg-yellow-50 rounded-lg'>
-            <p className='text-xs text-yellow-800'>
-              আপনার ব্যালেন্স: ৳{userBalance.toLocaleString('bn-BD')}
-            </p>
-            {formik.values.needsPayment && (
-              <p className='text-xs text-red-600 mt-1'>
-                পরিশোধ করতে হবে: ৳{totalDeliveryCharge.toLocaleString('bn-BD')}
-              </p>
-            )}
-          </div>
-
-          {/* Delivery guidelines - Mobile */}
-          <div className='mt-4 lg:hidden'>
-            <div className='bg-blue-50 p-2 rounded-lg'>
-              <h3 className='text-xs font-medium text-blue-800 mb-1'>ডেলিভারি নির্দেশিকা</h3>
-              <ul className='text-xs text-blue-700 space-y-1 list-disc pl-4'>
-                <li>ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
-                <li>ডেলিভারি কর্মী উপস্থিত থাকা অবস্থায় পণ্য পরীক্ষা করে নিন</li>
-                <li>৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</li>
-                <li>৪র্থ পণ্যের জন্য অতিরিক্ত ৳১০</li>
-                <li>এরপর প্রতি ২টি পণ্যের জন্য অতিরিক্ত ৳৫</li>
-              </ul>
+            <div className='flex justify-between text-green-600'>
+              <span className='text-gray-600'>মোট কমিশন:</span>
+              <span className='font-medium'>৳{totalCommission.toLocaleString('bn-BD')}</span>
             </div>
           </div>
         </div>
@@ -550,7 +386,7 @@ const Checkout = () => {
                     ডেলিভারির ঠিকানা*
                   </label>
                   <textarea
-                    rows={4}
+                    rows={6}
                     className={`w-full px-3 py-2 border rounded-lg text-sm ${
                       formik.touched.deliveryAddress && formik.errors.deliveryAddress
                         ? 'border-red-500'
@@ -565,189 +401,6 @@ const Checkout = () => {
                     শুধুমাত্র ঠিকানা লিখুন, কাস্টমার এর নাম বা মোবাইল নং দেয়া যাবে না।
                   </p>
                 </div>
-
-                {/* Delivery charge info */}
-                <div>
-                  <label className='text-sm font-medium text-gray-700 mb-1 flex items-center gap-1'>
-                    <FiDollarSign size={14} />
-                    ডেলিভারি চার্জ
-                  </label>
-                  <div className='p-2 bg-gray-50 rounded-lg border border-gray-200'>
-                    <p className='text-sm'>
-                      {formik.values.zilla.toLowerCase().includes('dhaka')
-                        ? 'ঢাকা শহরের জন্য: ৳80'
-                        : 'ঢাকার বাইরের জন্য: ৳130'}
-                    </p>
-                    {totalItems > 3 && (
-                      <p className='text-sm mt-1'>
-                        অতিরিক্ত চার্জ: {totalItems}টি পণ্যের জন্য ৳
-                        {calculateExtraDeliveryCharge(totalItems).toLocaleString('bn-BD')}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Payment option for verified sellers */}
-                {user?.isVerified && user.balance >= 0 && (
-                  <div>
-                    <label className='text-sm font-medium text-gray-700 mb-2 block'>
-                      ডেলিভারি চার্জ অগ্রিম প্রদান করবেন?
-                    </label>
-                    <div className='flex gap-4'>
-                      <label className='flex items-center'>
-                        <input
-                          type='radio'
-                          name='needsPayment'
-                          checked={formik.values.needsPayment}
-                          onChange={() => formik.setFieldValue('needsPayment', true)}
-                          className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300'
-                          disabled={mustPayAdvance}
-                        />
-                        <span className='ml-2 text-sm text-gray-700'>হ্যাঁ</span>
-                      </label>
-                      <label className='flex items-center'>
-                        <input
-                          type='radio'
-                          name='needsPayment'
-                          checked={!formik.values.needsPayment}
-                          onChange={() => formik.setFieldValue('needsPayment', false)}
-                          className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300'
-                          disabled={mustPayAdvance}
-                        />
-                        <span className='ml-2 text-sm text-gray-700'>না</span>
-                      </label>
-                    </div>
-                    {mustPayAdvance && (
-                      <p className='text-xs text-red-600 mt-1'>
-                        আপনার ব্যালেন্স নেগেটিভ হওয়ায় ডেলিভারি চার্জ অগ্রিম প্রদান করতে হবে
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Payment form (shown when needed) */}
-                {formik.values.needsPayment && productsVerified && (
-                  <div id='payment-section' className='border-t pt-4 mt-4'>
-                    <h3 className='text-md font-medium text-gray-900 mb-3 flex items-center gap-1'>
-                      <FiCreditCard size={16} />
-                      ডেলিভারি চার্জ পেমেন্ট
-                    </h3>
-
-                    {/* Amount to pay */}
-                    <div className='mb-3 bg-blue-50 p-3 rounded-lg'>
-                      <div className='flex justify-between items-center'>
-                        <span className='text-sm font-medium'>পরিশোধ করতে হবে:</span>
-                        <span className='text-lg font-bold text-blue-700'>
-                          ৳{totalDeliveryCharge.toLocaleString('bn-BD')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Admin wallets */}
-                    <div className='mb-4'>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        এডমিন ওয়ালেট নির্বাচন করুন*
-                      </label>
-                      <div className='space-y-2'>
-                        {adminWallets.map(wallet => (
-                          <div
-                            key={wallet.walletId}
-                            className={`flex items-center p-3 border rounded-lg cursor-pointer ${
-                              formik.values.adminWalletId === wallet.walletId
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-200'
-                            }`}
-                            onClick={() => handleAdminWalletSelect(wallet.walletId)}
-                          >
-                            <input
-                              type='radio'
-                              id={`wallet-${wallet.walletId}`}
-                              name='adminWallet'
-                              checked={formik.values.adminWalletId === wallet.walletId}
-                              onChange={() => handleAdminWalletSelect(wallet.walletId)}
-                              className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300'
-                            />
-                            <label htmlFor={`wallet-${wallet.walletId}`} className='ml-3 block'>
-                              <span className='block text-sm font-medium text-gray-900'>
-                                {wallet.walletName}
-                              </span>
-                              <span className='block text-xs text-gray-500'>
-                                {wallet.walletPhoneNo}
-                              </span>
-                            </label>
-                          </div>
-                        ))}
-                        <p className='text-[8px] text-blue-500 mt-1 font-bold'>
-                          {`উপরের ${
-                            formik.values.sellerWalletName || 'ওয়ালেট'
-                          } মোবাইল নাম্বারে ${totalDeliveryCharge} টাকা পাঠিয়ে দিন।`}
-                        </p>
-                      </div>
-                      {formik.touched.adminWalletId && formik.errors.adminWalletId && (
-                        <p className='text-red-500 text-xs mt-1'>{formik.errors.adminWalletId}</p>
-                      )}
-                    </div>
-
-                    {/* Seller wallet name (hidden, auto-filled) */}
-                    <input type='hidden' {...formik.getFieldProps('sellerWalletName')} />
-
-                    {/* Seller wallet phone number */}
-                    <div className='mb-4'>
-                      <label className='block text-sm font-medium text-gray-700 mb-1'>
-                        আপনার {formik.values.sellerWalletName || 'ওয়ালেট'} নাম্বার*
-                      </label>
-                      <input
-                        type='text'
-                        className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                          formik.touched.sellerWalletPhoneNo && formik.errors.sellerWalletPhoneNo
-                            ? 'border-red-500'
-                            : 'border-gray-300'
-                        }`}
-                        placeholder='01XXXXXXXXX'
-                        {...formik.getFieldProps('sellerWalletPhoneNo')}
-                      />
-                      {formik.touched.sellerWalletPhoneNo && formik.errors.sellerWalletPhoneNo && (
-                        <p className='text-red-500 text-xs mt-1'>
-                          {formik.errors.sellerWalletPhoneNo}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Transaction ID */}
-                    <div className='mb-4'>
-                      <label className='block text-sm font-medium text-gray-700 mb-1'>
-                        ট্রানজেকশন আইডি*
-                      </label>
-                      <input
-                        type='text'
-                        className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                          formik.touched.transactionId && formik.errors.transactionId
-                            ? 'border-red-500'
-                            : 'border-gray-300'
-                        } ${!formik.values.adminWalletId ? 'bg-gray-100' : ''}`}
-                        {...formik.getFieldProps('transactionId')}
-                        placeholder='ট্রানজেকশন আইডি দিন'
-                        disabled={!formik.values.adminWalletId}
-                      />
-                      {formik.touched.transactionId && formik.errors.transactionId && (
-                        <p className='text-red-500 text-xs mt-1'>{formik.errors.transactionId}</p>
-                      )}
-                      {!formik.values.adminWalletId && (
-                        <p className='text-red-500 text-xs mt-1'>
-                          প্রথমে একটি এডমিন ওয়ালেট নির্বাচন করুন
-                        </p>
-                      )}
-                    </div>
-
-                    <div className='mt-3 bg-yellow-50 p-2 rounded-lg'>
-                      <p className='text-xs text-yellow-800 flex items-start'>
-                        <FiInfo className='mr-1 mt-0.5 flex-shrink-0' />
-                        অনুগ্রহ করে পেমেন্ট সম্পন্ন করে সঠিক ট্রানজেকশন আইডি দিন। ভুল তথ্য দিলে
-                        আপনার অর্ডার বাতিল করা হতে পারে।
-                      </p>
-                    </div>
-                  </div>
-                )}
 
                 {/* Comments */}
                 <div>
@@ -764,8 +417,8 @@ const Checkout = () => {
                 {formErrors.length > 0 && (
                   <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg'>
                     {formErrors.map((error, index) => (
-                      <p key={index} className='text-red-600 text-sm flex items-center'>
-                        <FiX className='mr-1' /> {error}
+                      <p key={index} className='text-red-600 text-sm'>
+                        {error}
                       </p>
                     ))}
                   </div>
@@ -773,8 +426,7 @@ const Checkout = () => {
                 {/* Submit button */}
                 <div className='pt-3'>
                   <button
-                    type='button'
-                    onClick={handleConfirmOrder}
+                    type='submit'
                     disabled={isSubmitting}
                     className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center'
                   >
@@ -802,10 +454,6 @@ const Checkout = () => {
                         </svg>
                         প্রসেসিং...
                       </>
-                    ) : formik.values.needsPayment && paymentFormFilled ? (
-                      'অর্ডার কনফার্ম করুন'
-                    ) : formik.values.needsPayment ? (
-                      'পেমেন্ট তথ্য দিন'
                     ) : (
                       'অর্ডার কনফার্ম করুন'
                     )}
@@ -821,7 +469,7 @@ const Checkout = () => {
               <h2 className='text-lg font-medium text-gray-900 mb-3'>আপনার অর্ডার</h2>
 
               <div className='border-b pb-3 mb-3'>
-                {cartItems.map(item => (
+                {shopCart.items.map(item => (
                   <div key={item.cartItemId} className='flex items-start py-2'>
                     <div className='h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border border-gray-200'>
                       <img
@@ -843,6 +491,12 @@ const Checkout = () => {
                       </div>
                       <p className='mt-1 text-xs text-gray-500'>
                         পরিমাণ: {item.quantity} × ৳{item.sellingPrice.toLocaleString('bn-BD')}
+                      </p>
+                      <p className='text-xs text-green-600'>
+                        কমিশন: ৳
+                        {((item.sellingPrice - item.basePrice) * item.quantity).toLocaleString(
+                          'bn-BD'
+                        )}
                       </p>
                       {Object.entries(item.selectedOptions).length > 0 && (
                         <div className='mt-1 text-xs text-gray-500'>
@@ -866,45 +520,46 @@ const Checkout = () => {
                   <span className='text-gray-600'>পণ্যের মূল্য:</span>
                   <span className='text-gray-900'>৳{subtotal.toLocaleString('bn-BD')}</span>
                 </div>
+                <div className='flex justify-between text-green-600'>
+                  <span className='text-gray-600'>মোট কমিশন:</span>
+                  <span className='font-medium'>৳{totalCommission.toLocaleString('bn-BD')}</span>
+                </div>
+              </div>
 
-                <div className='flex justify-between'>
-                  <span className='text-gray-600'>ডেলিভারি চার্জ:</span>
-                  <div className='text-right'>
-                    <span className='text-gray-900'>
-                      ৳{totalDeliveryCharge.toLocaleString('bn-BD')}
-                    </span>
+              {/* Shop information */}
+              <div className='mt-4 pt-4 border-t'>
+                <div className='flex items-center gap-2 mb-3'>
+                  <FiMapPin className='text-blue-600' size={16} />
+                  <h3 className='text-sm font-semibold text-gray-800'>{shopCart.shopName}</h3>
+                </div>
+
+                <div className='space-y-2 text-sm'>
+                  {shopCart.shopLocation && (
+                    <div className='flex items-start gap-2 text-gray-600'>
+                      <FiMapPin className='text-gray-400 mt-0.5 flex-shrink-0' size={14} />
+                      <p>{shopCart.shopLocation}</p>
+                    </div>
+                  )}
+
+                  <div className='flex flex-wrap gap-2 mt-2'>
+                    {shopCart.deliveryChargeInside && (
+                      <div className='flex items-center gap-1 bg-blue-50/70 px-2.5 py-1 rounded-md'>
+                        <span className='text-blue-700'>ভিতরে:</span>
+                        <span className='text-blue-800 font-medium'>
+                          ৳{shopCart.deliveryChargeInside.toLocaleString('bn-BD')}
+                        </span>
+                      </div>
+                    )}
+
+                    {shopCart.deliveryChargeOutside && (
+                      <div className='flex items-center gap-1 bg-amber-50/70 px-2.5 py-1 rounded-md'>
+                        <span className='text-amber-700'>বাইরে:</span>
+                        <span className='text-amber-800 font-medium'>
+                          ৳{shopCart.deliveryChargeOutside.toLocaleString('bn-BD')}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                <div className='flex justify-between border-t pt-2 font-medium'>
-                  <span>সর্বমোট:</span>
-                  <span>৳{totalAmount.toLocaleString('bn-BD')}</span>
-                </div>
-              </div>
-
-              {/* Balance info */}
-              <div className='mt-3 p-2 bg-yellow-50 rounded-lg'>
-                <p className='text-xs text-yellow-800'>
-                  আপনার ব্যালেন্স: ৳{userBalance.toLocaleString('bn-BD')}
-                </p>
-                {formik.values.needsPayment && (
-                  <p className='text-xs text-red-600 mt-1'>
-                    পরিশোধ করতে হবে: ৳{totalDeliveryCharge.toLocaleString('bn-BD')}
-                  </p>
-                )}
-              </div>
-
-              {/* Delivery guidelines - Desktop */}
-              <div className='mt-4 hidden lg:block'>
-                <div className='bg-blue-50 p-2 rounded-lg'>
-                  <h3 className='text-xs font-medium text-blue-800 mb-1'>ডেলিভারি নির্দেশিকা</h3>
-                  <ul className='text-xs text-blue-700 space-y-1 list-disc pl-4'>
-                    <li>ডেলিভারি চার্জ অগ্রিম প্রদান বাধ্যতামূলক</li>
-                    <li>ডেলিভারি কর্মী উপস্থিত থাকা অবস্থায় পণ্য পরীক্ষা করে নিন</li>
-                    <li>৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</li>
-                    <li>৪র্থ পণ্যের জন্য অতিরিক্ত ৳১০</li>
-                    <li>এরপর প্রতি ২টি পণ্যের জন্য অতিরিক্ত ৳৫</li>
-                  </ul>
                 </div>
               </div>
             </div>

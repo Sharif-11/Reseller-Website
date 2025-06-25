@@ -18,6 +18,7 @@ type CartItem = {
   sellingPrice: number
   quantity: number
   imageUrl: string
+  imageId: number
   selectedOptions: Record<string, string>
   cartItemId: string
 }
@@ -33,7 +34,9 @@ const ProductDetail = () => {
   const [error, setError] = useState<string | null>(null)
 
   // User selections
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [selectedImage, setSelectedImage] = useState<{ imageUrl: string; imageId: number } | null>(
+    null
+  )
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
   const [quantity, setQuantity] = useState<string>('1')
   const [sellingPrice, setSellingPrice] = useState('')
@@ -104,8 +107,8 @@ const ProductDetail = () => {
   }, [quantity, sellingPrice, product, selectedImage, selectedOptions])
 
   // Handle image selection
-  const handleImageSelect = (imageUrl: string) => {
-    setSelectedImage(imageUrl)
+  const handleImageSelect = ({ imageUrl, imageId }: { imageUrl: string; imageId: number }) => {
+    setSelectedImage({ imageUrl, imageId })
     // setValidationError(null) // Clear validation error when image is selected
   }
 
@@ -219,7 +222,7 @@ const ProductDetail = () => {
       setValidationError('কোয়ান্টিটি কমপক্ষে 1 হতে হবে')
       return
     }
-
+    console.log(selectedImage)
     // Create cart item
     const cartItem: CartItem = {
       productId: product.productId,
@@ -230,7 +233,8 @@ const ProductDetail = () => {
       basePrice: product.basePrice,
       sellingPrice: price,
       quantity: parseInt(quantity),
-      imageUrl: selectedImage,
+      imageUrl: selectedImage.imageUrl,
+      imageId: selectedImage.imageId,
       selectedOptions: selectedOptions,
       deliveryChargeInside: product.shop.deliveryChargeInside,
       deliveryChargeOutside: product.shop.deliveryChargeOutside,
@@ -318,7 +322,9 @@ const ProductDetail = () => {
             {/* Main Image */}
             <div className='relative aspect-square'>
               <img
-                src={selectedImage || product.ProductImage[0]?.imageUrl || '/placeholder.jpg'}
+                src={
+                  selectedImage?.imageUrl || product.ProductImage[0]?.imageUrl || '/placeholder.jpg'
+                }
                 alt={product.name}
                 className='w-full h-full object-contain'
                 onError={e => {
@@ -342,7 +348,7 @@ const ProductDetail = () => {
                 <button
                   onClick={() =>
                     downloadImage(
-                      selectedImage || product.ProductImage[0]?.imageUrl || '',
+                      selectedImage?.imageUrl || product.ProductImage[0]?.imageUrl || '',
                       product.name
                     )
                   }
@@ -388,9 +394,16 @@ const ProductDetail = () => {
                 {product.ProductImage.map(image => (
                   <button
                     key={image.imageId}
-                    onClick={() => handleImageSelect(image.imageUrl)}
+                    onClick={() =>
+                      handleImageSelect({
+                        imageUrl: image.imageUrl,
+                        imageId: image.imageId,
+                      })
+                    }
                     className={`aspect-square border-2 rounded overflow-hidden ${
-                      selectedImage === image.imageUrl ? 'border-blue-500' : 'border-transparent'
+                      selectedImage?.imageUrl === image.imageUrl
+                        ? 'border-blue-500'
+                        : 'border-transparent'
                     }`}
                   >
                     <img
