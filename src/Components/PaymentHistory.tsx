@@ -1,465 +1,238 @@
 import { useEffect, useState } from 'react'
-import 'react-datepicker/dist/react-datepicker.css'
 import { toast } from 'react-toastify'
-import { getPaymentHistory } from '../Api/seller.api'
+import { paymentApi } from '../Api/payment.api'
+import { useAuth } from '../Hooks/useAuth'
 import { formatDate } from '../utils/date.utils'
 
+type PaymentStatus = 'PENDING' | 'COMPLETED' | 'REJECTED'
+type PaymentType = 'ORDER_PAYMENT' | 'WITHDRAW_PAYMENT' | 'DUE_PAYMENT'
+type SenderType = 'SELLER' | 'ADMIN'
+
 interface Payment {
-  paymentId: number
+  paymentId: string
   paymentDate: string
   processedAt: string | null
-  orderId: number | null
-  withdrawId: string | null
-  paymentStatus: 'pending' | 'verified' | 'rejected'
-  paymentType: 'DuePayment' | 'OrderPayment' | 'WithdrawPayment'
-  sender: 'Seller' | 'Admin'
-  adminWalletName: string
-  adminWalletPhoneNo: string
-  sellerWalletName: string
-  sellerWalletPhoneNo: string
-  sellerName: string
-  sellerPhoneNo: string
-  sellerId: string
-  transactionId: string | null
+  paymentStatus: PaymentStatus
+  paymentType: PaymentType
+  sender: SenderType
+  userWalletName: string
+  userWalletPhoneNo: string
+  systemWalletName: string | null
+  systemWalletPhoneNo: string | null
   amount: string
+  transactionId: string | null
   transactionFee: string | null
-  actualAmount: string
+  actualAmount: string | null
+  userName: string
+  userPhoneNo: string
   remarks: string | null
+  orderId: string | null
 }
 
 interface PaginationState {
   currentPage: number
   totalPages: number
-  totalPayments: number
-  pageSize: number
-}
-
-interface SearchFilters {
-  phoneNo: string
-  transactionId: string
-  walletType: '' | 'bKash' | 'Nagad'
-  paymentType: '' | 'DuePayment' | 'OrderPayment' | 'WithdrawPayment'
-  startDate: Date | null
-  endDate: Date | null
+  totalItems: number
+  itemsPerPage: number
 }
 
 const PaymentHistory = () => {
-  const [allPayments, setAllPayments] = useState<Payment[]>([])
-  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
+  const { user } = useAuth()
+  const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
-  const [pagination, setPagination] = useState<Record<string, PaginationState>>({
-    all: { currentPage: 1, totalPages: 1, totalPayments: 0, pageSize: 10 },
-    pending: { currentPage: 1, totalPages: 1, totalPayments: 0, pageSize: 10 },
-    verified: { currentPage: 1, totalPages: 1, totalPayments: 0, pageSize: 10 },
-    rejected: { currentPage: 1, totalPages: 1, totalPayments: 0, pageSize: 10 },
-  })
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all')
-  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-    phoneNo: '',
-    transactionId: '',
-    walletType: '',
-    paymentType: '',
-    startDate: null,
-    endDate: null,
+  const [activeTab, setActiveTab] = useState<'all' | PaymentStatus>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [pagination, setPagination] = useState<PaginationState>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10,
   })
-  const [showFilters, setShowFilters] = useState(false)
 
-  const fetchPaymentHistory = async (page = 1, pageSize = pagination[activeTab].pageSize) => {
+  // Fetch payments from API
+  const fetchPayments = async () => {
     try {
       setLoading(true)
-      const response = await getPaymentHistory({
-        status: activeTab === 'all' ? undefined : activeTab,
-        page,
-        pageSize,
+      const status = activeTab === 'all' ? undefined : activeTab
+      const response = await paymentApi.getPaymentsOfUser(user?.phoneNo!, {
+        paymentStatus: status,
+        page: pagination.currentPage,
+        limit: pagination.itemsPerPage,
+        search: searchQuery || undefined,
       })
 
       if (response.success && response.data) {
-        setAllPayments(response.data.payments)
-        setFilteredPayments(response.data.payments)
-        setPagination(prev => ({
-          ...prev,
-          [activeTab]: {
-            currentPage: response.data.currentPage,
-            totalPages: response.data.totalPages,
-            totalPayments: response.data.totalPayments,
-            pageSize: response.data.pageSize,
-          },
-        }))
-      } else {
-        toast.error(response.message || 'Failed to load payment history')
+        setPayments(response.data.payments)
+        setPagination({
+          currentPage: response.data.currentPage,
+          totalPages: response.data.totalPages,
+          totalItems: response.data.totalCount,
+          itemsPerPage: pagination.itemsPerPage,
+        })
       }
     } catch (error) {
-      toast.error('An error occurred while fetching payment history')
-      console.error('Error fetching payment history:', error)
+      toast.error('Failed to load payments')
+      console.error(error)
     } finally {
       setLoading(false)
     }
   }
 
-  const applyFilters = () => {
-    let filtered = [...allPayments]
-
-    if (searchFilters.phoneNo) {
-      filtered = filtered.filter(
-        payment =>
-          payment.sellerWalletPhoneNo.includes(searchFilters.phoneNo) ||
-          payment.adminWalletPhoneNo.includes(searchFilters.phoneNo)
-      )
-    }
-
-    if (searchFilters.transactionId) {
-      filtered = filtered.filter(payment =>
-        payment.transactionId?.includes(searchFilters.transactionId)
-      )
-    }
-
-    if (searchFilters.walletType) {
-      filtered = filtered.filter(
-        payment =>
-          payment.sellerWalletName === searchFilters.walletType ||
-          payment.adminWalletName === searchFilters.walletType
-      )
-    }
-
-    if (searchFilters.paymentType) {
-      filtered = filtered.filter(payment => payment.paymentType === searchFilters.paymentType)
-    }
-
-    if (searchFilters.startDate) {
-      filtered = filtered.filter(
-        payment => new Date(payment.paymentDate) >= searchFilters.startDate!
-      )
-    }
-
-    if (searchFilters.endDate) {
-      filtered = filtered.filter(payment => new Date(payment.paymentDate) <= searchFilters.endDate!)
-    }
-
-    setFilteredPayments(filtered)
+  // Handle pagination change
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, currentPage: page }))
   }
 
-  const resetFilters = () => {
-    setSearchFilters({
-      phoneNo: '',
-      transactionId: '',
-      walletType: '',
-      paymentType: '',
-      startDate: null,
-      endDate: null,
-    })
-    setFilteredPayments(allPayments)
-  }
-
-  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newPageSize = parseInt(e.target.value)
+  // Handle items per page change
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setPagination(prev => ({
       ...prev,
-      [activeTab]: {
-        ...prev[activeTab],
-        pageSize: newPageSize,
-      },
-    }))
-    fetchPaymentHistory(1, newPageSize)
-  }
-
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setSearchFilters(prev => ({
-      ...prev,
-      [name]: value,
+      itemsPerPage: Number(e.target.value),
+      currentPage: 1,
     }))
   }
 
+  // Copy text to clipboard
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    toast.success('কপি করা হয়েছে')
+    toast.success('Copied to clipboard')
   }
 
-  useEffect(() => {
-    fetchPaymentHistory()
-  }, [activeTab, pagination[activeTab].pageSize])
-
-  useEffect(() => {
-    applyFilters()
-  }, [searchFilters, allPayments])
-
-  const getStatusBadge = (status: string) => {
-    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium'
-
-    switch (status) {
-      case 'verified':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}>ভেরিফাইড</span>
-      case 'rejected':
-        return <span className={`${baseClasses} bg-red-100 text-red-800`}> রিজেক্টেড</span>
-      default:
-        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>পেন্ডিং</span>
-    }
+  // Format amount with currency
+  const formatAmount = (amount: string | null) => {
+    return amount ? `${parseFloat(amount).toFixed(2)}৳` : 'N/A'
   }
 
-  const getPaymentTypeText = (type: string) => {
+  // Get payment type display text
+  const getPaymentTypeText = (type: PaymentType) => {
     switch (type) {
-      case 'DuePayment':
-        return 'বকেয়া পেমেন্ট'
-      case 'OrderPayment':
-        return 'অর্ডার পেমেন্ট'
-      case 'WithdrawPayment':
-        return 'উত্তোলন পেমেন্ট'
+      case 'DUE_PAYMENT':
+        return 'Due Payment'
+      case 'ORDER_PAYMENT':
+        return 'Order Payment'
+      case 'WITHDRAW_PAYMENT':
+        return 'Withdraw Payment'
       default:
         return type
     }
   }
 
-  const showDetailsModal = (payment: Payment) => {
-    setSelectedPayment(payment)
+  // Get status badge
+  const getStatusBadge = (status: PaymentStatus) => {
+    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium'
+
+    switch (status) {
+      case 'COMPLETED':
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Completed</span>
+      case 'REJECTED':
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Rejected</span>
+      default:
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Pending</span>
+    }
   }
 
-  const closeDetailsModal = () => {
-    setSelectedPayment(null)
-  }
-
-  const currentPagination = pagination[activeTab]
+  useEffect(() => {
+    fetchPayments()
+  }, [activeTab, pagination.currentPage, pagination.itemsPerPage, searchQuery])
 
   return (
-    <div className='px-4 py-6 max-w-6xl mx-auto'>
-      <h1 className='text-xl font-bold mb-4 md:text-2xl md:mb-6'>পেমেন্টের ইতিহাস</h1>
+    <div className='container mx-auto px-4 py-6'>
+      <h1 className='text-2xl font-bold mb-6'>Payment History</h1>
 
-      {/* ফিল্টার এবং সার্চ সেকশন */}
-      <div className='mb-4 flex flex-col gap-4'>
-        <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-3'>
-          <div className='flex border-b'>
+      {/* Tabs and Search */}
+      <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6'>
+        <div className='flex border-b'>
+          {['all', 'PENDING', 'COMPLETED', 'REJECTED'].map(tab => (
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${
-                activeTab === 'all' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
+              key={tab}
+              className={`px-4 py-2 font-medium ${
+                activeTab === tab ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
               }`}
-              onClick={() => setActiveTab('all')}
+              onClick={() => setActiveTab(tab as any)}
             >
-              সব
+              {tab === 'all' ? 'All' : tab.charAt(0) + tab.slice(1).toLowerCase()}
             </button>
-            <button
-              className={`px-3 py-2 text-xs md:text-sm ${
-                activeTab === 'pending'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500'
-              }`}
-              onClick={() => setActiveTab('pending')}
-            >
-              পেন্ডিং
-            </button>
-            <button
-              className={`px-3 py-2 text-xs md:text-sm ${
-                activeTab === 'verified'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500'
-              }`}
-              onClick={() => setActiveTab('verified')}
-            >
-              কমপ্লিটেড
-            </button>
-            <button
-              className={`px-3 py-2 text-xs md:text-sm ${
-                activeTab === 'rejected'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500'
-              }`}
-              onClick={() => setActiveTab('rejected')}
-            >
-              রিজেক্টেড
-            </button>
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className='px-3 py-1.5 border rounded-md text-xs md:text-sm bg-gray-100 hover:bg-gray-200'
-            >
-              {showFilters ? 'ফিল্টার লুকান' : 'ফিল্টার দেখুন'}
-            </button>
-
-            <select
-              value={currentPagination.pageSize}
-              onChange={handlePageSizeChange}
-              className='border rounded-md px-2 py-1.5 text-xs md:text-sm'
-            >
-              <option value='5'>প্রতি পৃষ্ঠায় ৫টি</option>
-              <option value='10'>প্রতি পৃষ্ঠায় ১০টি</option>
-              <option value='20'>প্রতি পৃষ্ঠায় ২০টি</option>
-              <option value='50'>প্রতি পৃষ্ঠায় ৫০টি</option>
-            </select>
-          </div>
+          ))}
         </div>
 
-        {showFilters && (
-          <div className='bg-white p-4 rounded-lg shadow border'>
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>ফোন নম্বর</label>
-                <input
-                  type='text'
-                  name='phoneNo'
-                  value={searchFilters.phoneNo}
-                  onChange={handleFilterChange}
-                  placeholder='ফোন নম্বর দিয়ে খুঁজুন'
-                  className='w-full px-3 py-1.5 border rounded-md text-sm'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>লেনদেন আইডি</label>
-                <input
-                  type='text'
-                  name='transactionId'
-                  value={searchFilters.transactionId}
-                  onChange={handleFilterChange}
-                  placeholder='লেনদেন আইডি দিয়ে খুঁজুন'
-                  className='w-full px-3 py-1.5 border rounded-md text-sm'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>ওয়ালেট ধরণ</label>
-                <select
-                  name='walletType'
-                  value={searchFilters.walletType}
-                  onChange={handleFilterChange}
-                  className='w-full px-3 py-1.5 border rounded-md text-sm'
-                >
-                  <option value=''>সব ধরণ</option>
-                  <option value='bKash'>bKash</option>
-                  <option value='Nagad'>Nagad</option>
-                </select>
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>পেমেন্ট ধরণ</label>
-                <select
-                  name='paymentType'
-                  value={searchFilters.paymentType}
-                  onChange={handleFilterChange}
-                  className='w-full px-3 py-1.5 border rounded-md text-sm'
-                >
-                  <option value=''>সব ধরণ</option>
-                  <option value='DuePayment'>বকেয়া পেমেন্ট</option>
-                  <option value='OrderPayment'>অর্ডার পেমেন্ট</option>
-                  <option value='WithdrawPayment'>উত্তোলন পেমেন্ট</option>
-                </select>
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>শুরুর তারিখ</label>
-                <input
-                  type='date'
-                  name='startDate'
-                  value={searchFilters.startDate?.toISOString().split('T')[0] || ''}
-                  onChange={e =>
-                    setSearchFilters({
-                      ...searchFilters,
-                      startDate: e.target.value ? new Date(e.target.value) : null,
-                    })
-                  }
-                  className='w-full px-3 py-1.5 border rounded-md text-sm'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>শেষ তারিখ</label>
-                <input
-                  type='date'
-                  name='endDate'
-                  value={searchFilters.endDate?.toISOString().split('T')[0] || ''}
-                  onChange={e =>
-                    setSearchFilters({
-                      ...searchFilters,
-                      endDate: e.target.value ? new Date(e.target.value) : null,
-                    })
-                  }
-                  className='w-full px-3 py-1.5 border rounded-md text-sm'
-                />
-              </div>
-            </div>
-
-            <div className='flex justify-end gap-2 mt-4'>
-              <button
-                onClick={resetFilters}
-                className='px-4 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200'
-              >
-                রিসেট
-              </button>
-              <button
-                onClick={applyFilters}
-                className='px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700'
-              >
-                ফিল্টার প্রয়োগ করুন
-              </button>
-            </div>
-          </div>
-        )}
+        <div className='relative'>
+          <input
+            type='text'
+            placeholder='Search by transaction ID, phone, name...'
+            className='w-full md:w-64 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className='absolute right-3 top-2.5 text-gray-400 hover:text-gray-600'
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Items per page selector */}
+      <div className='flex justify-end mb-4'>
+        <div className='flex items-center space-x-2'>
+          <span className='text-sm'>Items per page:</span>
+          <select
+            value={pagination.itemsPerPage}
+            onChange={handleItemsPerPageChange}
+            className='border rounded px-2 py-1 text-sm'
+          >
+            {[5, 10, 20, 50].map(num => (
+              <option key={num} value={num}>
+                {num}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Payment List */}
       {loading ? (
         <div className='flex justify-center items-center h-64'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500'></div>
+          <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500'></div>
         </div>
-      ) : filteredPayments.length === 0 ? (
-        <div className='bg-white rounded-lg shadow p-6 text-center'>
-          <p className='text-gray-500'>
-            কোন{' '}
-            {activeTab === 'all'
-              ? 'পেমেন্ট'
-              : activeTab === 'pending'
-              ? 'পেন্ডিং'
-              : activeTab === 'verified'
-              ? ' কমপ্লিটেড'
-              : ' রিজেক্টেড'}{' '}
-            পেমেন্ট পাওয়া যায়নি
-          </p>
+      ) : payments.length === 0 ? (
+        <div className='bg-white rounded-lg shadow p-8 text-center'>
+          <p className='text-gray-500'>No payments found</p>
         </div>
       ) : (
-        <div className='bg-white rounded-lg shadow overflow-hidden'>
-          {/* মোবাইল ভিউ - কার্ড */}
-          <div className='md:hidden space-y-3 p-3'>
-            {filteredPayments.map(payment => (
-              <div key={payment.paymentId} className='border rounded-lg p-3 text-xs'>
-                <div className='flex justify-between items-start'>
+        <>
+          {/* Mobile View - Card List */}
+          <div className='md:hidden space-y-4'>
+            {payments.map(payment => (
+              <div key={payment.paymentId} className='bg-white rounded-lg shadow p-4'>
+                <div className='flex justify-between items-start mb-2'>
                   <div>
-                    <p className='text-gray-500'>{formatDate(payment.paymentDate)}</p>
                     <h3 className='font-medium'>{getPaymentTypeText(payment.paymentType)}</h3>
+                    <p className='text-sm text-gray-500'>{formatDate(payment.paymentDate)}</p>
                   </div>
-                  <div>{getStatusBadge(payment.paymentStatus)}</div>
+                  {getStatusBadge(payment.paymentStatus)}
                 </div>
 
-                <div className='mt-2 space-y-1'>
-                  <div className='flex items-center justify-between'>
-                    <div>
-                      <p className='text-gray-500'>পরিমাণ:</p>
-                      <p className='font-medium'>{parseFloat(payment.amount).toFixed(2)}৳</p>
-                    </div>
-                    {payment.paymentType === 'WithdrawPayment' && payment.transactionFee && (
-                      <div>
-                        <p className='text-gray-500'>ফি:</p>
-                        <p className='font-medium'>
-                          {parseFloat(payment.transactionFee).toFixed(2)}৳
-                        </p>
-                      </div>
-                    )}
+                <div className='space-y-2'>
+                  <div className='flex justify-between'>
+                    <span className='text-sm text-gray-500'>Amount:</span>
+                    <span className='font-medium'>{formatAmount(payment.amount)}</span>
                   </div>
 
-                  <div>
-                    <p className='text-gray-500'>প্রাপ্ত অর্থ:</p>
-                    <p className='font-medium'>{parseFloat(payment.actualAmount).toFixed(2)}৳</p>
-                  </div>
-
-                  <div className='flex items-center gap-1'>
-                    <p className='text-gray-500'>লেনদেন আইডি:</p>
+                  <div className='flex justify-between'>
+                    <span className='text-sm text-gray-500'>Transaction ID:</span>
                     {payment.transactionId ? (
                       <button
-                        onClick={() => copyToClipboard(payment.transactionId!)}
-                        className='font-medium text-blue-600 flex items-center gap-1'
+                        onClick={() => copyToClipboard(payment.transactionId || '')}
+                        className='text-blue-600 hover:text-blue-800 flex items-center'
                       >
-                        {payment.transactionId}
+                        {payment.transactionId.substring(0, 6)}...
                         <svg
                           xmlns='http://www.w3.org/2000/svg'
-                          className='h-3 w-3'
+                          className='h-4 w-4 ml-1'
                           fill='none'
                           viewBox='0 0 24 24'
                           stroke='currentColor'
@@ -477,24 +250,24 @@ const PaymentHistory = () => {
                     )}
                   </div>
 
-                  <div className='flex items-center gap-2 mt-2'>
-                    <div className='flex-1'>
-                      <p className='text-gray-500 text-xs'>প্রেরক:</p>
-                      <p className='text-xs'>
-                        {payment.sender === 'Seller' ? (
+                  <div className='flex items-center justify-between border-t pt-2'>
+                    <div>
+                      <p className='text-sm text-gray-500'>From:</p>
+                      <p className='text-sm'>
+                        {payment.sender === 'SELLER' ? (
                           <>
-                            {payment.sellerWalletName} - {payment.sellerWalletPhoneNo}
+                            {payment.userWalletName} ({payment.userWalletPhoneNo})
                           </>
                         ) : (
                           <>
-                            {payment.adminWalletName} - {payment.adminWalletPhoneNo}
+                            {payment.systemWalletName || 'System'} ({payment.systemWalletPhoneNo})
                           </>
                         )}
                       </p>
                     </div>
                     <svg
                       xmlns='http://www.w3.org/2000/svg'
-                      className='h-4 w-4 text-gray-400'
+                      className='h-5 w-5 text-gray-400 mx-2'
                       fill='none'
                       viewBox='0 0 24 24'
                       stroke='currentColor'
@@ -506,16 +279,16 @@ const PaymentHistory = () => {
                         d='M14 5l7 7m0 0l-7 7m7-7H3'
                       />
                     </svg>
-                    <div className='flex-1'>
-                      <p className='text-gray-500 text-xs'>প্রাপক:</p>
-                      <p className='text-xs'>
-                        {payment.sender === 'Seller' ? (
+                    <div>
+                      <p className='text-sm text-gray-500'>To:</p>
+                      <p className='text-sm'>
+                        {payment.sender === 'SELLER' ? (
                           <>
-                            {payment.adminWalletName} - {payment.adminWalletPhoneNo}
+                            {payment.systemWalletName || 'System'} ({payment.systemWalletPhoneNo})
                           </>
                         ) : (
                           <>
-                            {payment.sellerWalletName} - {payment.sellerWalletPhoneNo}
+                            {payment.userWalletName} ({payment.userWalletPhoneNo})
                           </>
                         )}
                       </p>
@@ -523,88 +296,66 @@ const PaymentHistory = () => {
                   </div>
                 </div>
 
-                <div className='mt-3'>
-                  <button
-                    onClick={() => showDetailsModal(payment)}
-                    className='w-full py-1 px-2 border border-gray-300 rounded text-gray-700 font-medium'
-                  >
-                    বিস্তারিত দেখুন
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedPayment(payment)}
+                  className='w-full mt-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm'
+                >
+                  View Details
+                </button>
               </div>
             ))}
           </div>
 
-          {/* ডেস্কটপ ভিউ - টেবিল */}
-          <div className='hidden md:block overflow-x-auto'>
-            <table className='min-w-full divide-y divide-gray-200 text-sm'>
+          {/* Desktop View - Table */}
+          <div className='hidden md:block overflow-x-auto bg-white rounded-lg shadow'>
+            <table className='min-w-full divide-y divide-gray-200'>
               <thead className='bg-gray-50'>
                 <tr>
-                  <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                    তারিখ
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Date
                   </th>
-                  <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                    ধরণ
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Type
                   </th>
-                  <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                    পরিমাণ
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Amount
                   </th>
-                  {activeTab === 'all' || activeTab === 'verified' ? (
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      ফি
-                    </th>
-                  ) : null}
-                  <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                    প্রাপ্ত অর্থ
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Transaction ID
                   </th>
-                  <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                    লেনদেন আইডি
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Sender → Receiver
                   </th>
-                  <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                    প্রেরক → প্রাপক
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Status
                   </th>
-                  <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                    স্ট্যাটাস
-                  </th>
-                  <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                    অ্যাকশন
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Actions
                   </th>
                 </tr>
               </thead>
               <tbody className='bg-white divide-y divide-gray-200'>
-                {filteredPayments.map(payment => (
-                  <tr key={payment.paymentId}>
-                    <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
+                {payments.map(payment => (
+                  <tr key={payment.paymentId} className='hover:bg-gray-50'>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                       {formatDate(payment.paymentDate)}
                     </td>
-                    <td className='px-4 py-4 whitespace-nowrap'>
-                      <div className='font-medium text-gray-900'>
-                        {getPaymentTypeText(payment.paymentType)}
-                      </div>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
+                      {getPaymentTypeText(payment.paymentType)}
                     </td>
-                    <td className='px-4 py-4 whitespace-nowrap text-gray-900'>
-                      {parseFloat(payment.amount).toFixed(2)}৳
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                      {formatAmount(payment.amount)}
                     </td>
-                    {activeTab === 'all' || activeTab === 'verified' ? (
-                      <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
-                        {payment.paymentType === 'WithdrawPayment' && payment.transactionFee
-                          ? `${parseFloat(payment.transactionFee).toFixed(2)}৳`
-                          : 'N/A'}
-                      </td>
-                    ) : null}
-                    <td className='px-4 py-4 whitespace-nowrap text-gray-900 font-medium'>
-                      {parseFloat(payment.actualAmount).toFixed(2)}৳
-                    </td>
-                    <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                       {payment.transactionId ? (
                         <button
-                          onClick={() => copyToClipboard(payment.transactionId!)}
-                          className='flex items-center gap-1 text-blue-600 hover:text-blue-800'
+                          onClick={() => copyToClipboard(payment.transactionId || '')}
+                          className='text-blue-600 hover:text-blue-800 flex items-center'
                         >
                           {payment.transactionId}
                           <svg
                             xmlns='http://www.w3.org/2000/svg'
-                            className='h-4 w-4'
+                            className='h-4 w-4 ml-1'
                             fill='none'
                             viewBox='0 0 24 24'
                             stroke='currentColor'
@@ -621,23 +372,23 @@ const PaymentHistory = () => {
                         'N/A'
                       )}
                     </td>
-                    <td className='px-4 py-4 whitespace-nowrap'>
-                      <div className='flex items-center gap-2'>
-                        <div className='text-right'>
-                          <p className='text-xs font-medium'>
-                            {payment.sender === 'Seller'
-                              ? payment.sellerWalletName
-                              : payment.adminWalletName}
-                          </p>
-                          <p className='text-xs text-gray-500'>
-                            {payment.sender === 'Seller'
-                              ? payment.sellerWalletPhoneNo
-                              : payment.adminWalletPhoneNo}
-                          </p>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                      <div className='flex items-center'>
+                        <div className='mr-2'>
+                          <div className='font-medium'>
+                            {payment.sender === 'SELLER'
+                              ? payment.userWalletName
+                              : payment.systemWalletName || 'System'}
+                          </div>
+                          <div className='text-xs'>
+                            {payment.sender === 'SELLER'
+                              ? payment.userWalletPhoneNo
+                              : payment.systemWalletPhoneNo}
+                          </div>
                         </div>
                         <svg
                           xmlns='http://www.w3.org/2000/svg'
-                          className='h-4 w-4 text-gray-400'
+                          className='h-4 w-4 mx-1 text-gray-400'
                           fill='none'
                           viewBox='0 0 24 24'
                           stroke='currentColor'
@@ -649,29 +400,29 @@ const PaymentHistory = () => {
                             d='M14 5l7 7m0 0l-7 7m7-7H3'
                           />
                         </svg>
-                        <div className='text-left'>
-                          <p className='text-xs font-medium'>
-                            {payment.sender === 'Seller'
-                              ? payment.adminWalletName
-                              : payment.sellerWalletName}
-                          </p>
-                          <p className='text-xs text-gray-500'>
-                            {payment.sender === 'Seller'
-                              ? payment.adminWalletPhoneNo
-                              : payment.sellerWalletPhoneNo}
-                          </p>
+                        <div className='ml-2'>
+                          <div className='font-medium'>
+                            {payment.sender === 'SELLER'
+                              ? payment.systemWalletName || 'System'
+                              : payment.userWalletName}
+                          </div>
+                          <div className='text-xs'>
+                            {payment.sender === 'SELLER'
+                              ? payment.systemWalletPhoneNo
+                              : payment.userWalletPhoneNo}
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className='px-4 py-4 whitespace-nowrap'>
+                    <td className='px-6 py-4 whitespace-nowrap'>
                       {getStatusBadge(payment.paymentStatus)}
                     </td>
-                    <td className='px-4 py-4 whitespace-nowrap font-medium'>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
                       <button
-                        onClick={() => showDetailsModal(payment)}
-                        className='text-blue-600 hover:text-blue-800'
+                        onClick={() => setSelectedPayment(payment)}
+                        className='text-blue-600 hover:text-blue-900'
                       >
-                        বিস্তারিত
+                        Details
                       </button>
                     </td>
                   </tr>
@@ -680,229 +431,125 @@ const PaymentHistory = () => {
             </table>
           </div>
 
-          {/* পেজিনেশন */}
-          {currentPagination.totalPages > 1 && (
-            <div className='bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200'>
-              <div className='flex-1 flex justify-between sm:hidden'>
-                <button
-                  onClick={() => fetchPaymentHistory(currentPagination.currentPage - 1)}
-                  disabled={currentPagination.currentPage === 1}
-                  className='relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'
-                >
-                  পূর্ববর্তী
-                </button>
-                <button
-                  onClick={() => fetchPaymentHistory(currentPagination.currentPage + 1)}
-                  disabled={currentPagination.currentPage === currentPagination.totalPages}
-                  className='ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'
-                >
-                  পরবর্তী
-                </button>
-              </div>
-
-              <div className='hidden sm:flex-1 sm:flex sm:items-center sm:justify-between'>
-                <div>
-                  <p className='text-sm text-gray-700'>
-                    দেখানো হচ্ছে{' '}
-                    <span className='font-medium'>
-                      {(currentPagination.currentPage - 1) * currentPagination.pageSize + 1}
-                    </span>{' '}
-                    থেকে{' '}
-                    <span className='font-medium'>
-                      {Math.min(
-                        currentPagination.currentPage * currentPagination.pageSize,
-                        currentPagination.totalPayments
-                      )}
-                    </span>{' '}
-                    এর মধ্যে <span className='font-medium'>{currentPagination.totalPayments}</span>{' '}
-                    টি পেমেন্ট
-                  </p>
-                </div>
-                <div>
-                  <nav className='relative z-0 inline-flex rounded-md shadow-sm -space-x-px'>
-                    <button
-                      onClick={() => fetchPaymentHistory(currentPagination.currentPage - 1)}
-                      disabled={currentPagination.currentPage === 1}
-                      className='relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50'
-                    >
-                      <span className='sr-only'>পূর্ববর্তী</span>
-                      <svg
-                        className='h-5 w-5'
-                        xmlns='http://www.w3.org/2000/svg'
-                        viewBox='0 0 20 20'
-                        fill='currentColor'
-                        aria-hidden='true'
-                      >
-                        <path
-                          fillRule='evenodd'
-                          d='M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z'
-                          clipRule='evenodd'
-                        />
-                      </svg>
-                    </button>
-                    {Array.from({ length: Math.min(5, currentPagination.totalPages) }, (_, i) => {
-                      let pageNum
-                      if (currentPagination.totalPages <= 5) {
-                        pageNum = i + 1
-                      } else if (currentPagination.currentPage <= 3) {
-                        pageNum = i + 1
-                      } else if (
-                        currentPagination.currentPage >=
-                        currentPagination.totalPages - 2
-                      ) {
-                        pageNum = currentPagination.totalPages - 4 + i
-                      } else {
-                        pageNum = currentPagination.currentPage - 2 + i
-                      }
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => fetchPaymentHistory(pageNum)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            pageNum === currentPagination.currentPage
-                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      )
-                    })}
-                    <button
-                      onClick={() => fetchPaymentHistory(currentPagination.currentPage + 1)}
-                      disabled={currentPagination.currentPage === currentPagination.totalPages}
-                      className='relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50'
-                    >
-                      <span className='sr-only'>পরবর্তী</span>
-                      <svg
-                        className='h-5 w-5'
-                        xmlns='http://www.w3.org/2000/svg'
-                        viewBox='0 0 20 20'
-                        fill='currentColor'
-                        aria-hidden='true'
-                      >
-                        <path
-                          fillRule='evenodd'
-                          d='M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z'
-                          clipRule='evenodd'
-                        />
-                      </svg>
-                    </button>
-                  </nav>
-                </div>
-              </div>
+          {/* Pagination */}
+          <div className='flex items-center justify-between mt-4'>
+            <div className='text-sm text-gray-700'>
+              Showing{' '}
+              <span className='font-medium'>
+                {(pagination.currentPage - 1) * pagination.itemsPerPage + 1}
+              </span>{' '}
+              to{' '}
+              <span className='font-medium'>
+                {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}
+              </span>{' '}
+              of <span className='font-medium'>{pagination.totalItems}</span> results
             </div>
-          )}
-        </div>
+            <div className='flex space-x-2'>
+              <button
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={pagination.currentPage === 1}
+                className='px-3 py-1 border rounded disabled:opacity-50'
+              >
+                Previous
+              </button>
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                let pageNum
+                if (pagination.totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (pagination.currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i
+                } else {
+                  pageNum = pagination.currentPage - 2 + i
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-1 border rounded ${
+                      pagination.currentPage === pageNum ? 'bg-blue-600 text-white' : ''
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.totalPages}
+                className='px-3 py-1 border rounded disabled:opacity-50'
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* বিস্তারিত মোডাল */}
+      {/* Payment Details Modal */}
       {selectedPayment && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-          <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
-            <div className='p-4 border-b'>
-              <h2 className='text-lg font-medium'>পেমেন্টের বিস্তারিত</h2>
+          <div className='bg-white rounded-lg shadow-xl w-full max-w-md'>
+            <div className='px-6 py-4 border-b'>
+              <h2 className='text-xl font-semibold'>Payment Details</h2>
             </div>
-
-            <div className='p-4 space-y-4'>
+            <div className='p-6 space-y-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <div>
-                  <p className='text-sm font-medium text-gray-700'>স্ট্যাটাস:</p>
-                  <div className='mt-1'>{getStatusBadge(selectedPayment.paymentStatus)}</div>
+                  <p className='text-sm text-gray-500'>Status</p>
+                  <p className='font-medium'>{getStatusBadge(selectedPayment.paymentStatus)}</p>
                 </div>
                 <div>
-                  <p className='text-sm font-medium text-gray-700'>পেমেন্ট ধরণ:</p>
-                  <p className='mt-1 text-gray-900'>
-                    {getPaymentTypeText(selectedPayment.paymentType)}
-                  </p>
-                </div>
-              </div>
-
-              <div className='grid grid-cols-3 gap-2'>
-                <div>
-                  <p className='text-sm font-medium text-gray-700'>পরিমাণ:</p>
-                  <p className='mt-1 text-gray-900'>
-                    {parseFloat(selectedPayment.amount).toFixed(2)}৳
-                  </p>
-                </div>
-                {selectedPayment.paymentType === 'WithdrawPayment' && (
-                  <div>
-                    <p className='text-sm font-medium text-gray-700'>ফি:</p>
-                    <p className='mt-1 text-gray-900'>
-                      {selectedPayment.transactionFee
-                        ? `${parseFloat(selectedPayment.transactionFee).toFixed(2)}৳`
-                        : 'N/A'}
-                    </p>
-                  </div>
-                )}
-                <div>
-                  <p className='text-sm font-medium text-gray-700'>প্রাপ্ত অর্থ:</p>
-                  <p className='mt-1 text-gray-900 font-medium'>
-                    {parseFloat(selectedPayment.actualAmount).toFixed(2)}৳
-                  </p>
-                </div>
-              </div>
-
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <p className='text-sm font-medium text-gray-700'>অনুরোধের তারিখ:</p>
-                  <p className='mt-1 text-gray-900'>{formatDate(selectedPayment.paymentDate)}</p>
+                  <p className='text-sm text-gray-500'>Type</p>
+                  <p className='font-medium'>{getPaymentTypeText(selectedPayment.paymentType)}</p>
                 </div>
                 <div>
-                  <p className='text-sm font-medium text-gray-700'>প্রক্রিয়াকরণের তারিখ:</p>
-                  <p className='mt-1 text-gray-900'>
+                  <p className='text-sm text-gray-500'>Date</p>
+                  <p className='font-medium'>{formatDate(selectedPayment.paymentDate)}</p>
+                </div>
+                <div>
+                  <p className='text-sm text-gray-500'>Processed At</p>
+                  <p className='font-medium'>
                     {selectedPayment.processedAt ? formatDate(selectedPayment.processedAt) : 'N/A'}
                   </p>
                 </div>
               </div>
 
-              <div>
-                <p className='text-sm font-medium text-gray-700'>প্রেরক:</p>
-                <p className='mt-1 text-gray-900'>
-                  {selectedPayment.sender === 'Seller' ? (
-                    <>
-                      বিক্রেতা: {selectedPayment.sellerWalletName} -{' '}
-                      {selectedPayment.sellerWalletPhoneNo}
-                    </>
-                  ) : (
-                    <>
-                      অ্যাডমিন: {selectedPayment.adminWalletName} -{' '}
-                      {selectedPayment.adminWalletPhoneNo}
-                    </>
+              <div className='border-t pt-4'>
+                <h3 className='font-medium mb-2'>Amount Details</h3>
+                <div className='grid grid-cols-3 gap-2'>
+                  <div>
+                    <p className='text-sm text-gray-500'>Amount</p>
+                    <p className='font-medium'>{formatAmount(selectedPayment.amount)}</p>
+                  </div>
+                  {selectedPayment.transactionFee && (
+                    <div>
+                      <p className='text-sm text-gray-500'>Fee</p>
+                      <p className='font-medium'>{formatAmount(selectedPayment.transactionFee)}</p>
+                    </div>
                   )}
-                </p>
+                  <div>
+                    <p className='text-sm text-gray-500'>Received</p>
+                    <p className='font-medium'>{formatAmount(selectedPayment.actualAmount)}</p>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <p className='text-sm font-medium text-gray-700'>প্রাপক:</p>
-                <p className='mt-1 text-gray-900'>
-                  {selectedPayment.sender === 'Seller' ? (
-                    <>
-                      অ্যাডমিন: {selectedPayment.adminWalletName} -{' '}
-                      {selectedPayment.adminWalletPhoneNo}
-                    </>
-                  ) : (
-                    <>
-                      বিক্রেতা: {selectedPayment.sellerWalletName} -{' '}
-                      {selectedPayment.sellerWalletPhoneNo}
-                    </>
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className='text-sm font-medium text-gray-700'>লেনদেন আইডি:</p>
-                <div className='mt-1 flex items-center gap-2'>
-                  {selectedPayment.transactionId ? (
-                    <>
-                      <p className='text-gray-900'>{selectedPayment.transactionId}</p>
+              <div className='border-t pt-4'>
+                <h3 className='font-medium mb-2'>Transaction Details</h3>
+                <div className='space-y-2'>
+                  <div>
+                    <p className='text-sm text-gray-500'>Transaction ID</p>
+                    {selectedPayment.transactionId ? (
                       <button
-                        onClick={() => copyToClipboard(selectedPayment.transactionId!)}
-                        className='text-blue-600 hover:text-blue-800'
+                        onClick={() => copyToClipboard(selectedPayment.transactionId || '')}
+                        className='font-medium text-blue-600 flex items-center'
                       >
+                        {selectedPayment.transactionId}
                         <svg
                           xmlns='http://www.w3.org/2000/svg'
-                          className='h-4 w-4'
+                          className='h-4 w-4 ml-1'
                           fill='none'
                           viewBox='0 0 24 24'
                           stroke='currentColor'
@@ -915,29 +562,56 @@ const PaymentHistory = () => {
                           />
                         </svg>
                       </button>
-                    </>
-                  ) : (
-                    <p className='text-gray-500'>N/A</p>
-                  )}
+                    ) : (
+                      <p className='font-medium'>N/A</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className='text-sm text-gray-500'>Sender</p>
+                    <p className='font-medium'>
+                      {selectedPayment.sender === 'SELLER' ? (
+                        <>
+                          {selectedPayment.userWalletName} ({selectedPayment.userWalletPhoneNo})
+                        </>
+                      ) : (
+                        <>
+                          {selectedPayment.systemWalletName || 'System'} (
+                          {selectedPayment.systemWalletPhoneNo})
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className='text-sm text-gray-500'>Receiver</p>
+                    <p className='font-medium'>
+                      {selectedPayment.sender === 'SELLER' ? (
+                        <>
+                          {selectedPayment.systemWalletName || 'System'} (
+                          {selectedPayment.systemWalletPhoneNo})
+                        </>
+                      ) : (
+                        <>
+                          {selectedPayment.userWalletName} ({selectedPayment.userWalletPhoneNo})
+                        </>
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {selectedPayment.remarks && (
-                <div>
-                  <p className='text-sm font-medium text-gray-700'>মন্তব্য:</p>
-                  <p className='mt-1 text-gray-900 whitespace-pre-line'>
-                    {selectedPayment.remarks}
-                  </p>
+                <div className='border-t pt-4'>
+                  <h3 className='font-medium mb-2'>Remarks</h3>
+                  <p className='text-sm'>{selectedPayment.remarks}</p>
                 </div>
               )}
             </div>
-
-            <div className='p-4 border-t flex justify-end'>
+            <div className='px-6 py-4 border-t flex justify-end'>
               <button
-                onClick={closeDetailsModal}
-                className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200'
+                onClick={() => setSelectedPayment(null)}
+                className='px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md'
               >
-                বন্ধ করুন
+                Close
               </button>
             </div>
           </div>
