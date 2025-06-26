@@ -25,5 +25,8 @@ class WalletApi {
       otp,
     })
   }
+  public async getSystemWallets() {
+    return apiClient.get(`wallets/system`)
+  }
 }
 export const walletApi = new WalletApi()

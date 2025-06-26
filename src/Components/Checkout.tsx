@@ -4,6 +4,7 @@ import { FiChevronLeft, FiEdit2, FiMapPin, FiPhone, FiUser } from 'react-icons/f
 import { useLocation, useNavigate } from 'react-router-dom'
 import * as Yup from 'yup'
 import districts from '../../public/zillasInfo.json'
+import { orderApi } from '../Api/order.api'
 import { OrderData } from '../types/order.types'
 import { ShopCart } from './Cart'
 
@@ -96,14 +97,15 @@ const Checkout = () => {
           })),
         }
         console.log('Order Data:', orderData)
-        // const { success, message } = await createOrder(orderData as OrderData)
-        // if (success) {
-        //   clearDraft() // Clear draft on successful submission
-        //   localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([]))
-        //   navigate('/orders', { state: { orderSuccess: true } })
-        // } else {
-        //   setFormErrors([message])
-        // }
+
+        const { success, message } = await orderApi.createSellerOrder(orderData as OrderData)
+        if (success) {
+          // clearDraft() // Clear draft on successful submission
+          // localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([]))
+          navigate('/orders', { state: { orderSuccess: true } })
+        } else {
+          setFormErrors([message!])
+        }
       } catch (error) {
         console.error('Order submission error:', error)
         setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])

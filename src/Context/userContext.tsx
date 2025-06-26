@@ -34,6 +34,7 @@ interface UserContextType {
   loading: boolean
   error: Error | null
   reloadUser: () => Promise<null | User> // Add reload function to context type
+  updateUser: () => Promise<User | null> // Function to update user data
 }
 
 // Create the context
@@ -43,6 +44,7 @@ export const UserContext = createContext<UserContextType>({
   loading: true,
   error: null,
   reloadUser: async () => null, // Add default reload function
+  updateUser: async () => null, // Add default update function
 })
 
 // Provider Component
@@ -80,11 +82,22 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     try {
       const result = await verifyLogin()
       if (result?.success) {
-        setUser(result.data?.user || null)
-        return result.data?.user || null
+        setUser(result.data || null)
+        return result.data || null
       }
     } catch (error) {
       console.error('Error reloading user data:', error)
+      return null
+    }
+  }
+  const updateUser = async () => {
+    try {
+      const result = await verifyLogin()
+      if (result?.success) {
+        return (result.data?.user as User) || null
+      }
+      return null
+    } catch (error) {
       return null
     }
   }
@@ -96,7 +109,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   if (loading) return <Loading />
 
   return (
-    <UserContext.Provider value={{ user, setUser, loading, error, reloadUser }}>
+    <UserContext.Provider value={{ user, setUser, loading, error, reloadUser, updateUser }}>
       {children}
     </UserContext.Provider>
   )
