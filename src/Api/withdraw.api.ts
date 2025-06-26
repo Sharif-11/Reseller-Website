@@ -53,16 +53,19 @@ class WithdrawApi {
     page = 1,
     limit = 10,
     status,
+    search,
   }: {
     page?: number
     limit?: number
     status?: 'PENDING' | 'COMPLETED' | 'REJECTED' | ('PENDING' | 'COMPLETED' | 'REJECTED')[]
+    search?: string
   } = {}) {
     return apiClient.get('withdraws/seller', {
       params: {
         page,
         limit,
         status,
+        search,
       },
     })
   }

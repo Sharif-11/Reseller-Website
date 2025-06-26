@@ -1,536 +1,439 @@
-import { useState, useEffect } from 'react';
-import { getWithdrawHistory, cancelWithdrawRequest } from '../Api/seller.api';
-import { toast } from 'react-toastify';
-import { formatDate } from '../utils/date.utils';
-import 'react-datepicker/dist/react-datepicker.css';
+import { useEffect, useState } from 'react'
+import { toast } from 'react-toastify'
+import withdrawApi from '../Api/withdraw.api'
+import { formatDate } from '../utils/date.utils'
 
 interface WithdrawRequest {
-  withdrawId: string;
-  userId: string;
-  userPhoneNo: string;
-  userName: string;
-  amount: string;
-  actualAmount: string;
-  transactionFee: string;
-  walletName: 'bKash' | 'Nagad';
-  walletPhoneNo: string;
-  transactionId: string | null;
-  transactionPhoneNo: string | null;
-  remarks: string | null;
-  requestedAt: string;
-  processedAt: string | null;
-  status: 'pending' | 'completed' | 'rejected' | 'cancelled';
+  withdrawId: string
+  userId: string
+  userPhoneNo: string
+  userName: string
+  amount: string
+  transactionFee: string
+  actualAmount: string
+  walletName: string
+  walletPhoneNo: string
+  systemWalletPhoneNo: string | null
+  transactionId: string | null
+  paymentId: string | null
+  remarks: string | null
+  requestedAt: string
+  processedAt: string | null
+  withdrawStatus: 'PENDING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED'
 }
 
 interface PaginationState {
-  currentPage: number;
-  totalPages: number;
-  totalRequests: number;
-  pageSize: number;
-}
-
-interface SearchFilters {
-  phoneNo: string;
-  transactionId: string;
-  walletType: '' | 'bKash' | 'Nagad';
-  startDate: Date | null;
-  endDate: Date | null;
+  currentPage: number
+  totalPages: number
+  totalRequests: number
+  pageSize: number
 }
 
 const WithdrawHistory = () => {
-  const [allRequests, setAllRequests] = useState<WithdrawRequest[]>([]);
-  const [filteredRequests, setFilteredRequests] = useState<WithdrawRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [allRequests, setAllRequests] = useState<WithdrawRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [pagination, setPagination] = useState<Record<string, PaginationState>>({
-    pending: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
-    completed: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
-    rejected: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
-  });
-  const [selectedRequest, setSelectedRequest] = useState<WithdrawRequest | null>(null);
-  const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'rejected'>('pending');
-  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-    phoneNo: '',
-    transactionId: '',
-    walletType: '',
-    startDate: null,
-    endDate: null,
-  });
-  const [showFilters, setShowFilters] = useState(false);
-  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
-  const [requestToCancel, setRequestToCancel] = useState<WithdrawRequest | null>(null);
-
-  const calculateActualAmount = (amount: string, fee: string) => {
-    return (parseFloat(amount) - parseFloat(fee)).toFixed(2);
-  };
+    PENDING: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
+    COMPLETED: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
+    REJECTED: { currentPage: 1, totalPages: 1, totalRequests: 0, pageSize: 10 },
+  })
+  const [selectedRequest, setSelectedRequest] = useState<WithdrawRequest | null>(null)
+  const [activeTab, setActiveTab] = useState<'PENDING' | 'COMPLETED' | 'REJECTED'>('PENDING')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false)
+  const [requestToCancel, setRequestToCancel] = useState<WithdrawRequest | null>(null)
 
   const fetchWithdrawHistory = async (page = 1, pageSize = pagination[activeTab].pageSize) => {
     try {
-      setLoading(true);
-      const response = await getWithdrawHistory({
+      setLoading(true)
+      const response = await withdrawApi.getMyWithdraws({
         status: activeTab,
         page,
-        pageSize,
-      });
-      
+        limit: pageSize,
+        search: searchQuery.trim() || undefined,
+      })
+
       if (response.success && response.data) {
-        setAllRequests(response.data.requests);
-        setFilteredRequests(response.data.requests);
+        setAllRequests(response.data.withdraws)
         setPagination(prev => ({
           ...prev,
           [activeTab]: {
             currentPage: response.data.currentPage,
             totalPages: response.data.totalPages,
-            totalRequests: response.data.totalRequests,
-            pageSize: response.data.pageSize
-          }
-        }));
+            totalRequests: response.data.totalWithdraws,
+            pageSize: response.data.pageSize,
+          },
+        }))
       } else {
-        toast.error(response.message || 'Failed to load withdrawal history');
+        toast.error(response.message || 'Failed to load withdrawal history')
       }
     } catch (error) {
-      toast.error('An error occurred while fetching withdrawal history');
-      console.error('Error fetching withdrawal history:', error);
+      toast.error('An error occurred while fetching withdrawal history')
+      console.error('Error fetching withdrawal history:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...allRequests];
-
-    if (searchFilters.phoneNo) {
-      filtered = filtered.filter(request => 
-        request.walletPhoneNo.includes(searchFilters.phoneNo) || 
-        request.userPhoneNo.includes(searchFilters.phoneNo)
-      );
-    }
-
-    if (searchFilters.transactionId) {
-      filtered = filtered.filter(request => 
-        request.transactionId?.includes(searchFilters.transactionId)
-      );
-    }
-
-    if (searchFilters.walletType) {
-      filtered = filtered.filter(request => 
-        request.walletName === searchFilters.walletType
-      );
-    }
-
-    if (searchFilters.startDate) {
-      filtered = filtered.filter(request => 
-        new Date(request.requestedAt) >= searchFilters.startDate!
-      );
-    }
-
-    if (searchFilters.endDate) {
-      filtered = filtered.filter(request => 
-        new Date(request.requestedAt) <= searchFilters.endDate!
-      );
-    }
-
-    setFilteredRequests(filtered);
-  };
-
-  const resetFilters = () => {
-    setSearchFilters({
-      phoneNo: '',
-      transactionId: '',
-      walletType: '',
-      startDate: null,
-      endDate: null,
-    });
-    setFilteredRequests(allRequests);
-  };
+  }
 
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newPageSize = parseInt(e.target.value);
+    const newPageSize = parseInt(e.target.value)
     setPagination(prev => ({
       ...prev,
       [activeTab]: {
         ...prev[activeTab],
-        pageSize: newPageSize
-      }
-    }));
-    fetchWithdrawHistory(1, newPageSize);
-  };
+        pageSize: newPageSize,
+      },
+    }))
+    fetchWithdrawHistory(1, newPageSize)
+  }
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setSearchFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    fetchWithdrawHistory()
+  }
 
   useEffect(() => {
-    fetchWithdrawHistory();
-  }, [activeTab, pagination[activeTab].pageSize]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [searchFilters, allRequests]);
+    fetchWithdrawHistory()
+  }, [activeTab, pagination[activeTab].pageSize, searchQuery])
 
   const handleCancelRequest = async (withdrawId: string) => {
     try {
-      setCancellingId(withdrawId);
-      const response = await cancelWithdrawRequest(withdrawId);
-      
+      setCancellingId(withdrawId)
+      const response = await withdrawApi.cancelWithdraw(withdrawId)
+
       if (response.success) {
-        toast.success('Withdrawal request cancelled successfully');
-        setAllRequests(prev => prev.map(req => 
-          req.withdrawId === withdrawId ? { ...req, status: 'cancelled' } : req
-        ));
-        fetchWithdrawHistory(pagination[activeTab].currentPage);
+        toast.success('Withdrawal request cancelled successfully')
+        fetchWithdrawHistory(pagination[activeTab].currentPage)
       } else {
-        throw new Error(response.message || 'Failed to cancel request');
+        throw new Error(response.message || 'Failed to cancel request')
       }
     } catch (error) {
-      toast.error((error as Error).message || 'Error cancelling withdrawal request');
+      toast.error((error as Error).message || 'Error cancelling withdrawal request')
     } finally {
-      setCancellingId(null);
-      setShowCancelConfirmation(false);
-      setRequestToCancel(null);
+      setCancellingId(null)
+      setShowCancelConfirmation(false)
+      setRequestToCancel(null)
     }
-  };
+  }
 
   const openCancelConfirmation = (request: WithdrawRequest) => {
-    setRequestToCancel(request);
-    setShowCancelConfirmation(true);
-  };
+    setRequestToCancel(request)
+    setShowCancelConfirmation(true)
+  }
 
   const closeCancelConfirmation = () => {
-    setShowCancelConfirmation(false);
-    setRequestToCancel(null);
-  };
+    setShowCancelConfirmation(false)
+    setRequestToCancel(null)
+  }
 
   const getStatusBadge = (status: string) => {
-    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
-    
+    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium'
+
     switch (status) {
-      case 'completed':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}> কমপ্লিটেড</span>;
-      case 'rejected':
-        return <span className={`${baseClasses} bg-red-100 text-red-800`}> রিজেক্টেড</span>;
-      case 'cancelled':
-        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>বাতিল</span>;
+      case 'COMPLETED':
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Completed</span>
+      case 'REJECTED':
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Rejected</span>
+      case 'CANCELLED':
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>Cancelled</span>
       default:
-        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>পেন্ডিং</span>;
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Pending</span>
     }
-  };
+  }
 
   const showDetailsModal = (request: WithdrawRequest) => {
-    setSelectedRequest(request);
-  };
+    setSelectedRequest(request)
+  }
 
   const closeDetailsModal = () => {
-    setSelectedRequest(null);
-  };
+    setSelectedRequest(null)
+  }
 
-  const currentPagination = pagination[activeTab];
+  const currentPagination = pagination[activeTab]
 
   return (
-    <div className="px-4 py-6 max-w-6xl mx-auto">
-      <h1 className="text-xl font-bold mb-4 md:text-2xl md:mb-6">উত্তোলনের ইতিহাস</h1>
-      
-      {/* ফিল্টার এবং সার্চ সেকশন */}
-      <div className="mb-4 flex flex-col gap-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="flex border-b">
+    <div className='px-4 py-6 max-w-6xl mx-auto'>
+      <h1 className='text-xl font-bold mb-4 md:text-2xl md:mb-6'>Withdrawal History</h1>
+
+      {/* Search and filter section */}
+      <div className='mb-4'>
+        <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-3'>
+          <div className='flex border-b'>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('pending')}
+              className={`px-3 py-2 text-xs md:text-sm ${
+                activeTab === 'PENDING'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500'
+              }`}
+              onClick={() => setActiveTab('PENDING')}
             >
-              পেন্ডিং
+              Pending
             </button>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('completed')}
+              className={`px-3 py-2 text-xs md:text-sm ${
+                activeTab === 'COMPLETED'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500'
+              }`}
+              onClick={() => setActiveTab('COMPLETED')}
             >
-               কমপ্লিটেড
+              Completed
             </button>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${activeTab === 'rejected' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('rejected')}
+              className={`px-3 py-2 text-xs md:text-sm ${
+                activeTab === 'REJECTED'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500'
+              }`}
+              onClick={() => setActiveTab('REJECTED')}
             >
-              রিজেক্টেড
+              Rejected
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <form onSubmit={handleSearch} className='flex items-center gap-2'>
+            <input
+              type='text'
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder='Search by phone, name, or transaction ID'
+              className='w-full md:w-64 px-3 py-1.5 border rounded-md text-sm'
+            />
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="px-3 py-1.5 border rounded-md text-xs md:text-sm bg-gray-100 hover:bg-gray-200"
+              type='submit'
+              className='px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700'
             >
-              {showFilters ? 'ফিল্টার লুকান' : 'ফিল্টার দেখুন'}
+              Search
             </button>
-            
-            <select
-              value={currentPagination.pageSize}
-              onChange={handlePageSizeChange}
-              className="border rounded-md px-2 py-1.5 text-xs md:text-sm"
-            >
-              <option value="5">প্রতি পৃষ্ঠায় ৫টি</option>
-              <option value="10">প্রতি পৃষ্ঠায় ১০টি</option>
-              <option value="20">প্রতি পৃষ্ঠায় ২০টি</option>
-              <option value="50">প্রতি পৃষ্ঠায় ৫০টি</option>
-            </select>
-          </div>
+          </form>
+
+          <select
+            value={currentPagination.pageSize}
+            onChange={handlePageSizeChange}
+            className='border rounded-md px-2 py-1.5 text-sm'
+          >
+            <option value='5'>5 per page</option>
+            <option value='10'>10 per page</option>
+            <option value='20'>20 per page</option>
+            <option value='50'>50 per page</option>
+          </select>
         </div>
-
-        {showFilters && (
-          <div className="bg-white p-4 rounded-lg shadow border">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ফোন নম্বর</label>
-                <input
-                  type="text"
-                  name="phoneNo"
-                  value={searchFilters.phoneNo}
-                  onChange={handleFilterChange}
-                  placeholder="ফোন নম্বর দিয়ে খুঁজুন"
-                  className="w-full px-3 py-1.5 border rounded-md text-sm"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">লেনদেন আইডি</label>
-                <input
-                  type="text"
-                  name="transactionId"
-                  value={searchFilters.transactionId}
-                  onChange={handleFilterChange}
-                  placeholder="লেনদেন আইডি দিয়ে খুঁজুন"
-                  className="w-full px-3 py-1.5 border rounded-md text-sm"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ওয়ালেট ধরণ</label>
-                <select
-                  name="walletType"
-                  value={searchFilters.walletType}
-                  onChange={handleFilterChange}
-                  className="w-full px-3 py-1.5 border rounded-md text-sm"
-                >
-                  <option value="">সব ধরণ</option>
-                  <option value="bKash">bKash</option>
-                  <option value="Nagad">Nagad</option>
-                </select>
-              </div>
-              
-            
-            </div>
-            
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={resetFilters}
-                className="px-4 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-              >
-                রিসেট
-              </button>
-              <button
-                onClick={applyFilters}
-                className="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-              >
-                ফিল্টার প্রয়োগ করুন
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className='flex justify-center items-center h-64'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500'></div>
         </div>
-      ) : filteredRequests.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-500">কোন {activeTab === 'pending' ? 'পেন্ডিং' : activeTab === 'completed' ? ' কমপ্লিটেড' : ' রিজেক্টেড'} উত্তোলনের অনুরোধ পাওয়া যায়নি</p>
+      ) : allRequests.length === 0 ? (
+        <div className='bg-white rounded-lg shadow p-6 text-center'>
+          <p className='text-gray-500'>No {activeTab.toLowerCase()} withdrawal requests found</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {/* মোবাইল ভিউ - কার্ড */}
-          <div className="md:hidden space-y-3 p-3">
-            {filteredRequests.map((request) => (
-              <div key={request.withdrawId} className="border rounded-lg p-3 text-xs">
-                <div className="flex justify-between items-start">
+        <>
+          {/* Desktop view - table (hidden on mobile) */}
+          <div className='hidden md:block bg-white rounded-lg shadow overflow-hidden'>
+            <div className='overflow-x-auto'>
+              <table className='min-w-full divide-y divide-gray-200 text-sm'>
+                <thead className='bg-gray-50'>
+                  <tr>
+                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
+                      Date
+                    </th>
+                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
+                      Wallet
+                    </th>
+                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
+                      Amount
+                    </th>
+                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
+                      Fee
+                    </th>
+                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
+                      Received
+                    </th>
+                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
+                      Status
+                    </th>
+                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className='bg-white divide-y divide-gray-200'>
+                  {allRequests.map(request => (
+                    <tr key={request.withdrawId}>
+                      <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
+                        {formatDate(request.requestedAt)}
+                      </td>
+                      <td className='px-4 py-4 whitespace-nowrap'>
+                        <div className='font-medium text-gray-900'>{request.walletName}</div>
+                        <div className='text-gray-500'>{request.walletPhoneNo}</div>
+                      </td>
+                      <td className='px-4 py-4 whitespace-nowrap text-gray-900'>
+                        {parseFloat(request.amount).toFixed(2)}৳
+                      </td>
+                      <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
+                        {parseFloat(request.transactionFee).toFixed(2)}৳
+                      </td>
+                      <td className='px-4 py-4 whitespace-nowrap text-gray-900 font-medium'>
+                        {parseFloat(request.actualAmount).toFixed(2)}৳
+                      </td>
+                      <td className='px-4 py-4 whitespace-nowrap'>
+                        <div className='flex items-center space-x-2'>
+                          {getStatusBadge(request.withdrawStatus)}
+                          {(request.withdrawStatus === 'COMPLETED' ||
+                            request.withdrawStatus === 'REJECTED') && (
+                            <button
+                              onClick={() => showDetailsModal(request)}
+                              className='text-blue-600 hover:text-blue-800'
+                            >
+                              Details
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className='px-4 py-4 whitespace-nowrap font-medium'>
+                        {request.withdrawStatus === 'PENDING' ? (
+                          <button
+                            onClick={() => openCancelConfirmation(request)}
+                            disabled={cancellingId === request.withdrawId}
+                            className='text-red-600 hover:text-red-900 disabled:opacity-50'
+                          >
+                            {cancellingId === request.withdrawId ? 'Cancelling...' : 'Cancel'}
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile view - list (hidden on desktop) */}
+          <div className='md:hidden space-y-4'>
+            {allRequests.map(request => (
+              <div key={request.withdrawId} className='bg-white rounded-lg shadow p-4'>
+                <div className='flex justify-between items-start'>
                   <div>
-                    <p className="text-gray-500">{formatDate(request.requestedAt)}</p>
-                    <h3 className="font-medium">{request.walletName} - {request.walletPhoneNo}</h3>
+                    <p className='text-sm text-gray-500'>{formatDate(request.requestedAt)}</p>
+                    <h3 className='font-medium text-gray-900 mt-1'>{request.walletName}</h3>
+                    <p className='text-sm text-gray-500'>{request.walletPhoneNo}</p>
                   </div>
-                  <div>
-                    {getStatusBadge(request.status)}
-                  </div>
-                </div>
-                
-                <div className="mt-2 space-y-1">
-                  <div>
-                    <p className="text-gray-500">পরিমাণ:</p>
-                    <p className="font-medium">{parseFloat(request.amount).toFixed(2)}৳</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">ফি:</p>
-                    <p className="font-medium">{parseFloat(request.transactionFee).toFixed(2)}৳</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">প্রাপ্ত অর্থ:</p>
-                    <p className="font-medium">{calculateActualAmount(request.amount, request.transactionFee)}৳</p>
+                  <div className='text-right'>
+                    <div className='font-medium text-gray-900'>
+                      {parseFloat(request.amount).toFixed(2)}৳
+                    </div>
+                    <div className='text-xs text-gray-500'>
+                      Fee: {parseFloat(request.transactionFee).toFixed(2)}৳
+                    </div>
+                    <div className='text-sm font-medium text-green-600'>
+                      {parseFloat(request.actualAmount).toFixed(2)}৳
+                    </div>
                   </div>
                 </div>
 
-                {(request.status === 'completed' || request.status === 'rejected') && (
-                  <div className="mt-2">
-                    <button 
-                      onClick={() => showDetailsModal(request)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      বিস্তারিত দেখুন
-                    </button>
+                <div className='mt-3 flex justify-between items-center'>
+                  <div>{getStatusBadge(request.withdrawStatus)}</div>
+                  <div className='flex space-x-2'>
+                    {(request.withdrawStatus === 'COMPLETED' ||
+                      request.withdrawStatus === 'REJECTED') && (
+                      <button
+                        onClick={() => showDetailsModal(request)}
+                        className='text-blue-600 hover:text-blue-800 text-sm'
+                      >
+                        Details
+                      </button>
+                    )}
+                    {request.withdrawStatus === 'PENDING' && (
+                      <button
+                        onClick={() => openCancelConfirmation(request)}
+                        disabled={cancellingId === request.withdrawId}
+                        className='text-red-600 hover:text-red-900 text-sm disabled:opacity-50'
+                      >
+                        {cancellingId === request.withdrawId ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    )}
                   </div>
-                )}
-                
-                {request.status === 'pending' ? (
-                  <div className="mt-3">
-                    <button
-                      onClick={() => openCancelConfirmation(request)}
-                      disabled={cancellingId === request.withdrawId}
-                      className="w-full py-1 px-2 bg-red-50 text-red-600 rounded font-medium disabled:opacity-50"
-                    >
-                      {cancellingId === request.withdrawId ? 'বাতিল করা হচ্ছে...' : 'অনুরোধ বাতিল করুন'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-2 text-gray-500">
-                    প্রক্রিয়াকরণ: {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
-                  </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
-          
-          {/* ডেস্কটপ ভিউ - টেবিল */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">তারিখ</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">ওয়ালেট</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">পরিমাণ</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">ফি</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">প্রাপ্ত অর্থ</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">স্ট্যাটাস</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">লেনদেন আইডি</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">প্রক্রিয়াকরণ</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">অ্যাকশন</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.map((request) => (
-                  <tr key={request.withdrawId}>
-                    <td className="px-4 py-4 whitespace-nowrap text-gray-500">
-                      {formatDate(request.requestedAt)}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{request.walletName}</div>
-                      <div className="text-gray-500">{request.walletPhoneNo}</div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-gray-900">
-                      {parseFloat(request.amount).toFixed(2)}৳
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-gray-500">
-                      {parseFloat(request.transactionFee).toFixed(2)}৳
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-gray-900 font-medium">
-                      {calculateActualAmount(request.amount, request.transactionFee)}৳
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        {getStatusBadge(request.status)}
-                        {(request.status === 'completed' || request.status === 'rejected') && (
-                          <button 
-                            onClick={() => showDetailsModal(request)}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            বিস্তারিত
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-gray-500">
-                      {request.transactionId || 'N/A'}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-gray-500">
-                      {request.processedAt ? formatDate(request.processedAt) : 'N/A'}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap font-medium">
-                      {request.status === 'pending' ? (
-                        <button
-                          onClick={() => openCancelConfirmation(request)}
-                          disabled={cancellingId === request.withdrawId}
-                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                        >
-                          {cancellingId === request.withdrawId ? 'বাতিল হচ্ছে...' : 'বাতিল করুন'}
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* পেজিনেশন */}
+
+          {/* Pagination */}
           {currentPagination.totalPages > 1 && (
-            <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200">
-              <div className="flex-1 flex justify-between sm:hidden">
+            <div className='bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200 mt-4'>
+              <div className='flex-1 flex justify-between sm:hidden'>
                 <button
                   onClick={() => fetchWithdrawHistory(currentPagination.currentPage - 1)}
                   disabled={currentPagination.currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className='relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'
                 >
-                  পূর্ববর্তী
+                  Previous
                 </button>
                 <button
                   onClick={() => fetchWithdrawHistory(currentPagination.currentPage + 1)}
                   disabled={currentPagination.currentPage === currentPagination.totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className='ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'
                 >
-                  পরবর্তী
+                  Next
                 </button>
               </div>
-              
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+
+              <div className='hidden sm:flex-1 sm:flex sm:items-center sm:justify-between'>
                 <div>
-                  <p className="text-sm text-gray-700">
-                    দেখানো হচ্ছে <span className="font-medium">{(currentPagination.currentPage - 1) * currentPagination.pageSize + 1}</span> থেকে{' '}
-                    <span className="font-medium">{Math.min(currentPagination.currentPage * currentPagination.pageSize, currentPagination.totalRequests)}</span> এর মধ্যে{' '}
-                    <span className="font-medium">{currentPagination.totalRequests}</span> টি অনুরোধ
+                  <p className='text-sm text-gray-700'>
+                    Showing{' '}
+                    <span className='font-medium'>
+                      {(currentPagination.currentPage - 1) * currentPagination.pageSize + 1}
+                    </span>{' '}
+                    to{' '}
+                    <span className='font-medium'>
+                      {Math.min(
+                        currentPagination.currentPage * currentPagination.pageSize,
+                        currentPagination.totalRequests
+                      )}
+                    </span>{' '}
+                    of <span className='font-medium'>{currentPagination.totalRequests}</span>{' '}
+                    requests
                   </p>
                 </div>
                 <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <nav className='relative z-0 inline-flex rounded-md shadow-sm -space-x-px'>
                     <button
                       onClick={() => fetchWithdrawHistory(currentPagination.currentPage - 1)}
                       disabled={currentPagination.currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      className='relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50'
                     >
-                      <span className="sr-only">পূর্ববর্তী</span>
-                      <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                      <span className='sr-only'>Previous</span>
+                      <svg
+                        className='h-5 w-5'
+                        xmlns='http://www.w3.org/2000/svg'
+                        viewBox='0 0 20 20'
+                        fill='currentColor'
+                        aria-hidden='true'
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z'
+                          clipRule='evenodd'
+                        />
                       </svg>
                     </button>
                     {Array.from({ length: Math.min(5, currentPagination.totalPages) }, (_, i) => {
-                      let pageNum;
+                      let pageNum
                       if (currentPagination.totalPages <= 5) {
-                        pageNum = i + 1;
+                        pageNum = i + 1
                       } else if (currentPagination.currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPagination.currentPage >= currentPagination.totalPages - 2) {
-                        pageNum = currentPagination.totalPages - 4 + i;
+                        pageNum = i + 1
+                      } else if (
+                        currentPagination.currentPage >=
+                        currentPagination.totalPages - 2
+                      ) {
+                        pageNum = currentPagination.totalPages - 4 + i
                       } else {
-                        pageNum = currentPagination.currentPage - 2 + i;
+                        pageNum = currentPagination.currentPage - 2 + i
                       }
                       return (
                         <button
@@ -544,16 +447,26 @@ const WithdrawHistory = () => {
                         >
                           {pageNum}
                         </button>
-                      );
+                      )
                     })}
                     <button
                       onClick={() => fetchWithdrawHistory(currentPagination.currentPage + 1)}
                       disabled={currentPagination.currentPage === currentPagination.totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      className='relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50'
                     >
-                      <span className="sr-only">পরবর্তী</span>
-                      <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      <span className='sr-only'>Next</span>
+                      <svg
+                        className='h-5 w-5'
+                        xmlns='http://www.w3.org/2000/svg'
+                        viewBox='0 0 20 20'
+                        fill='currentColor'
+                        aria-hidden='true'
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z'
+                          clipRule='evenodd'
+                        />
                       </svg>
                     </button>
                   </nav>
@@ -561,153 +474,162 @@ const WithdrawHistory = () => {
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* বিস্তারিত মোডাল */}
+      {/* Details Modal */}
       {selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
-            <div className="p-4 border-b">
-              <h2 className="text-lg font-medium">
-                উত্তোলন অনুরোধের বিস্তারিত
-              </h2>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+          <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
+            <div className='p-4 border-b'>
+              <h2 className='text-lg font-medium'>Withdrawal Request Details</h2>
             </div>
-            
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+
+            <div className='p-4 space-y-4'>
+              <div className='grid grid-cols-2 gap-4'>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">স্ট্যাটাস:</p>
-                  <div className="mt-1">
-                    {getStatusBadge(selectedRequest.status)}
-                  </div>
+                  <p className='text-sm font-medium text-gray-700'>Status:</p>
+                  <div className='mt-1'>{getStatusBadge(selectedRequest.withdrawStatus)}</div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">অনুরোধের তারিখ:</p>
-                  <p className="mt-1 text-gray-900">{formatDate(selectedRequest.requestedAt)}</p>
+                  <p className='text-sm font-medium text-gray-700'>Request Date:</p>
+                  <p className='mt-1 text-gray-900'>{formatDate(selectedRequest.requestedAt)}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className='grid grid-cols-3 gap-2'>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">পরিমাণ:</p>
-                  <p className="mt-1 text-gray-900">{parseFloat(selectedRequest.amount).toFixed(2)}৳</p>
+                  <p className='text-sm font-medium text-gray-700'>Amount:</p>
+                  <p className='mt-1 text-gray-900'>
+                    {parseFloat(selectedRequest.amount).toFixed(2)}৳
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">ফি:</p>
-                  <p className="mt-1 text-gray-900">{parseFloat(selectedRequest.transactionFee).toFixed(2)}৳</p>
+                  <p className='text-sm font-medium text-gray-700'>Fee:</p>
+                  <p className='mt-1 text-gray-900'>
+                    {parseFloat(selectedRequest.transactionFee).toFixed(2)}৳
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">প্রাপ্ত অর্থ:</p>
-                  <p className="mt-1 text-gray-900 font-medium">
-                    {calculateActualAmount(selectedRequest.amount, selectedRequest.transactionFee)}৳
+                  <p className='text-sm font-medium text-gray-700'>Received:</p>
+                  <p className='mt-1 text-gray-900 font-medium'>
+                    {parseFloat(selectedRequest.actualAmount).toFixed(2)}৳
                   </p>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-gray-700">ওয়ালেট:</p>
-                <p className="mt-1 text-gray-900">{selectedRequest.walletName} - {selectedRequest.walletPhoneNo}</p>
+                <p className='text-sm font-medium text-gray-700'>Wallet:</p>
+                <p className='mt-1 text-gray-900'>
+                  {selectedRequest.walletName} - {selectedRequest.walletPhoneNo}
+                </p>
               </div>
 
-              {selectedRequest.status !== 'pending' && (
+              {selectedRequest.withdrawStatus !== 'PENDING' && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className='grid grid-cols-2 gap-4'>
                     <div>
-                      <p className="text-sm font-medium text-gray-700">লেনদেন আইডি:</p>
-                      <p className="mt-1 text-gray-900">{selectedRequest.transactionId || 'N/A'}</p>
+                      <p className='text-sm font-medium text-gray-700'>Transaction ID:</p>
+                      <p className='mt-1 text-gray-900'>{selectedRequest.transactionId || 'N/A'}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700">লেনদেন ফোন:</p>
-                      <p className="mt-1 text-gray-900">{selectedRequest.transactionPhoneNo || 'N/A'}</p>
+                      <p className='text-sm font-medium text-gray-700'>Processed Date:</p>
+                      <p className='mt-1 text-gray-900'>
+                        {selectedRequest.processedAt
+                          ? formatDate(selectedRequest.processedAt)
+                          : 'N/A'}
+                      </p>
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">প্রক্রিয়াকরণের তারিখ:</p>
-                    <p className="mt-1 text-gray-900">{selectedRequest.processedAt ? formatDate(selectedRequest.processedAt) : 'N/A'}</p>
                   </div>
                 </>
               )}
 
               {selectedRequest.remarks && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700">মন্তব্য:</p>
-                  <p className="mt-1 text-gray-900 whitespace-pre-line">{selectedRequest.remarks}</p>
+                  <p className='text-sm font-medium text-gray-700'>Remarks:</p>
+                  <p className='mt-1 text-gray-900 whitespace-pre-line'>
+                    {selectedRequest.remarks}
+                  </p>
                 </div>
               )}
             </div>
-            
-            <div className="p-4 border-t flex justify-end">
+
+            <div className='p-4 border-t flex justify-end'>
               <button
                 onClick={closeDetailsModal}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200'
               >
-                বন্ধ করুন
+                Close
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ক্যান্সেল কনফার্মেশন মোডাল */}
+      {/* Cancel Confirmation Modal */}
       {showCancelConfirmation && requestToCancel && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
-            <div className="p-4 border-b">
-              <h2 className="text-lg font-medium text-red-600">
-                উত্তোলন অনুরোধ বাতিল করুন
-              </h2>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+          <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
+            <div className='p-4 border-b'>
+              <h2 className='text-lg font-medium text-red-600'>Cancel Withdrawal Request</h2>
             </div>
-            
-            <div className="p-4 space-y-4">
-              <p className="text-gray-700">
-                আপনি কি নিশ্চিতভাবে এই উত্তোলন অনুরোধটি বাতিল করতে চান?
+
+            <div className='p-4 space-y-4'>
+              <p className='text-gray-700'>
+                Are you sure you want to cancel this withdrawal request?
               </p>
-              
-              <div className="bg-red-50 p-3 rounded-md">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+
+              <div className='bg-red-50 p-3 rounded-md'>
+                <div className='flex items-start'>
+                  <div className='flex-shrink-0'>
+                    <svg
+                      className='h-5 w-5 text-red-400'
+                      xmlns='http://www.w3.org/2000/svg'
+                      viewBox='0 0 20 20'
+                      fill='currentColor'
+                    >
+                      <path
+                        fillRule='evenodd'
+                        d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z'
+                        clipRule='evenodd'
+                      />
                     </svg>
                   </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">
-                      পরিমাণ: {parseFloat(requestToCancel.amount).toFixed(2)}৳
+                  <div className='ml-3'>
+                    <h3 className='text-sm font-medium text-red-800'>
+                      Amount: {parseFloat(requestToCancel.amount).toFixed(2)}৳
                     </h3>
-                    <div className="mt-2 text-sm text-red-700">
+                    <div className='mt-2 text-sm text-red-700'>
                       <p>
-                        ওয়ালেট: {requestToCancel.walletName} - {requestToCancel.walletPhoneNo}
+                        Wallet: {requestToCancel.walletName} - {requestToCancel.walletPhoneNo}
                       </p>
-                      <p className="mt-1">
-                        তারিখ: {formatDate(requestToCancel.requestedAt)}
-                      </p>
+                      <p className='mt-1'>Date: {formatDate(requestToCancel.requestedAt)}</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            <div className="p-4 border-t flex justify-end gap-3">
+
+            <div className='p-4 border-t flex justify-end gap-3'>
               <button
                 onClick={closeCancelConfirmation}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200'
               >
-                বাতিল করুন
+                Cancel
               </button>
               <button
                 onClick={() => handleCancelRequest(requestToCancel.withdrawId)}
                 disabled={cancellingId === requestToCancel.withdrawId}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+                className='px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50'
               >
-                {cancellingId === requestToCancel.withdrawId ? 'বাতিল করা হচ্ছে...' : 'নিশ্চিত করুন'}
+                {cancellingId === requestToCancel.withdrawId ? 'Cancelling...' : 'Confirm'}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default WithdrawHistory;
+export default WithdrawHistory
