@@ -11,7 +11,6 @@ import {
 } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import { orderApi } from '../Api/order.api'
-import { reOrder } from '../Api/seller.api'
 import { walletApi } from '../Api/wallet.api'
 import { useAuth } from '../Hooks/useAuth'
 import { formatDate } from '../utils/date.utils'
@@ -58,6 +57,7 @@ interface Order {
   paymentVerified: boolean
   sellerBalance: string
   cashOnAmount: number | null
+  trackingUrl: string | null
   Payment: {
     paymentId: string
     paymentDate: string
@@ -141,13 +141,13 @@ const Orders = () => {
       let statusParam = []
 
       if (activeTab === 'pending') {
-        statusParam = ['UNPAID', 'PAID']
+        statusParam = ['UNPAID', 'PAID', 'FAILED']
       } else if (activeTab === 'confirmed') {
         statusParam = ['CONFIRMED', 'DELIVERED']
       } else if (activeTab === 'completed') {
         statusParam = ['COMPLETED']
       } else {
-        statusParam = ['CANCELLED', 'RETURNED', 'REJECTED', 'REFUNDED', 'FAILED']
+        statusParam = ['CANCELLED', 'RETURNED', 'REJECTED', 'REFUNDED']
       }
 
       const response = await orderApi.getSellerOrders({
@@ -306,7 +306,7 @@ const Orders = () => {
   const handleReorder = async (orderId: number) => {
     try {
       setActionLoading({ type: 'reorder', id: orderId })
-      const response = await reOrder(orderId)
+      const response = await orderApi.reorderFailedOrder(orderId)
       if (response.success) {
         toast.success('পুনরায় অর্ডার করা হয়েছে')
         fetchOrders()
@@ -333,8 +333,8 @@ const Orders = () => {
         return <span className={`${baseClasses} bg-green-100 text-green-800`}>কনফার্মড</span>
       case 'PROCESSING':
         return <span className={`${baseClasses} bg-indigo-100 text-indigo-800`}>প্রসেসিং</span>
-      case 'SHIPPED':
-        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>শিপড</span>
+      case 'DELIVERED':
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>ডেলিভারড</span>
       case 'COMPLETED':
         return <span className={`${baseClasses} bg-green-100 text-green-800`}>কমপ্লিটেড</span>
       case 'CANCELLED':
@@ -430,7 +430,7 @@ const Orders = () => {
             <FaRedo size={10} />
             {actionLoading.type === 'reorder' && actionLoading.id === order.orderId
               ? 'প্রক্রিয়াধীন...'
-              : 'পুনরায় অর্ডার'}
+              : 'পুনরায় অর্ডার করুন'}
           </button>
         )}
       </div>
@@ -480,7 +480,8 @@ const Orders = () => {
           }`}
           onClick={() => setActiveTab('pending')}
         >
-          পেন্ডিং ({orders.filter(o => ['UNPAID', 'PAID'].includes(o.orderStatus)).length})
+          পেন্ডিং ({orders.filter(o => ['UNPAID', 'PAID', 'FAILED'].includes(o.orderStatus)).length}
+          )
         </button>
         <button
           className={`px-4 py-2 text-sm ${
@@ -1069,6 +1070,49 @@ const Orders = () => {
                   </div>
                 )}
               </div>
+              {/* CREATE A SECTION FOR  copyable tracking url */}
+              {selectedOrder.trackingUrl && (
+                <div className='bg-gray-50 p-4 rounded-lg'>
+                  <h3 className='font-medium text-lg mb-3'>ট্র্যাকিং লিঙ্ক</h3>
+                  <div className='flex flex-col sm:flex-row gap-2 items-start sm:items-center'>
+                    <div className='flex-1 bg-white p-2 rounded border border-gray-200 overflow-hidden'>
+                      <p className='text-sm text-blue-600 truncate'>
+                        <a
+                          href={selectedOrder.trackingUrl}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='hover:underline break-all'
+                        >
+                          {selectedOrder.trackingUrl}
+                        </a>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedOrder.trackingUrl || '')
+                        toast.success('লিঙ্ক কপি করা হয়েছে')
+                      }}
+                      className='px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 text-sm flex items-center gap-1 whitespace-nowrap'
+                    >
+                      <svg
+                        xmlns='http://www.w3.org/2000/svg'
+                        className='h-4 w-4'
+                        fill='none'
+                        viewBox='0 0 24 24'
+                        stroke='currentColor'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3'
+                        />
+                      </svg>
+                      কপি করুন
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* পণ্য তথ্য */}
               <div className='bg-gray-50 p-4 rounded-lg'>

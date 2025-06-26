@@ -64,6 +64,9 @@ class OrderApi {
   public confirmOrderBySeller(orderId: number) {
     return apiClient.post(`orders/seller/confirm/${orderId}`)
   }
+  public async reorderFailedOrder(orderId: number) {
+    return apiClient.post(`orders/seller/re-order/${orderId}`)
+  }
 }
 
 export const orderApi = new OrderApi()
