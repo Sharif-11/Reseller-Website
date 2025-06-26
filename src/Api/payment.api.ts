@@ -1,6 +1,27 @@
 import { apiClient } from './ApiClient'
 
 class PaymentApi {
+  public async payDue({
+    walletName,
+    walletPhoneNo,
+    systemWalletPhoneNo,
+    amount,
+    transactionId,
+  }: {
+    walletName: string
+    walletPhoneNo: string
+    systemWalletPhoneNo: string
+    amount: number
+    transactionId: string
+  }) {
+    return apiClient.post('payments/seller/pay-due', {
+      walletName,
+      walletPhoneNo,
+      systemWalletPhoneNo,
+      amount,
+      transactionId,
+    })
+  }
   /**
    * Get all payments of a specific user
    * @param userPhoneNo User's phone number

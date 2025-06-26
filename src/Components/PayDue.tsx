@@ -1,33 +1,38 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { verifyLogin } from '../Api/auth.api'
-import { getAdminWallets, payDue } from '../Api/seller.api'
+import { paymentApi } from '../Api/payment.api'
+import { walletApi } from '../Api/wallet.api'
 import { useAuth } from '../Hooks/useAuth'
 
 interface Wallet {
   walletId: number
-  walletName: 'bKash' | 'Nagad' | 'Rocket'
+  walletName: string
   walletPhoneNo: string
 }
 
-interface AdminWallet extends Wallet {
-  adminId: number
+interface SystemWallet extends Wallet {
+  walletType: 'SYSTEM'
+}
+
+interface SellerWallet extends Wallet {
+  walletType: 'SELLER'
+  userId: string
 }
 
 const PayDue = () => {
   const navigate = useNavigate()
-  const { user, setUser } = useAuth()
-  const [wallets, setWallets] = useState<Wallet[]>([])
-  const [adminWallets, setAdminWallets] = useState<AdminWallet[]>([])
-  const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null)
-  const [selectedAdminWallet, setSelectedAdminWallet] = useState<AdminWallet | null>(null)
+  const { user } = useAuth()
+  const [sellerWallets, setSellerWallets] = useState<SellerWallet[]>([])
+  const [systemWallets, setSystemWallets] = useState<SystemWallet[]>([])
+  const [selectedSellerWallet, setSelectedSellerWallet] = useState<SellerWallet | null>(null)
+  const [selectedSystemWallet, setSelectedSystemWallet] = useState<SystemWallet | null>(null)
   const [amount, setAmount] = useState('')
   const [dueAmount, setDueAmount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [errors, setErrors] = useState({
-    wallet: '',
-    adminWallet: '',
+    sellerWallet: '',
+    systemWallet: '',
     amount: '',
     form: '',
   })
@@ -44,89 +49,87 @@ const PayDue = () => {
     }
   }, [user])
 
-  // Fetch user's wallets and admin wallets
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsFetching(true)
-        const [
-          {
-            success,
-            message,
-            data: { user: userData },
-          },
-          adminWalletsResponse,
-        ] = await Promise.all([verifyLogin(), getAdminWallets()])
-
-        if (success) {
-          setUser(userData)
-          setWallets(userData.wallets || [])
-          // Set default wallet if available
-          if (userData.wallets?.length > 0) {
-            setSelectedWallet(userData.wallets[0])
-          }
-        } else {
-          setErrors(prev => ({
-            ...prev,
-            form: message || 'ডেটা লোড করতে সমস্যা হয়েছে',
-          }))
+  const fetchSellerWallets = async () => {
+    try {
+      setIsFetching(true)
+      const { success, message, data } = await walletApi.getWalletsOfASeller(user?.phoneNo!)
+      if (success) {
+        setSellerWallets(data || [])
+        if (data.length > 0) {
+          setSelectedSellerWallet(data[0])
         }
-
-        if (adminWalletsResponse.success) {
-          setAdminWallets(adminWalletsResponse.data)
-          // Find matching admin wallet if user has wallets
-          if (userData.wallets?.length > 0) {
-            const userWallet = userData.wallets[0]
-            const matchingAdminWallet = adminWalletsResponse.data.find(
-              (aw: Wallet) => aw.walletName === userWallet.walletName
-            )
-            if (matchingAdminWallet) {
-              setSelectedAdminWallet(matchingAdminWallet)
-            }
-          }
-        }
-      } catch (error) {
-        setErrors(prev => ({
-          ...prev,
-          form: 'ডেটা লোড করতে সমস্যা হয়েছে',
-        }))
-        console.error('Error fetching data:', error)
-      } finally {
-        setIsFetching(false)
+      } else {
+        setErrors(prev => ({ ...prev, form: message || 'ওয়ালেট লোড করতে সমস্যা হয়েছে' }))
       }
+    } catch (error) {
+      setErrors(prev => ({ ...prev, form: 'ওয়ালেট লোড করতে সমস্যা হয়েছে' }))
+      console.error('ওয়ালেট লোড করার সময় ত্রুটি:', error)
     }
+  }
 
-    fetchData()
+  const fetchSystemWallets = async () => {
+    try {
+      const { success, message, data } = await walletApi.getSystemWallets()
+      if (success) {
+        setSystemWallets(data || [])
+      } else {
+        setErrors(prev => ({ ...prev, form: message || 'সিস্টেম ওয়ালেট লোড করতে সমস্যা হয়েছে' }))
+      }
+    } catch (error) {
+      setErrors(prev => ({ ...prev, form: 'সিস্টেম ওয়ালেট লোড করতে সমস্যা হয়েছে' }))
+      console.error('সিস্টেম ওয়ালেট লোড করার সময় ত্রুটি:', error)
+    } finally {
+      setIsFetching(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSellerWallets()
+    fetchSystemWallets()
   }, [])
+
+  // Update selected system wallet when seller wallet changes
+  useEffect(() => {
+    if (selectedSellerWallet && systemWallets.length > 0) {
+      const matchingSystemWallet = systemWallets.find(
+        sw => sw.walletName.toLowerCase() === selectedSellerWallet.walletName.toLowerCase()
+      )
+      setSelectedSystemWallet(matchingSystemWallet || null)
+    }
+  }, [selectedSellerWallet, systemWallets])
 
   const validateForm = () => {
     let isValid = true
-    const newErrors = { wallet: '', adminWallet: '', amount: '', form: '' }
+    const newErrors = { sellerWallet: '', systemWallet: '', amount: '', form: '' }
 
-    if (!selectedWallet) {
-      newErrors.wallet = 'একটি ওয়ালেট নির্বাচন করুন'
+    if (!selectedSellerWallet) {
+      newErrors.sellerWallet = 'আপনার ওয়ালেট নির্বাচন করুন'
       isValid = false
     }
 
-    if (!selectedAdminWallet) {
-      newErrors.adminWallet = 'একটি অ্যাডমিন ওয়ালেট নির্বাচন করুন'
+    if (!selectedSystemWallet) {
+      newErrors.systemWallet = 'সিস্টেম ওয়ালেট নির্বাচন করুন'
       isValid = false
     }
 
     // Check if wallet types match
     if (
-      selectedWallet &&
-      selectedAdminWallet &&
-      selectedWallet.walletName !== selectedAdminWallet.walletName
+      selectedSellerWallet &&
+      selectedSystemWallet &&
+      selectedSellerWallet.walletName.toLowerCase() !==
+        selectedSystemWallet.walletName.toLowerCase()
     ) {
-      newErrors.wallet = 'আপনার ওয়ালেট এবং অ্যাডমিন ওয়ালেট একই টাইপের হতে হবে'
-      newErrors.adminWallet = 'আপনার ওয়ালেট এবং অ্যাডমিন ওয়ালেট একই টাইপের হতে হবে'
+      newErrors.sellerWallet = 'আপনার ওয়ালেট এবং সিস্টেম ওয়ালেট একই ধরনের হতে হবে'
+      newErrors.systemWallet = 'আপনার ওয়ালেট এবং সিস্টেম ওয়ালেট একই ধরনের হতে হবে'
       isValid = false
     }
 
     const amountValue = parseFloat(amount)
-    if (!amount || isNaN(amountValue) || amountValue <= 0) {
+    if (!amount || isNaN(amountValue)) {
       newErrors.amount = 'সঠিক পরিমাণ লিখুন'
+      isValid = false
+    } else if (amountValue <= 0) {
+      newErrors.amount = 'পরিমাণ ০ টাকার বেশি হতে হবে'
       isValid = false
     } else if (amountValue < dueAmount) {
       newErrors.amount = `ন্যূনতম পরিশোধের পরিমাণ ${dueAmount}৳`
@@ -134,7 +137,7 @@ const PayDue = () => {
     }
 
     if (!transactionId.trim()) {
-      newErrors.form = 'ট্রানজেকশন আইডি দিন'
+      newErrors.form = 'ট্রানজেকশন আইডি লিখুন'
       isValid = false
     }
 
@@ -145,45 +148,52 @@ const PayDue = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateForm() || !selectedWallet || !selectedAdminWallet) return
+    if (!validateForm() || !selectedSellerWallet || !selectedSystemWallet) return
 
     try {
       setIsLoading(true)
-      const response = await payDue({
+      const response = await paymentApi.payDue({
         amount: parseFloat(amount),
-        sellerWalletName: selectedWallet.walletName,
-        sellerWalletPhoneNo: selectedWallet.walletPhoneNo,
-        adminWalletId: selectedAdminWallet.walletId,
+        walletName: selectedSellerWallet.walletName,
+        walletPhoneNo: selectedSellerWallet.walletPhoneNo,
+        systemWalletPhoneNo: selectedSystemWallet.walletPhoneNo,
         transactionId,
       })
+
       if (response.success) {
-        navigate('/payment-history', { state: { message: 'বকেয়া পরিশোধ সফল হয়েছে' } })
+        navigate('/payment-history', { state: { message: 'পেমেন্ট সফল হয়েছে' } })
       } else {
-        throw new Error(response.message || 'বকেয়া পরিশোধ ব্যর্থ হয়েছে')
+        throw new Error(response.message || 'পেমেন্ট ব্যর্থ হয়েছে')
       }
     } catch (error) {
       setErrors(prev => ({
         ...prev,
-        form: (error as Error).message || 'বকেয়া পরিশোধে সমস্যা হয়েছে',
+        form: (error as Error).message || 'পেমেন্ট প্রক্রিয়াকরণে ত্রুটি',
       }))
-      console.error('Payment error:', error)
+      console.error('পেমেন্ট ত্রুটি:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleWalletChange = (walletId: number) => {
-    const wallet = wallets.find(w => w.walletId === walletId)
-    setSelectedWallet(wallet || null)
-
-    // Find matching admin wallet
-    if (wallet) {
-      const matchingAdminWallet = adminWallets.find(aw => aw.walletName === wallet.walletName)
-      setSelectedAdminWallet(matchingAdminWallet || null)
-    }
-
-    setErrors(prev => ({ ...prev, wallet: '', adminWallet: '' }))
+  const handleSellerWalletChange = (walletId: number) => {
+    const wallet = sellerWallets.find(w => w.walletId === walletId)
+    setSelectedSellerWallet(wallet || null)
+    setErrors(prev => ({ ...prev, sellerWallet: '', systemWallet: '' }))
   }
+
+  const handleSystemWalletChange = (walletId: number) => {
+    const wallet = systemWallets.find(w => w.walletId === walletId)
+    setSelectedSystemWallet(wallet || null)
+    setErrors(prev => ({ ...prev, systemWallet: '' }))
+  }
+
+  // Filter system wallets to only show those matching the selected seller wallet type
+  const filteredSystemWallets = selectedSellerWallet
+    ? systemWallets.filter(
+        sw => sw.walletName.toLowerCase() === selectedSellerWallet.walletName.toLowerCase()
+      )
+    : systemWallets
 
   return (
     <div className='container mx-auto px-4 py-6 max-w-md w-full'>
@@ -197,7 +207,7 @@ const PayDue = () => {
           <span className='font-medium'>বকেয়া পরিমাণ:</span>
           <span className='text-xl font-bold text-red-600'>{dueAmount} ৳</span>
         </div>
-        <p className='text-sm text-red-600 mt-1'>দয়া করে সম্পূর্ণ বকেয়া পরিশোধ করুন</p>
+        <p className='text-sm text-red-600 mt-1'>সম্পূর্ণ বকেয়া পরিশোধ করুন</p>
       </div>
 
       {/* Error message */}
@@ -208,66 +218,59 @@ const PayDue = () => {
       {/* Payment Form */}
       <form onSubmit={handleSubmit} className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6'>
         <div className='space-y-4'>
-          {/* User Wallet Selection */}
+          {/* Seller Wallet Selection */}
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-1'>
               আপনার ওয়ালেট নির্বাচন করুন
             </label>
             <select
-              value={selectedWallet?.walletId || ''}
-              onChange={e => handleWalletChange(Number(e.target.value))}
+              value={selectedSellerWallet?.walletId || ''}
+              onChange={e => handleSellerWalletChange(Number(e.target.value))}
               className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.wallet ? 'border-red-500' : 'border-gray-300'
+                errors.sellerWallet ? 'border-red-500' : 'border-gray-300'
               }`}
               disabled={isFetching}
             >
               <option value=''>ওয়ালেট নির্বাচন করুন</option>
-              {wallets.map(wallet => (
+              {sellerWallets.map(wallet => (
                 <option key={wallet.walletId} value={wallet.walletId}>
                   {wallet.walletName} - {wallet.walletPhoneNo}
                 </option>
               ))}
             </select>
-            {errors.wallet && <p className='mt-1 text-xs text-red-600'>{errors.wallet}</p>}
+            {errors.sellerWallet && (
+              <p className='mt-1 text-xs text-red-600'>{errors.sellerWallet}</p>
+            )}
           </div>
 
-          {/* Admin Wallet Selection */}
+          {/* System Wallet Selection */}
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-1'>
-              অ্যাডমিন ওয়ালেট নির্বাচন করুন
+              সিস্টেম ওয়ালেট নির্বাচন করুন
             </label>
             <select
-              value={selectedAdminWallet?.walletId || ''}
-              onChange={e => {
-                const selectedAdminWalletId = Number(e.target.value)
-                const wallet = adminWallets.find(w => w.walletId === selectedAdminWalletId)
-                setSelectedAdminWallet(wallet || null)
-                setErrors(prev => ({ ...prev, adminWallet: '' }))
-              }}
+              value={selectedSystemWallet?.walletId || ''}
+              onChange={e => handleSystemWalletChange(Number(e.target.value))}
               className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.adminWallet ? 'border-red-500' : 'border-gray-300'
+                errors.systemWallet ? 'border-red-500' : 'border-gray-300'
               }`}
-              disabled={isFetching || !selectedWallet}
+              disabled={isFetching || !selectedSellerWallet}
             >
-              <option value=''>অ্যাডমিন ওয়ালেট নির্বাচন করুন</option>
-              {adminWallets
-                .filter(aw => !selectedWallet || aw.walletName === selectedWallet.walletName)
-                .map(wallet => (
-                  <option key={wallet.walletId} value={wallet.walletId}>
-                    {wallet.walletName} - {wallet.walletPhoneNo}
-                  </option>
-                ))}
+              <option value=''>সিস্টেম ওয়ালেট নির্বাচন করুন</option>
+              {filteredSystemWallets.map(wallet => (
+                <option key={wallet.walletId} value={wallet.walletId}>
+                  {wallet.walletName} - {wallet.walletPhoneNo}
+                </option>
+              ))}
             </select>
-            {errors.adminWallet && (
-              <p className='mt-1 text-xs text-red-600'>{errors.adminWallet}</p>
+            {errors.systemWallet && (
+              <p className='mt-1 text-xs text-red-600'>{errors.systemWallet}</p>
             )}
           </div>
 
           {/* Amount Input */}
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              পরিশোধের পরিমাণ (৳)
-            </label>
+            <label className='block text-sm font-medium text-gray-700 mb-1'>পরিমাণ (৳)</label>
             <input
               type='number'
               value={amount}
@@ -300,7 +303,7 @@ const PayDue = () => {
                 errors.form ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            <p className='mt-1 text-xs text-gray-500'>পেমেন্টের পর প্রাপ্ত ট্রানজেকশন আইডি দিন</p>
+            <p className='mt-1 text-xs text-gray-500'>পেমেন্টের পর প্রাপ্ত ট্রানজেকশন আইডি লিখুন</p>
           </div>
 
           {/* Submit Button */}
@@ -331,7 +334,7 @@ const PayDue = () => {
                     d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
                   ></path>
                 </svg>
-                প্রসেসিং...
+                প্রক্রিয়াকরণ হচ্ছে...
               </span>
             ) : (
               'পরিশোধ করুন'
@@ -344,10 +347,10 @@ const PayDue = () => {
       <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
         <h3 className='text-lg font-semibold mb-3 text-center text-blue-600'>পেমেন্ট নির্দেশনা</h3>
         <ol className='list-decimal list-inside text-sm text-gray-700 space-y-2 pl-2'>
-          <li className='pb-1'>উপরের ফর্মে আপনার ওয়ালেট নির্বাচন করুন</li>
-          <li className='pb-1'>অ্যাডমিন ওয়ালেট স্বয়ংক্রিয়ভাবে নির্বাচিত হবে</li>
-          <li className='pb-1'>স্বয়ংক্রিয়ভাবে বকেয়া পরিমাণ সেট করা হয়েছে</li>
-          <li className='pb-1'>নির্বাচিত অ্যাডমিন ওয়ালেটে পেমেন্ট করুন</li>
+          <li className='pb-1'>উপরের ফর্ম থেকে আপনার ওয়ালেট নির্বাচন করুন</li>
+          <li className='pb-1'>একই ধরনের সিস্টেম ওয়ালেট স্বয়ংক্রিয়ভাবে নির্বাচিত হবে</li>
+          <li className='pb-1'>বকেয়া পরিমাণ স্বয়ংক্রিয়ভাবে সেট করা হয়েছে</li>
+          <li className='pb-1'>নির্বাচিত সিস্টেম ওয়ালেটে পেমেন্ট করুন</li>
           <li className='pb-1'>পেমেন্টের পর প্রাপ্ত ট্রানজেকশন আইডি লিখুন</li>
           <li className='pb-1'>"পরিশোধ করুন" বাটনে ক্লিক করুন</li>
         </ol>
@@ -356,8 +359,8 @@ const PayDue = () => {
           <h4 className='font-medium text-blue-800 mb-1'>দ্রষ্টব্য:</h4>
           <p className='text-xs text-blue-700'>
             পেমেন্ট ভেরিফিকেশনের পর আপনার অ্যাকাউন্ট ব্যালেন্স আপডেট করা হবে। এটি ১-২ ঘন্টা সময়
-            নিতে পারে। অ্যাডমিন ওয়ালেট অবশ্যই আপনার নির্বাচিত ওয়ালেটের মতো একই টাইপের হতে হবে
-            (bKash বা Nagad)।
+            নিতে পারে। সিস্টেম ওয়ালেট অবশ্যই আপনার নির্বাচিত ওয়ালেটের মতো একই ধরনের হতে হবে
+            (bKash, Nagad ইত্যাদি)।
           </p>
         </div>
       </div>
