@@ -25,7 +25,7 @@ interface WithdrawalDetails {
 
 const WithdrawRequest = () => {
   const navigate = useNavigate()
-  const { setUser, user, reloadUser } = useAuth()
+  const { user, reloadUser } = useAuth()
   const [wallets, setWallets] = useState<Wallet[]>([])
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null)
   const [amount, setAmount] = useState('')
