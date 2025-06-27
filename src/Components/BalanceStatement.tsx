@@ -1,58 +1,59 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
-import { getTransactionHistory } from '../Api/seller.api'
-import { useAuth } from '../Hooks/useAuth'
+import { transactionApi } from '../Api/transaction.api'
 import { formatDate } from '../utils/date.utils'
 
-interface Transaction {
-  id: number
+interface TransactionBase {
+  id: string
+  createdAt: string
   userId: string
   userName: string
   userPhoneNo: string
-  type: 'Credit' | 'Debit'
-  amount: string
   reason: string
-  reference: string | null
-  referralLevel: string | null
-  remarks: string
-  paymentMethod: string
-  paymentPhoneNo: string | null
-  transactionId: string | null
-  createdAt: string
-}
-
-interface TransactionResponse {
-  transactionList: Transaction[]
-  totalTransactions: number
-  currentPage: number
-  pageSize: number
-  totalPages: number
-  calculatedBalance: number // Assuming the API returns this as well
+  reference?: any | null
   totalCredit: number
   totalDebit: number
+  balance: number
 }
-interface ReferenceData {
-  sellerName?: string
-  referralLevel?: string
-  [key: string]: any // For any additional properties that might exist
+interface BackendTransaction extends TransactionBase {
+  amount: string // Amount is stored as a string in the backend
+}
+interface Transaction extends TransactionBase {
+  amount: number
+}
+interface TransactionResponse {
+  transactions: BackendTransaction[]
+  totalCount: number
+  currentPage: number
+  pageSize: number
+}
+interface Account {
+  balance: number
+  totalCredit: number
+  totalDebit: number
+  totalTransactions: number
 }
 
 const BalanceStatement = () => {
-  const { reloadUser } = useAuth() // Assuming you have a useAuth hook to get user info
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [account, setAccount] = useState<Account>({
+    balance: 0,
+    totalCredit: 0,
+    totalDebit: 0,
+    totalTransactions: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [calculatedBalance, setCalculatedBalance] = useState(0)
-  const [totalCredit, setTotalCredit] = useState(0)
-  const [totalDebit, setTotalDebit] = useState(0)
+
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([])
   const [pagination, setPagination] = useState({
     currentPage: 1,
     pageSize: 10,
-    totalPages: 1,
-    totalTransactions: 0,
+    totalCount: 0,
   })
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+
+  // Calculate balance, total credit and debit from transactions
 
   const fetchTransactions = async (
     page: number = pagination.currentPage,
@@ -60,26 +61,36 @@ const BalanceStatement = () => {
   ) => {
     setLoading(true)
     try {
-      const response = await getTransactionHistory({ page, pageSize })
+      const response = await transactionApi.getTransactions({
+        page,
+        limit: pageSize,
+        search: searchTerm,
+      })
 
       if (response.success && response.data) {
         const data = response.data as TransactionResponse
-        setTransactions(data.transactionList)
-        setFilteredTransactions(data.transactionList)
+        setAccount({
+          balance: response.data.balance,
+          totalCredit: response.data.totalCredit,
+          totalDebit: response.data.totalDebit,
+          totalTransactions: response.data.totalCount,
+        })
+        const formattedTransactions: Transaction[] = data.transactions.map(tx => ({
+          ...tx,
+          amount: parseFloat(tx.amount),
+        }))
+        setTransactions(formattedTransactions)
+        setFilteredTransactions(formattedTransactions)
         setPagination({
           currentPage: data.currentPage,
           pageSize: data.pageSize,
-          totalPages: data.totalPages,
-          totalTransactions: data.totalTransactions,
+          totalCount: data.totalCount,
         })
-        setCalculatedBalance(data.calculatedBalance)
-        setTotalCredit(data.totalCredit)
-        setTotalDebit(data.totalDebit)
       } else {
-        toast.error(response.message || 'Transactions লোড করতে ব্যর্থ হয়েছে')
+        toast.error(response.message || 'Failed to load transactions')
       }
     } catch (error) {
-      toast.error('Transactions আনতে সমস্যা হয়েছে')
+      toast.error('Error fetching transactions')
       console.error('Transactions fetch error:', error)
     } finally {
       setLoading(false)
@@ -90,9 +101,10 @@ const BalanceStatement = () => {
     if (searchTerm) {
       const filtered = transactions.filter(
         tx =>
-          tx.transactionId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          tx.paymentMethod?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          tx.reason?.toLowerCase().includes(searchTerm.toLowerCase())
+          tx.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          tx.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          tx.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          tx.userPhoneNo.toLowerCase().includes(searchTerm.toLowerCase())
       )
       setFilteredTransactions(filtered)
     } else {
@@ -102,18 +114,7 @@ const BalanceStatement = () => {
 
   useEffect(() => {
     fetchTransactions()
-    reloadUser() // Reload user data when component mounts
   }, [])
-
-  const getTypeBadge = (type: string) => {
-    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium'
-
-    return type === 'Credit' ? (
-      <span className={`${baseClasses} bg-green-100 text-green-800`}>ক্রেডিট</span>
-    ) : (
-      <span className={`${baseClasses} bg-red-100 text-red-800`}>ডেবিট</span>
-    )
-  }
 
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, currentPage: newPage }))
@@ -133,63 +134,64 @@ const BalanceStatement = () => {
   const closeModal = () => {
     setSelectedTransaction(null)
   }
-  const renderReferenceInfo = (reference: string | null) => {
+
+  const renderReferenceInfo = (reference: any) => {
     if (!reference) return 'N/A'
 
-    try {
-      const refData: ReferenceData = JSON.parse(reference)
+    if (typeof reference === 'object') {
       return (
         <div className='space-y-1'>
-          {refData.name && <p className='text-gray-900'>সেলার: {refData.name}</p>}
-          {refData.referralLevel && (
-            <p className='text-gray-900'>রেফারেল লেভেল: {refData.referralLevel}</p>
+          {reference.name && <p className='text-gray-900'>সেলার: {reference.name}</p>}
+          {reference.referralLevel && (
+            <p className='text-gray-900'>রেফারেল লেভেল: {reference.referralLevel}</p>
           )}
-          {/* Add any other reference data you want to display */}
         </div>
       )
-    } catch (error) {
-      // If it's not JSON, just display the raw reference
-      return <p className='text-gray-900'>{reference}</p>
     }
+
+    return <p className='text-gray-900'>{reference}</p>
   }
+
   return (
     <div className='px-4 py-6 max-w-6xl mx-auto'>
       <h1 className='text-xl font-bold mb-4 md:text-2xl md:mb-6'>ব্যালেন্স স্টেটমেন্ট</h1>
 
-      {/* ব্যালেন্স সারাংশ */}
+      {/* Balance Summary */}
       <div className='bg-white rounded-lg shadow p-4 mb-6'>
         <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
           <div className='w-full sm:w-auto'>
             <h2 className='text-base sm:text-lg font-medium text-gray-700'>বর্তমান ব্যালেন্স</h2>
-            <p className='text-xl sm:text-2xl font-bold'>{calculatedBalance}৳</p>
+            <p className='text-xl sm:text-2xl font-bold'>{account.balance || 0}৳</p>
           </div>
           <div className='grid grid-cols-2 sm:flex sm:flex-row gap-4 w-full sm:w-auto'>
             <div className='text-center p-2 bg-green-50 rounded-lg'>
               <p className='text-xs text-gray-500'>মোট ক্রেডিট</p>
-              <p className='text-green-600 font-medium text-sm sm:text-base'>{totalCredit}৳</p>
+              <p className='text-green-600 font-medium text-sm sm:text-base'>
+                {account.totalCredit}৳
+              </p>
             </div>
             <div className='text-center p-2 bg-red-50 rounded-lg'>
               <p className='text-xs text-gray-500'>মোট ডেবিট</p>
-              <p className='text-red-600 font-medium text-sm sm:text-base'>{totalDebit}৳</p>
+              <p className='text-red-600 font-medium text-sm sm:text-base'>{account.totalDebit}৳</p>
             </div>
             <div className='text-center p-2 bg-blue-50 rounded-lg col-span-2 sm:col-span-1'>
               <p className='text-xs text-gray-500'>মোট লেনদেন</p>
               <p className='text-blue-600 font-medium text-sm sm:text-base'>
-                {transactions.length}
+                {account.totalTransactions}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* লেনদেনের ইতিহাস */}
+      {/* Transaction History */}
       <div className='bg-white rounded-lg shadow overflow-hidden'>
-        {/* সার্চ এবং ফিল্টার সেকশন */}
+        {/* Search and Filter Section */}
         <div className='p-3 md:p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3'>
           <div className='relative flex-1'>
             <input
               type='text'
-              placeholder='Transaction ID, Method বা Reason দিয়ে খুঁজুন'
+              placeholder='Reason দিয়ে খুঁজুন'
               className='pl-8 pr-3 py-2 border rounded-md text-xs md:text-sm w-full'
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -238,7 +240,7 @@ const BalanceStatement = () => {
           </div>
         ) : (
           <>
-            {/* মোবাইল ভিউ - কার্ড */}
+            {/* Mobile View - Card */}
             <div className='md:hidden space-y-2 p-2'>
               {filteredTransactions.map(tx => (
                 <div
@@ -251,7 +253,6 @@ const BalanceStatement = () => {
                       <p className='text-gray-500 text-xxs'>{formatDate(tx.createdAt)}</p>
                       <h3 className='font-medium text-xs'>{tx.reason}</h3>
                     </div>
-                    <div>{getTypeBadge(tx.type)}</div>
                   </div>
 
                   <div className='mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xxs'>
@@ -259,37 +260,19 @@ const BalanceStatement = () => {
                       <p className='text-gray-500'>পরিমাণ:</p>
                       <p
                         className={`font-medium ${
-                          tx.type === 'Credit' ? 'text-green-600' : 'text-red-600'
+                          tx.amount > 0 ? 'text-green-600' : 'text-red-600'
                         }`}
                       >
-                        {tx.type === 'Credit' ? '+' : '-'}
-                        {parseFloat(tx.amount).toFixed(2)}৳
+                        {tx.amount > 0 ? '+' : ''}
+                        {tx.amount}৳
                       </p>
                     </div>
-                    {tx.paymentMethod && (
-                      <div>
-                        <p className='text-gray-500'>পদ্ধতি:</p>
-                        <p className='font-medium'>{tx.paymentMethod}</p>
-                      </div>
-                    )}
-                    {tx.transactionId && (
-                      <div>
-                        <p className='text-gray-500'>Transaction ID:</p>
-                        <p className='font-medium truncate'>{tx.transactionId}</p>
-                      </div>
-                    )}
-                    {tx.type === 'Credit' && tx.referralLevel && (
-                      <div>
-                        <p className='text-gray-500'>রেফারেল লেভেল:</p>
-                        <p className='font-medium'>{tx.referralLevel}</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* ডেস্কটপ ভিউ - টেবিল */}
+            {/* Desktop View - Table */}
             <div className='hidden md:block overflow-x-auto'>
               <table className='min-w-full divide-y divide-gray-200 text-sm'>
                 <thead className='bg-gray-50'>
@@ -297,21 +280,14 @@ const BalanceStatement = () => {
                     <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
                       তারিখ
                     </th>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      ধরণ
-                    </th>
+
                     <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
                       পরিমাণ
                     </th>
                     <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
                       কারণ
                     </th>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      পদ্ধতি
-                    </th>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      Transaction ID
-                    </th>
+
                     <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
                       বিস্তারিত
                     </th>
@@ -323,22 +299,17 @@ const BalanceStatement = () => {
                       <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
                         {formatDate(tx.createdAt)}
                       </td>
-                      <td className='px-4 py-4 whitespace-nowrap'>{getTypeBadge(tx.type)}</td>
+
                       <td
                         className={`px-4 py-4 whitespace-nowrap font-medium ${
-                          tx.type === 'Credit' ? 'text-green-600' : 'text-red-600'
+                          tx.amount > 0 ? 'text-green-600' : 'text-red-600'
                         }`}
                       >
-                        {tx.type === 'Credit' ? '+' : '-'}
-                        {parseFloat(tx.amount).toFixed(2)}৳
+                        {tx.amount > 0 ? '+' : ''}
+                        {tx.amount}৳
                       </td>
                       <td className='px-4 py-4 whitespace-nowrap text-gray-900'>{tx.reason}</td>
-                      <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
-                        {tx.paymentMethod || 'N/A'}
-                      </td>
-                      <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
-                        {tx.transactionId || 'N/A'}
-                      </td>
+
                       <td className='px-4 py-4 whitespace-nowrap'>
                         <button
                           onClick={() => showTransactionDetails(tx)}
@@ -353,8 +324,8 @@ const BalanceStatement = () => {
               </table>
             </div>
 
-            {/* প্যাজিনেশন */}
-            {pagination.totalPages > 1 && (
+            {/* Pagination */}
+            {pagination.totalCount > pagination.pageSize && (
               <div className='bg-gray-50 px-3 py-2 md:px-4 md:py-3 flex items-center justify-between border-t border-gray-200'>
                 <div className='flex-1 flex justify-between sm:hidden'>
                   <button
@@ -366,7 +337,7 @@ const BalanceStatement = () => {
                   </button>
                   <button
                     onClick={() => handlePageChange(pagination.currentPage + 1)}
-                    disabled={pagination.currentPage === pagination.totalPages}
+                    disabled={pagination.currentPage * pagination.pageSize >= pagination.totalCount}
                     className='ml-3 relative inline-flex items-center px-3 py-1 text-xs border border-gray-300 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'
                   >
                     পরবর্তী
@@ -384,11 +355,11 @@ const BalanceStatement = () => {
                       <span className='font-medium'>
                         {Math.min(
                           pagination.currentPage * pagination.pageSize,
-                          pagination.totalTransactions
+                          pagination.totalCount
                         )}
                       </span>{' '}
-                      পর্যন্ত, মোট{' '}
-                      <span className='font-medium'>{pagination.totalTransactions}</span> টি লেনদেন
+                      পর্যন্ত, মোট <span className='font-medium'>{pagination.totalCount}</span> টি
+                      লেনদেন
                     </p>
                   </div>
                   <div>
@@ -413,34 +384,30 @@ const BalanceStatement = () => {
                           />
                         </svg>
                       </button>
-                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                        let pageNum
-                        if (pagination.totalPages <= 5) {
-                          pageNum = i + 1
-                        } else if (pagination.currentPage <= 3) {
-                          pageNum = i + 1
-                        } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                          pageNum = pagination.totalPages - 4 + i
-                        } else {
-                          pageNum = pagination.currentPage - 2 + i
+                      {Array.from(
+                        { length: Math.ceil(pagination.totalCount / pagination.pageSize) },
+                        (_, i) => {
+                          const pageNum = i + 1
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                pageNum === pagination.currentPage
+                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          )
                         }
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              pageNum === pagination.currentPage
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        )
-                      })}
+                      ).slice(0, 5)}
                       <button
                         onClick={() => handlePageChange(pagination.currentPage + 1)}
-                        disabled={pagination.currentPage === pagination.totalPages}
+                        disabled={
+                          pagination.currentPage * pagination.pageSize >= pagination.totalCount
+                        }
                         className='relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50'
                       >
                         <span className='sr-only'>Next</span>
@@ -467,7 +434,7 @@ const BalanceStatement = () => {
         )}
       </div>
 
-      {/* লেনদেনের বিস্তারিত মোডাল */}
+      {/* Transaction Details Modal */}
       {selectedTransaction && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
           <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
@@ -477,10 +444,6 @@ const BalanceStatement = () => {
 
             <div className='p-3 md:p-4 space-y-3 text-xs md:text-sm'>
               <div className='grid grid-cols-2 gap-3'>
-                <div>
-                  <p className='font-medium text-gray-700'>ধরণ:</p>
-                  <div className='mt-1'>{getTypeBadge(selectedTransaction.type)}</div>
-                </div>
                 <div>
                   <p className='font-medium text-gray-700'>তারিখ:</p>
                   <p className='mt-1 text-gray-900'>{formatDate(selectedTransaction.createdAt)}</p>
@@ -492,11 +455,11 @@ const BalanceStatement = () => {
                   <p className='font-medium text-gray-700'>পরিমাণ:</p>
                   <p
                     className={`mt-1 font-medium ${
-                      selectedTransaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'
+                      selectedTransaction.amount > 0 ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
-                    {selectedTransaction.type === 'Credit' ? '+' : '-'}
-                    {parseFloat(selectedTransaction.amount).toFixed(2)}৳
+                    {selectedTransaction.amount > 0 ? '+' : ''}
+                    {selectedTransaction.amount}৳
                   </p>
                 </div>
                 <div>
@@ -505,28 +468,7 @@ const BalanceStatement = () => {
                 </div>
               </div>
 
-              <div>
-                <p className='font-medium text-gray-700'>পেমেন্ট পদ্ধতি:</p>
-                <p className='mt-1 text-gray-900'>{selectedTransaction.paymentMethod || 'N/A'}</p>
-              </div>
-
-              <div className='grid grid-cols-2 gap-3'>
-                <div>
-                  <p className='font-medium text-gray-700'>Transaction ID:</p>
-                  <p className='mt-1 text-gray-900 break-words'>
-                    {selectedTransaction.transactionId || 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className='font-medium text-gray-700'>পেমেন্ট ফোন:</p>
-                  <p className='mt-1 text-gray-900'>
-                    {selectedTransaction.paymentPhoneNo || 'N/A'}
-                  </p>
-                </div>
-              </div>
-
-              {/* ক্রেডিট টাইপের জন্য রেফারেন্স দেখানো */}
-              {selectedTransaction.type === 'Credit' && selectedTransaction.reference && (
+              {selectedTransaction.reference && (
                 <div>
                   <p className='font-medium text-gray-700'>রেফারেন্স তথ্য:</p>
                   <div className='mt-1 p-2 bg-gray-50 rounded-md'>
@@ -534,29 +476,6 @@ const BalanceStatement = () => {
                   </div>
                 </div>
               )}
-
-              {/* ক্রেডিট টাইপের জন্য রেফারেল লেভেল দেখানো */}
-              {/* {selectedTransaction.type === 'Credit' && selectedTransaction.referralLevel && (
-                <div>
-                  <p className='font-medium text-gray-700'>রেফারেল লেভেল:</p>
-                  <p className='mt-1 text-gray-900'>{selectedTransaction.referralLevel}</p>
-                </div>
-              )} */}
-
-              {selectedTransaction.remarks && (
-                <div>
-                  <p className='font-medium text-gray-700'>মন্তব্য:</p>
-                  <p className='mt-1 text-gray-900'>{selectedTransaction.remarks}</p>
-                </div>
-              )}
-
-              <div>
-                <p className='font-medium text-gray-700'>ব্যবহারকারীর তথ্য:</p>
-                <div className='mt-1 p-2 bg-gray-50 rounded-md'>
-                  <p className='text-gray-900'>নাম: {selectedTransaction.userName}</p>
-                  <p className='text-gray-900'>ফোন: {selectedTransaction.userPhoneNo}</p>
-                </div>
-              </div>
             </div>
 
             <div className='p-3 md:p-4 border-t flex justify-end'>
