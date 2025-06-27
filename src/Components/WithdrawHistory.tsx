@@ -31,6 +31,7 @@ interface PaginationState {
 
 const WithdrawHistory = () => {
   const [allRequests, setAllRequests] = useState<WithdrawRequest[]>([])
+  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [pagination, setPagination] = useState<Record<string, PaginationState>>({
@@ -106,13 +107,13 @@ const WithdrawHistory = () => {
         toast.success('Withdrawal request cancelled successfully')
         fetchWithdrawHistory(pagination[activeTab].currentPage)
       } else {
-        throw new Error(response.message || 'Failed to cancel request')
+        setError(response.message || 'Failed to cancel withdrawal request')
       }
     } catch (error) {
       toast.error((error as Error).message || 'Error cancelling withdrawal request')
     } finally {
       setCancellingId(null)
-      setShowCancelConfirmation(false)
+      setShowCancelConfirmation(false) // Close confirmation after a short delay
       setRequestToCancel(null)
     }
   }
@@ -519,9 +520,15 @@ const WithdrawHistory = () => {
               </div>
 
               <div>
-                <p className='text-sm font-medium text-gray-700'>Wallet:</p>
+                <p className='text-sm font-medium text-gray-700'>Your Wallet:</p>
                 <p className='mt-1 text-gray-900'>
                   {selectedRequest.walletName} - {selectedRequest.walletPhoneNo}
+                </p>
+              </div>
+              <div>
+                <p className='text-sm font-medium text-gray-700'>Sender Wallet:</p>
+                <p className='mt-1 text-gray-900'>
+                  {selectedRequest.walletName} - {selectedRequest.systemWalletPhoneNo}
                 </p>
               </div>
 
@@ -567,6 +574,7 @@ const WithdrawHistory = () => {
       )}
 
       {/* Cancel Confirmation Modal */}
+      {/* Cancel Confirmation Modal */}
       {showCancelConfirmation && requestToCancel && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
           <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
@@ -575,6 +583,27 @@ const WithdrawHistory = () => {
             </div>
 
             <div className='p-4 space-y-4'>
+              {/* Error message display */}
+              {error && (
+                <div className='p-3 bg-red-50 rounded-md'>
+                  <div className='flex items-center'>
+                    <svg
+                      className='h-5 w-5 text-red-400 mr-2'
+                      xmlns='http://www.w3.org/2000/svg'
+                      viewBox='0 0 20 20'
+                      fill='currentColor'
+                    >
+                      <path
+                        fillRule='evenodd'
+                        d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
+                        clipRule='evenodd'
+                      />
+                    </svg>
+                    <span className='text-sm text-red-700'>{error}</span>
+                  </div>
+                </div>
+              )}
+
               <p className='text-gray-700'>
                 Are you sure you want to cancel this withdrawal request?
               </p>
