@@ -51,6 +51,7 @@ interface Order {
   totalProductQuantity: number
   totalProductSellingPrice: number
   totalCommission: number
+  actualCommission: number
   amountPaidByCustomer: number | null
   OrderProduct: OrderProduct[]
   paymentType?: string
@@ -1154,6 +1155,12 @@ const Orders = () => {
                   ))}
                 </div>
               </div>
+              {selectedOrder.paymentType === 'BALANCE' && (
+                <div className='flex gap-2'>
+                  <p className='text-gray-600'>ব্যালেন্স থেকে কাটা হয়েছে</p>
+                  <p className='font-medium'>{selectedOrder.deliveryCharge}৳</p>
+                </div>
+              )}
 
               {/* পেমেন্ট এবং সারাংশ */}
               {
@@ -1228,12 +1235,6 @@ const Orders = () => {
                         )}
 
                         {/* Balance Payment Details */}
-                        {selectedOrder.paymentType === 'BALANCE' && (
-                          <div className='flex justify-between'>
-                            <p className='text-gray-600'>ব্যালেন্স থেকে কাটা হয়েছে</p>
-                            <p className='font-medium'>{selectedOrder.deliveryCharge}৳</p>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -1249,10 +1250,12 @@ const Orders = () => {
                         <p className='text-gray-600'>ডেলিভারি চার্জ</p>
                         <p className='font-medium'>{selectedOrder.deliveryCharge}৳</p>
                       </div>
-                      <div className='flex justify-between'>
-                        <p className='text-gray-600'>কমিশন</p>
-                        <p className='font-medium'>{selectedOrder.totalCommission}৳</p>
-                      </div>
+                      {!selectedOrder.amountPaidByCustomer && (
+                        <div className='flex justify-between'>
+                          <p className='text-gray-600'>কমিশন</p>
+                          <p className='font-medium'>{selectedOrder.totalCommission}৳</p>
+                        </div>
+                      )}
                       {selectedOrder.cashOnAmount && (
                         <div className='border-t pt-2 mt-2 flex justify-between font-bold'>
                           <p>ক্যাশ অন ডেলিভারি অ্যামাউন্ট</p>
@@ -1260,15 +1263,21 @@ const Orders = () => {
                         </div>
                       )}
                     </div>
+                    {selectedOrder.amountPaidByCustomer && (
+                      <>
+                        <div className='pt-2 mt-2 flex justify-between font-[400]'>
+                          <p>কাস্টমার প্রদত্ত অ্যামাউন্ট</p>
+                          <p>{selectedOrder.amountPaidByCustomer}৳</p>
+                        </div>
+                        <div className='border-t pt-2 mt-2 flex justify-between font-bold'>
+                          <p>কমিশন</p>
+                          <p>{selectedOrder.actualCommission}৳</p>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* add a seperate section for amount paid by customer */}
-                  {selectedOrder.amountPaidByCustomer && (
-                    <div className='border-t pt-2 mt-2 flex justify-between font-bold'>
-                      <p>কাস্টমার প্রদত্ত অ্যামাউন্ট</p>
-                      <p>{selectedOrder.amountPaidByCustomer}৳</p>
-                    </div>
-                  )}
                 </div>
               }
             </div>
