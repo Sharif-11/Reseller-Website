@@ -15,6 +15,7 @@ const ResellerPassiveIncome = () => {
   const { user } = useAuth()
   const [commissionData, setCommissionData] = useState<CommissionLevel[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [maxLevel, setMaxLevel] = useState(0) // Track the maximum level number
 
   useEffect(() => {
     const fetchCommissionTable = async () => {
@@ -24,6 +25,9 @@ const ResellerPassiveIncome = () => {
 
         if (response.success && response.data) {
           setCommissionData(response.data)
+          // Find the maximum level in the data
+          const levels = response.data.map((item: CommissionLevel) => item.level)
+          setMaxLevel(Math.max(...levels))
         }
       } catch (error) {
         console.error('Failed to fetch commission table:', error)
@@ -51,7 +55,7 @@ const ResellerPassiveIncome = () => {
       return {
         startPrice,
         endPrice,
-        levels: [1, 2, 3, 4].map(level => levels[level] || 0),
+        levels: Array.from({ length: maxLevel }, (_, i) => levels[i + 1] || 0),
       }
     })
   }
@@ -184,7 +188,7 @@ const ResellerPassiveIncome = () => {
                         <th className='px-3 py-2 text-left text-xs font-medium text-blue-800'>
                           প্রাইস রেঞ্জ
                         </th>
-                        {[1, 2, 3, 4].map(level => (
+                        {Array.from({ length: maxLevel }, (_, i) => i + 1).map(level => (
                           <th
                             key={level}
                             className='px-2 py-2 text-center text-xs font-medium text-blue-800'
@@ -232,7 +236,7 @@ const ResellerPassiveIncome = () => {
                           {formatPriceRange(row.startPrice, row.endPrice)}
                         </div>
                       </div>
-                      <div className='grid grid-cols-4 gap-2'>
+                      <div className={`grid grid-cols-${maxLevel} gap-2`}>
                         {row.levels.map((amount, levelIndex) => (
                           <div key={levelIndex} className='text-center'>
                             <div className='text-[10px] text-gray-500 mb-1'>
