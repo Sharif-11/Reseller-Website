@@ -5,7 +5,7 @@ import axiosInstance from '../Axios/axiosInstance'
  */
 export const getCommissionTable = async (admin: boolean = false) => {
   try {
-    const { data } = await axiosInstance.get(`${admin ? 'admin' : 'sellers'}/commissions`)
+    const { data } = await axiosInstance.get(`${admin ? 'admin' : ''}commissions/table`)
     return {
       success: data.success,
       message: data.message,
