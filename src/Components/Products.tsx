@@ -259,37 +259,38 @@ const Products = () => {
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='flex items-center justify-between h-16'>
             {/* Breadcrumb */}
-            <div className='flex items-center space-x-2 text-sm'>
+            <div className='flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto scrollbar-hide pb-1'>
               <button
                 onClick={() => setView('shops')}
-                className={`flex items-center px-3 py-1 rounded-full transition-colors ${
+                className={`flex items-center px-2 sm:px-3 py-1 rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
                   view === 'shops'
                     ? 'bg-blue-100 text-blue-700'
                     : 'text-gray-600 hover:text-blue-600'
                 }`}
               >
-                Shops
+                <span className='hidden sm:inline'>Shops</span>
+                <span className='sm:hidden'>🏪</span>
               </button>
               {selectedShop && (
                 <>
-                  <ChevronRight className='h-4 w-4 text-gray-400' />
+                  <ChevronRight className='h-3 w-3 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0' />
                   <button
                     onClick={() => setView('categories')}
-                    className={`flex items-center px-3 py-1 rounded-full transition-colors ${
+                    className={`flex items-center px-2 sm:px-3 py-1 rounded-full transition-colors whitespace-nowrap flex-shrink-0 max-w-[120px] sm:max-w-none ${
                       view === 'categories'
                         ? 'bg-blue-100 text-blue-700'
                         : 'text-gray-600 hover:text-blue-600'
                     }`}
                   >
-                    {selectedShop.shopName}
+                    <span className='truncate'>{selectedShop.shopName}</span>
                   </button>
                 </>
               )}
               {selectedCategory && (
                 <>
-                  <ChevronRight className='h-4 w-4 text-gray-400' />
-                  <span className='px-3 py-1 bg-gray-100 text-gray-700 rounded-full'>
-                    {selectedCategory.name}
+                  <ChevronRight className='h-3 w-3 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0' />
+                  <span className='px-2 sm:px-3 py-1 bg-gray-100 text-gray-700 rounded-full whitespace-nowrap flex-shrink-0 max-w-[100px] sm:max-w-none'>
+                    <span className='truncate block'>{selectedCategory.name}</span>
                   </span>
                 </>
               )}
@@ -494,7 +495,8 @@ const Products = () => {
         {/* Categories View */}
         {view === 'categories' && selectedShop && (
           <div>
-            <div className='flex items-center mb-6 sm:mb-8'>
+            {/* Header Section */}
+            <div className='flex items-center mb-4 sm:mb-6'>
               <button
                 onClick={() => setView('shops')}
                 className='flex items-center text-gray-600 hover:text-gray-900 mr-4'
@@ -507,36 +509,48 @@ const Products = () => {
               </h1>
             </div>
 
-            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6'>
+            {/* Categories Grid */}
+            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4'>
               {categories.map(category => (
                 <div
                   key={category.categoryId}
                   onClick={() => handleCategorySelect(category)}
-                  className='bg-white rounded-lg sm:rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer group p-3 sm:p-4 md:p-6 text-center'
+                  className='bg-white rounded-xl shadow-sm border hover:shadow-md transition-all duration-200 cursor-pointer group p-2 text-center min-h-[200px] sm:min-h-[220px] md:min-h-[240px] flex flex-col'
                 >
-                  <div className='mb-2 sm:mb-4'>
+                  {/* Image taking 95% of card area */}
+                  <div className='flex-1 p-1 flex items-center justify-center'>
                     {category.categoryIcon ? (
                       <img
                         src={category.categoryIcon}
                         alt={category.name}
-                        className='w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-1 sm:mb-2 object-cover'
+                        className='w-full h-full object-cover rounded-lg max-h-[160px] sm:max-h-[170px] md:max-h-[180px]'
                       />
                     ) : (
-                      <Package className='h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-1 sm:mb-2' />
+                      <div className='w-full h-full bg-blue-100 rounded-lg flex items-center justify-center max-h-[160px] sm:max-h-[170px] md:max-h-[180px]'>
+                        <Package className='h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 text-blue-500' />
+                      </div>
                     )}
                   </div>
-                  <h3 className='font-semibold text-sm sm:text-base text-gray-900 group-hover:text-blue-600 transition-colors'>
-                    {category.name}
-                  </h3>
+
+                  {/* Category Name at bottom */}
+                  <div className='p-2 pt-1'>
+                    <h3 className='font-semibold text-sm sm:text-base text-gray-900 group-hover:text-blue-600 transition-colors leading-tight line-clamp-2'>
+                      {category.name}
+                    </h3>
+                  </div>
                 </div>
               ))}
+
+              {/* Empty State */}
               {categories.length === 0 && (
                 <div className='col-span-full text-center py-12 sm:py-16 bg-white rounded-xl'>
-                  <Package className='h-12 sm:h-16 w-12 sm:w-16 text-gray-300 mx-auto mb-3 sm:mb-4' />
-                  <h3 className='text-lg sm:text-xl font-semibold text-gray-900 mb-1 sm:mb-2'>
+                  <div className='w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+                    <Package className='h-8 w-8 text-gray-400' />
+                  </div>
+                  <h3 className='text-lg sm:text-xl font-semibold text-gray-900 mb-2'>
                     No categories found
                   </h3>
-                  <p className='text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base'>
+                  <p className='text-gray-600 text-sm sm:text-base'>
                     This shop has no categories available
                   </p>
                 </div>

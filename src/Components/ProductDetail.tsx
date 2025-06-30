@@ -124,7 +124,9 @@ const ProductDetail = () => {
   const downloadImage = async (url: string, name: string) => {
     try {
       setDownloading(true)
-      const response = await fetch(url)
+      const response = await fetch(url, {
+        mode: 'cors',
+      })
       const blob = await response.blob()
       const blobUrl = URL.createObjectURL(blob)
 
