@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { productApi } from '../Api/product.api'
 import { Product } from '../Api/shop.api'
 
-type CartItem = {
+export type CartItem = {
   shopId: number
   shopName: string
   shopLocation?: string

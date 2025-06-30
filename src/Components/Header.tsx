@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { logout } from '../Api/auth.api'
 import logo from '../assets/shopbd_logo.png'
 import { useAuth } from '../Hooks/useAuth'
 import { loadingText } from '../utils/utils.variables'
 const Header = ({
+  isSidebarOpen,
   setIsSidebarOpen,
 }: {
+  isSidebarOpen: boolean
   setIsSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -35,6 +37,12 @@ const Header = ({
     }
     setLoading(false)
   }
+  useEffect(() => {
+    isDropdownOpen && setIsSidebarOpen(false)
+  }, [isDropdownOpen])
+  useEffect(() => {
+    isSidebarOpen && setIsDropdownOpen(false)
+  }, [isSidebarOpen])
 
   return (
     <header

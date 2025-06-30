@@ -24,7 +24,6 @@ import SalesGuidelines from './Components/SalesGuideline.tsx'
 import SellerHomeDashboard from './Components/SellersAdminDashboard.tsx'
 import SupportCenter from './Components/SupportCenter.tsx'
 import SupportTicket from './Components/SupportTicket.tsx'
-import OrderTracking from './Components/Tracking.tsx'
 import WithdrawHistory from './Components/WithdrawHistory.tsx'
 import WithdrawRequest from './Components/WithdrawRequest.tsx'
 import { UserProvider } from './Context/userContext.tsx'
@@ -279,14 +278,7 @@ createRoot(document.getElementById('root')!).render(
                 </PrivateRoute>
               }
             />
-            <Route
-              path='tracking'
-              element={
-                <PrivateRoute>
-                  <OrderTracking />
-                </PrivateRoute>
-              }
-            />
+
             <Route
               path='add-referral-code'
               element={

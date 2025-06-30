@@ -59,11 +59,6 @@ const SellerHomeDashboard = () => {
       url: '/faq',
     },
     {
-      title: 'অর্ডার ট্র্যাকিং',
-      icon: <FaBoxOpen className='text-3xl text-gray-600' />,
-      url: '/tracking',
-    },
-    {
       title: 'প্যাসিভ ইনকাম',
       icon: <FaCoins className='text-3xl text-yellow-600' />,
       url: '/passive-income',

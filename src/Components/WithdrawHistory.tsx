@@ -158,34 +158,35 @@ const WithdrawHistory = () => {
       <h1 className='text-xl font-bold mb-4 md:text-2xl md:mb-6'>Withdrawal History</h1>
 
       {/* Search and filter section */}
-      <div className='mb-4'>
-        <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-3'>
-          <div className='flex border-b'>
+      <div className='mb-6'>
+        <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+          {/* Tabs - Full width on mobile, auto width on desktop */}
+          <div className='flex border-b w-full lg:w-auto overflow-x-auto'>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${
+              className={`px-4 py-2.5 text-sm whitespace-nowrap ${
                 activeTab === 'PENDING'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500'
+                  ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
               onClick={() => setActiveTab('PENDING')}
             >
               Pending
             </button>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${
+              className={`px-4 py-2.5 text-sm whitespace-nowrap ${
                 activeTab === 'COMPLETED'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500'
+                  ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
               onClick={() => setActiveTab('COMPLETED')}
             >
               Completed
             </button>
             <button
-              className={`px-3 py-2 text-xs md:text-sm ${
+              className={`px-4 py-2.5 text-sm whitespace-nowrap ${
                 activeTab === 'REJECTED'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500'
+                  ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
               onClick={() => setActiveTab('REJECTED')}
             >
@@ -193,35 +194,39 @@ const WithdrawHistory = () => {
             </button>
           </div>
 
-          <form onSubmit={handleSearch} className='flex items-center gap-2'>
-            <input
-              type='text'
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder='Search by phone, name, or transaction ID'
-              className='w-full md:w-64 px-3 py-1.5 border rounded-md text-sm'
-            />
-            <button
-              type='submit'
-              className='px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700'
-            >
-              Search
-            </button>
-          </form>
+          {/* Search and Page Size - Stacked on mobile, inline on desktop */}
+          <div className='flex flex-col gap-3 w-full lg:flex-row lg:items-center lg:flex-1 lg:max-w-2xl lg:justify-end'>
+            {/* Search - Full width on mobile, expands on desktop */}
+            <form onSubmit={handleSearch} className='flex gap-2 w-full lg:flex-1 lg:min-w-[300px]'>
+              <input
+                type='text'
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder='Search by phone, name, or transaction ID'
+                className='w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+              />
+              <button
+                type='submit'
+                className='hidden lg:block px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap'
+              >
+                Search
+              </button>
+            </form>
 
-          <select
-            value={currentPagination.pageSize}
-            onChange={handlePageSizeChange}
-            className='border rounded-md px-2 py-1.5 text-sm'
-          >
-            <option value='5'>5 per page</option>
-            <option value='10'>10 per page</option>
-            <option value='20'>20 per page</option>
-            <option value='50'>50 per page</option>
-          </select>
+            {/* Page Size - Full width on mobile, auto width on desktop */}
+            <select
+              value={currentPagination.pageSize}
+              onChange={handlePageSizeChange}
+              className='w-full lg:w-auto px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+            >
+              <option value='5'>5 per page</option>
+              <option value='10'>10 per page</option>
+              <option value='20'>20 per page</option>
+              <option value='50'>50 per page</option>
+            </select>
+          </div>
         </div>
       </div>
-
       {loading ? (
         <div className='flex justify-center items-center h-64'>
           <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500'></div>

@@ -6,7 +6,9 @@ import * as Yup from 'yup'
 import districts from '../../public/zillasInfo.json'
 import { orderApi } from '../Api/order.api'
 import { OrderData } from '../types/order.types'
+import { CART_ITEMS_KEY, DRAFT_KEY } from '../utils/utils.variables'
 import { ShopCart } from './Cart'
+import { CartItem } from './ProductDetail'
 
 // Draft data interface
 interface DraftData {
@@ -17,8 +19,6 @@ interface DraftData {
   deliveryAddress: string
   comments: string
 }
-
-const DRAFT_KEY = 'checkout_draft'
 
 const Checkout = () => {
   const location = useLocation()
@@ -62,9 +62,9 @@ const Checkout = () => {
   }
 
   // Clear draft data
-  // const clearDraft = () => {
-  //   localStorage.removeItem(DRAFT_KEY)
-  // }
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY)
+  }
 
   const formik = useFormik({
     initialValues: {
@@ -100,8 +100,13 @@ const Checkout = () => {
 
         const { success, message } = await orderApi.createSellerOrder(orderData as OrderData)
         if (success) {
-          // clearDraft() // Clear draft on successful submission
-          // localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([]))
+          clearDraft() // Clear draft on successful submission
+          // fetch cart item from localStorage and exclude the current shopCart items
+          const cartItems: CartItem[] = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
+          const updatedCartItems = cartItems.filter(
+            (item: CartItem) => item.shopId !== shopCart.shopId
+          )
+          localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCartItems))
           navigate('/orders', { state: { orderSuccess: true } })
         } else {
           setFormErrors([message!])

@@ -135,6 +135,11 @@ const Orders = () => {
   const [transactionId, setTransactionId] = useState('')
   const [cancelReason, setCancelReason] = useState('')
   const [error, setError] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [savedWallets, setSavedWallets] = useState<SystemWallet[]>([
+    // These would come from your backend or local storage
+    // ... other saved wallets
+  ])
 
   const fetchOrders = async () => {
     try {
@@ -193,6 +198,22 @@ const Orders = () => {
       setWalletLoading(false)
     }
   }
+  const fetchSellersWallets = async () => {
+    try {
+      setWalletLoading(true)
+      const response = await walletApi.getWalletsOfASeller(user?.phoneNo!)
+      if (response.success) {
+        setSavedWallets(response.data)
+      } else {
+        toast.error(response.message || 'ওয়ালেট লোড করতে সমস্যা হয়েছে')
+      }
+    } catch (error) {
+      toast.error('ওয়ালেট লোড করতে সমস্যা হয়েছে')
+      console.error('Error fetching sellers wallets:', error)
+    } finally {
+      setWalletLoading(false)
+    }
+  }
 
   useEffect(() => {
     fetchOrders()
@@ -205,12 +226,8 @@ const Orders = () => {
   }, [showPaymentModal])
   useEffect(() => {
     reloadUser()
+    fetchSellersWallets()
   }, [])
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    fetchOrders()
-  }
 
   const handleConfirmOrder = async (orderId: number) => {
     try {
@@ -444,80 +461,86 @@ const Orders = () => {
     const extraItems = Math.max(0, order.totalProductQuantity - 3)
     return baseCharge + extraItems * 10
   }
+  useEffect(() => {
+    reloadUser()
+  }, [showPaymentModal])
 
   return (
     <div className='p-4 max-w-6xl mx-auto'>
       <h1 className='text-xl font-bold mb-6'>আমার অর্ডারসমূহ</h1>
 
       {/* সার্চ বার */}
-      <div className='mb-4'>
-        <form onSubmit={handleSearch} className='flex'>
-          <div className='relative flex-grow'>
-            <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-              <FaSearch className='text-gray-400' />
-            </div>
-            <input
-              type='text'
-              placeholder='কাস্টমারের নাম বা ফোন নম্বর দিয়ে খুঁজুন...'
-              className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
+      {/* Search Section */}
+      <div className='mb-4 sm:mb-6'>
+        <div className='relative'>
+          <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+            <FaSearch className='text-gray-400 h-4 w-4' />
           </div>
+          <input
+            type='text'
+            placeholder='কাস্টমারের নাম বা ফোন নম্বর দিয়ে খুঁজুন...'
+            className='block w-full pl-10 pr-3 py-3 sm:py-2 border border-gray-300 rounded-lg sm:rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-xs md:text-sm'
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Tabs Section - Responsive */}
+      <div className='mb-4 sm:mb-6'>
+        <div className='flex border-b overflow-x-auto scrollbar-hide'>
           <button
-            type='submit'
-            className='ml-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap transition-colors flex-shrink-0 ${
+              activeTab === 'pending'
+                ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('pending')}
           >
-            খুঁজুন
+            পেন্ডিং (
+            {orders.filter(o => ['UNPAID', 'PAID', 'FAILED'].includes(o.orderStatus)).length})
           </button>
-        </form>
+          <button
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap transition-colors flex-shrink-0 ${
+              activeTab === 'confirmed'
+                ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('confirmed')}
+          >
+            কনফার্মড
+          </button>
+          <button
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap transition-colors flex-shrink-0 ${
+              activeTab === 'completed'
+                ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('completed')}
+          >
+            কমপ্লিটেড
+          </button>
+          <button
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap transition-colors flex-shrink-0 ${
+              activeTab === 'others'
+                ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('others')}
+          >
+            অন্যান্য
+          </button>
+        </div>
       </div>
 
-      {/* ট্যাবস */}
-      <div className='flex border-b mb-4'>
-        <button
-          className={`px-4 py-2 text-sm ${
-            activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
-          }`}
-          onClick={() => setActiveTab('pending')}
-        >
-          পেন্ডিং ({orders.filter(o => ['UNPAID', 'PAID', 'FAILED'].includes(o.orderStatus)).length}
-          )
-        </button>
-        <button
-          className={`px-4 py-2 text-sm ${
-            activeTab === 'confirmed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
-          }`}
-          onClick={() => setActiveTab('confirmed')}
-        >
-          কনফার্মড
-        </button>
-        <button
-          className={`px-4 py-2 text-sm ${
-            activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
-          }`}
-          onClick={() => setActiveTab('completed')}
-        >
-          কমপ্লিটেড
-        </button>
-        <button
-          className={`px-4 py-2 text-sm ${
-            activeTab === 'others' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
-          }`}
-          onClick={() => setActiveTab('others')}
-        >
-          অন্যান্য
-        </button>
-      </div>
-
-      {/* পেজ সাইজ সিলেক্টর */}
+      {/* Page Size Selector */}
       <div className='flex justify-end mb-4'>
         <select
           value={pagination.pageSize}
           onChange={e =>
             setPagination(prev => ({ ...prev, pageSize: Number(e.target.value), currentPage: 1 }))
           }
-          className='border rounded px-2 py-1 text-sm'
+          className='border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500'
         >
           <option value='5'>৫টি অর্ডার</option>
           <option value='10'>১০টি অর্ডার</option>
@@ -807,202 +830,250 @@ const Orders = () => {
       {/* পেমেন্ট মোডাল */}
       {showPaymentModal && selectedOrder && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-          <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
-            <div className='p-4 border-b'>
-              <h2 className='text-lg font-medium text-green-600'>
-                {selectedOrder.sellerVerified ? 'অর্ডার কনফার্মেশন' : 'অর্ডার পেমেন্ট'}
+          <div className='bg-white rounded-lg shadow-xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col'>
+            {/* Header */}
+            <div className='p-4 border-b flex-shrink-0'>
+              <h2 className='text-lg font-medium text-green-600 text-center'>
+                {selectedOrder.sellerVerified ? 'অর্ডার কনফার্মেশন' : 'অর্ডার পেমেন্ট'}( #
+                {selectedOrder.orderId} )
               </h2>
             </div>
-            <div className='p-4 space-y-4'>
-              {/* Verified Seller Notice */}
-              {selectedOrder.sellerVerified ? (
-                <div className='bg-blue-50 border-l-4 border-blue-400 p-4'>
-                  <div className='flex'>
-                    <div className='flex-shrink-0'>
-                      <span className='text-blue-500'>!</span>
-                    </div>
-                    <div className='ml-3'>
-                      <p className='text-sm text-blue-700'>
-                        আপনি একজন ভেরিফাইড বিক্রেতা, পেমেন্ট ছাড়াই অর্ডার কনফার্ম করতে পারেন
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className='bg-yellow-50 border-l-4 border-yellow-400 p-4'>
-                  <div className='flex'>
-                    <div className='flex-shrink-0'>
-                      <span className='text-yellow-500'>!</span>
-                    </div>
-                    <div className='ml-3'>
-                      <p className='text-sm text-yellow-700'>
-                        সতর্কতা: ভুল পেমেন্ট তথ্য দিলে অর্ডার রিজেক্ট করা হবে এবং আপনাকে ব্লক করা
-                        হবে।
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
-              {/* Delivery Charge */}
-              <div className='bg-gray-50 p-3 rounded'>
-                <div className='flex justify-between items-center'>
-                  <div className='flex items-center gap-1'>
-                    <span>ডেলিভারি চার্জ:</span>
-                    <span className='text-gray-500'>?</span>
+            {/* Scrollable Content */}
+            <div className='flex-1 overflow-y-auto'>
+              <div className='p-4 space-y-4'>
+                {/* Verified Seller Notice */}
+                {selectedOrder.sellerVerified ? (
+                  <div className='bg-blue-50 border-l-4 border-blue-400 p-3'>
+                    <div className='flex'>
+                      <div className='flex-shrink-0'>
+                        <span className='text-blue-500 text-base'>!</span>
+                      </div>
+                      <div className='ml-3'>
+                        <p className='text-sm text-blue-700 leading-relaxed'>
+                          আপনি একজন ভেরিফাইড বিক্রেতা, পেমেন্ট ছাড়াই অর্ডার কনফার্ম করতে পারেন
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <span>{selectedOrder.deliveryCharge}৳</span>
-                </div>
-              </div>
-
-              {/* Quick Confirm for Verified Sellers */}
-              {selectedOrder.sellerVerified && (
-                <>
-                  <button
-                    onClick={() => handleConfirmOrder(selectedOrder.orderId)}
-                    disabled={
-                      actionLoading.type === 'confirm' && actionLoading.id === selectedOrder.orderId
-                    }
-                    className='w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50'
-                  >
-                    {actionLoading.type === 'confirm' && actionLoading.id === selectedOrder.orderId
-                      ? 'প্রক্রিয়াধীন...'
-                      : 'কনফার্ম করুন (পেমেন্ট ছাড়া)'}
-                  </button>
-                  <div className='relative flex items-center'>
-                    <div className='flex-grow border-t border-gray-300'></div>
-                    <span className='flex-shrink mx-4 text-gray-500'>অথবা</span>
-                    <div className='flex-grow border-t border-gray-300'></div>
+                ) : (
+                  <div className='bg-yellow-50 border-l-4 border-yellow-400 p-3'>
+                    <div className='flex'>
+                      <div className='flex-shrink-0'>
+                        <span className='text-yellow-500 text-base'>!</span>
+                      </div>
+                      <div className='ml-3'>
+                        <p className='text-sm text-yellow-700 leading-relaxed'>
+                          সতর্কতা: ভুল পেমেন্ট তথ্য দিলে অর্ডার রিজেক্ট করা হবে এবং আপনাকে ব্লক করা
+                          হবে।
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </>
-              )}
+                )}
 
-              {/* Payment Methods */}
-              <div className='space-y-2'>
-                <h3 className='font-medium'>পেমেন্ট মেথড</h3>
-                <div className='flex gap-4'>
-                  <label className='inline-flex items-center'>
-                    <input
-                      type='radio'
-                      className='form-radio'
-                      name='paymentMethod'
-                      value='BALANCE'
-                      checked={paymentMethod === 'BALANCE'}
-                      onChange={() => setPaymentMethod('BALANCE')}
-                      disabled={Boolean(user?.balance! < +selectedOrder.deliveryCharge)}
-                    />
-                    <span className='ml-2'>
-                      ব্যালেন্স থেকে{' '}
-                      {user?.balance! < +selectedOrder.deliveryCharge && (
-                        <span className='text-red-500 text-xs'>(অপর্যাপ্ত ব্যালেন্স)</span>
-                      )}
+                {/* Delivery Charge */}
+                <div className='bg-gray-50 p-4 rounded-lg'>
+                  <div className='flex justify-between items-center'>
+                    <div className='flex items-center gap-2'>
+                      <span className='text-base font-medium'>ডেলিভারি চার্জ:</span>
+                      <span className='text-gray-500 text-sm'>?</span>
+                    </div>
+                    <span className='text-base font-semibold text-green-600'>
+                      {selectedOrder.deliveryCharge}৳
                     </span>
-                  </label>
-                  <label className='inline-flex items-center'>
-                    <input
-                      type='radio'
-                      className='form-radio'
-                      name='paymentMethod'
-                      value='WALLET'
-                      checked={paymentMethod === 'WALLET'}
-                      onChange={() => setPaymentMethod('WALLET')}
-                    />
-                    <span className='ml-2'>ওয়ালেট পেমেন্ট</span>
-                  </label>
+                  </div>
                 </div>
-              </div>
 
-              {/* Wallet Payment Details */}
-              {paymentMethod === 'WALLET' && (
-                <div className='space-y-3'>
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      সিস্টেম ওয়ালেট
-                    </label>
-                    <select
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500'
-                      value={selectedSystemWallet?.walletId || ''}
-                      onChange={e => {
-                        const walletId = parseInt(e.target.value)
-                        const wallet = systemWallets.find(w => w.walletId === walletId)
-                        setSelectedSystemWallet(wallet || null)
-                      }}
-                      required
-                      disabled={walletLoading}
+                {/* Quick Confirm for Verified Sellers */}
+                {selectedOrder.sellerVerified && (
+                  <>
+                    <button
+                      onClick={() => handleConfirmOrder(selectedOrder.orderId)}
+                      disabled={
+                        actionLoading.type === 'confirm' &&
+                        actionLoading.id === selectedOrder.orderId
+                      }
+                      className='w-full px-4 py-2 text-sm bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors'
                     >
-                      <option value=''>সিলেক্ট করুন</option>
-                      {systemWallets.map(wallet => (
-                        <option key={wallet.walletId} value={wallet.walletId}>
-                          {wallet.walletName} ({wallet.walletPhoneNo})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                      {actionLoading.type === 'confirm' &&
+                      actionLoading.id === selectedOrder.orderId
+                        ? 'প্রক্রিয়াধীন...'
+                        : 'কনফার্ম করুন (পেমেন্ট ছাড়া)'}
+                    </button>
+                    <div className='relative flex items-center'>
+                      <div className='flex-grow border-t border-gray-300'></div>
+                      <span className='flex-shrink mx-4 text-gray-500 text-sm'>অথবা</span>
+                      <div className='flex-grow border-t border-gray-300'></div>
+                    </div>
+                  </>
+                )}
 
-                  <div className='p-2 border border-dashed border-gray-300 rounded-md'>
-                    <p className='text-sm text-blue-600'>
-                      নির্বাচিত ওয়ালেটে {selectedOrder.deliveryCharge}৳ সেন্ড মানি করুন
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      আপনার {selectedSystemWallet?.walletName || 'ওয়ালেট'} নম্বর
+                {/* Payment Methods */}
+                <div className='space-y-3'>
+                  <h3 className='font-medium text-base'>পেমেন্ট মেথড</h3>
+                  <div className='space-y-2'>
+                    <label className='flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50'>
+                      <input
+                        type='radio'
+                        className='form-radio flex-shrink-0'
+                        name='paymentMethod'
+                        value='BALANCE'
+                        checked={paymentMethod === 'BALANCE'}
+                        onChange={() => setPaymentMethod('BALANCE')}
+                        disabled={Boolean(user?.balance! < +selectedOrder.deliveryCharge)}
+                      />
+                      <div className='ml-3 flex-1'>
+                        <span className='text-sm'>ব্যালেন্স থেকে</span>
+                        {user?.balance! < +selectedOrder.deliveryCharge && (
+                          <div className='text-red-500 text-xs mt-1'>অপর্যাপ্ত ব্যালেন্স</div>
+                        )}
+                      </div>
                     </label>
-                    <input
-                      type='text'
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500'
-                      placeholder='ফোন নম্বর'
-                      value={sellerWalletPhoneNo}
-                      onChange={e => setSellerWalletPhoneNo(e.target.value)}
-                      required
-                    />
-                  </div>
 
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      ট্রানজেকশন আইডি
+                    <label className='flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50'>
+                      <input
+                        type='radio'
+                        className='form-radio flex-shrink-0'
+                        name='paymentMethod'
+                        value='WALLET'
+                        checked={paymentMethod === 'WALLET'}
+                        onChange={() => setPaymentMethod('WALLET')}
+                      />
+                      <span className='ml-3 text-sm'>ওয়ালেট পেমেন্ট</span>
                     </label>
-                    <input
-                      type='text'
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500'
-                      placeholder='ট্রানজেকশন আইডি'
-                      value={transactionId}
-                      onChange={e => setTransactionId(e.target.value)}
-                      required
-                    />
                   </div>
                 </div>
-              )}
-              {error && <p className='text-red-500 text-sm'>{error}</p>}
+
+                {/* Wallet Payment Details */}
+                {paymentMethod === 'WALLET' && (
+                  <div className='space-y-4 border-t pt-4'>
+                    <div>
+                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                        সিস্টেম ওয়ালেট
+                      </label>
+                      <select
+                        className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        value={selectedSystemWallet?.walletId || ''}
+                        onChange={e => {
+                          const walletId = parseInt(e.target.value)
+                          const wallet = systemWallets.find(w => w.walletId === walletId)
+                          setSelectedSystemWallet(wallet || null)
+                        }}
+                        required
+                        disabled={walletLoading}
+                      >
+                        <option value=''>সিলেক্ট করুন</option>
+                        {systemWallets.map(wallet => (
+                          <option key={wallet.walletId} value={wallet.walletId}>
+                            {wallet.walletName} ({wallet.walletPhoneNo})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className='p-3 border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg'>
+                      <p className='text-sm text-blue-700 text-center font-medium'>
+                        নির্বাচিত ওয়ালেটে{' '}
+                        <span className='font-bold'>{selectedOrder.deliveryCharge}৳</span> সেন্ড
+                        মানি করুন
+                      </p>
+                    </div>
+
+                    <div className='relative'>
+                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                        আপনার {selectedSystemWallet?.walletName || 'ওয়ালেট'} নম্বর
+                      </label>
+                      <input
+                        type='text'
+                        className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        placeholder='ফোন নম্বর'
+                        value={sellerWalletPhoneNo}
+                        onChange={e => {
+                          setSellerWalletPhoneNo(e.target.value)
+                          setShowSuggestions(e.target.value.length > 0)
+                        }}
+                        required
+                      />
+                      {showSuggestions && savedWallets.length > 0 && (
+                        <div className='absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm'>
+                          {savedWallets
+                            .filter(
+                              wallet =>
+                                wallet.walletPhoneNo.includes(sellerWalletPhoneNo) &&
+                                wallet.walletName.toLowerCase() ===
+                                  selectedSystemWallet?.walletName?.toLowerCase()
+                            )
+                            .map((wallet, index) => (
+                              <div
+                                key={index}
+                                className='px-4 py-2 hover:bg-gray-100 cursor-pointer'
+                                onClick={() => {
+                                  setSellerWalletPhoneNo(wallet.walletPhoneNo)
+                                  setShowSuggestions(false)
+                                }}
+                              >
+                                {wallet.walletName} ({wallet.walletPhoneNo})
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                        ট্রানজেকশন আইডি
+                      </label>
+                      <input
+                        type='text'
+                        className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        placeholder='ট্রানজেকশন আইডি'
+                        value={transactionId}
+                        onChange={e => setTransactionId(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <div className='p-3 bg-red-50 border border-red-200 rounded-lg'>
+                    <p className='text-red-600 text-sm'>{error}</p>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className='p-4 border-t flex justify-end gap-3'>
-              <button
-                onClick={() => {
-                  setShowPaymentModal(false)
-                  resetPaymentForm()
-                }}
-                className='px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200'
-              >
-                বাতিল করুন
-              </button>
-              {(!selectedOrder.sellerVerified || paymentMethod) && (
+
+            {/* Footer Actions */}
+            <div className='p-4 border-t bg-white flex-shrink-0'>
+              <div className='flex flex-col gap-2'>
+                {(!selectedOrder.sellerVerified || paymentMethod) && (
+                  <button
+                    onClick={handlePayment}
+                    disabled={
+                      actionLoading.type === 'payment' && actionLoading.id === selectedOrder.orderId
+                    }
+                    className='w-full px-4 py-2 text-sm bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors'
+                  >
+                    {actionLoading.type === 'payment' && actionLoading.id === selectedOrder.orderId
+                      ? 'প্রক্রিয়াধীন...'
+                      : paymentMethod === 'BALANCE'
+                      ? 'ব্যালেন্স থেকে পেমেন্ট করুন'
+                      : paymentMethod === 'WALLET'
+                      ? 'ওয়ালেট পেমেন্ট করুন'
+                      : 'কনফার্ম করুন'}
+                  </button>
+                )}
                 <button
-                  onClick={handlePayment}
-                  disabled={
-                    actionLoading.type === 'payment' && actionLoading.id === selectedOrder.orderId
-                  }
-                  className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50'
+                  onClick={() => {
+                    setShowPaymentModal(false)
+                    resetPaymentForm()
+                  }}
+                  className='w-full px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors'
                 >
-                  {actionLoading.type === 'payment' && actionLoading.id === selectedOrder.orderId
-                    ? 'প্রক্রিয়াধীন...'
-                    : paymentMethod === 'BALANCE'
-                    ? 'ব্যালেন্স থেকে পেমেন্ট করুন'
-                    : paymentMethod === 'WALLET'
-                    ? 'ওয়ালেট পেমেন্ট করুন'
-                    : 'কনফার্ম করুন'}
+                  বাতিল করুন
                 </button>
-              )}
+              </div>
             </div>
           </div>
         </div>

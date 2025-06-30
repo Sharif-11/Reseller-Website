@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import { transactionApi } from '../Api/transaction.api'
+import { useAuth } from '../Hooks/useAuth'
 import { formatDate } from '../utils/date.utils'
 
 interface TransactionBase {
@@ -35,6 +36,7 @@ interface Account {
 }
 
 const BalanceStatement = () => {
+  const { reloadUser } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [account, setAccount] = useState<Account>({
     balance: 0,
@@ -113,6 +115,7 @@ const BalanceStatement = () => {
   }, [searchTerm, transactions])
 
   useEffect(() => {
+    reloadUser() // Reload user data to ensure account info is up-to-date
     fetchTransactions()
   }, [])
 

@@ -147,7 +147,9 @@ const PaymentHistory = () => {
             <button
               key={tab}
               className={`px-4 py-2 font-medium ${
-                activeTab === tab ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
+                activeTab === tab
+                  ? 'text-blue-600 border-b-2 border-blue-600 text-[11px] md:text-[16px]'
+                  : 'text-gray-500 text-[11px] md:text-[16px]'
               }`}
               onClick={() => setActiveTab(tab as any)}
             >
@@ -160,7 +162,7 @@ const PaymentHistory = () => {
           <input
             type='text'
             placeholder='Search by transaction ID, phone, name...'
-            className='w-full md:w-64 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+            className='w-full md:w-64 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm'
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -432,8 +434,8 @@ const PaymentHistory = () => {
           </div>
 
           {/* Pagination */}
-          <div className='flex items-center justify-between mt-4'>
-            <div className='text-sm text-gray-700'>
+          <div className='flex items-center justify-center md:justify-between mt-4'>
+            <div className='text-sm text-gray-700 hidden md:block'>
               Showing{' '}
               <span className='font-medium'>
                 {(pagination.currentPage - 1) * pagination.itemsPerPage + 1}

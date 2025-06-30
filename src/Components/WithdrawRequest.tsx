@@ -29,7 +29,6 @@ const WithdrawRequest = () => {
   const [wallets, setWallets] = useState<Wallet[]>([])
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null)
   const [amount, setAmount] = useState('')
-  const [balance, setBalance] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [errors, setErrors] = useState({
@@ -68,36 +67,6 @@ const WithdrawRequest = () => {
     }
   }, [amount, selectedWallet])
 
-  // Fetch user's wallets and balance
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       setIsFetching(true);
-  //        const {success, message, data:{user}} = await verifyLogin()
-  //       if(success){
-  //         setUser(user)
-  //         setBalance(user.balance)
-  //         setWallets(user.wallets || []);
-  //       }else{
-  //         setErrors(prev => ({
-  //           ...prev,
-  //           form: message || 'ডেটা লোড করতে সমস্যা হয়েছে'
-  //         }));
-  //       }
-
-  //     } catch (error) {
-  //       setErrors(prev => ({
-  //         ...prev,
-  //         form: 'ডেটা লোড করতে সমস্যা হয়েছে'
-  //       }));
-  //       console.error('Error fetching data:', error);
-  //     } finally {
-  //       setIsFetching(false);
-  //     }
-  //   };
-
-  //   fetchData();
-  // }, []);
   const fetchWallets = async () => {
     try {
       setIsFetching(true)
@@ -121,13 +90,8 @@ const WithdrawRequest = () => {
     }
   }
   useEffect(() => {
+    fetchWallets()
     reloadUser()
-    if (user) {
-      setBalance(user.balance)
-      fetchWallets()
-    } else {
-      navigate('/login')
-    }
   }, [])
   const validateForm = () => {
     let isValid = true
@@ -145,7 +109,7 @@ const WithdrawRequest = () => {
     } else if (withdrawalDetails === null) {
       newErrors.amount = 'অবৈধ উইথড্র পরিমাণ'
       isValid = false
-    } else if (amountValue > balance) {
+    } else if (amountValue > user?.balance!) {
       newErrors.amount = 'আপনার ব্যালেন্স পর্যাপ্ত নয়'
       isValid = false
     }
@@ -174,9 +138,6 @@ const WithdrawRequest = () => {
         setSelectedWallet(null)
         setAmount('')
         setWithdrawalDetails(null)
-        if (response.data?.newBalance) {
-          setBalance(response.data.newBalance)
-        }
       } else {
         throw new Error(response.message || 'উইথড্র রিকোয়েস্ট ব্যর্থ হয়েছে')
       }
@@ -241,7 +202,7 @@ const WithdrawRequest = () => {
       <div className='bg-blue-50 rounded-lg p-4 mb-6'>
         <div className='flex justify-between items-center'>
           <span className='font-medium'>বর্তমান ব্যালেন্স:</span>
-          <span className='text-xl font-bold text-blue-600'>{balance} ৳</span>
+          <span className='text-xl font-bold text-blue-600'>{user?.balance || 0} ৳</span>
         </div>
       </div>
 
