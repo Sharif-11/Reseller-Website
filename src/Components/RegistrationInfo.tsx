@@ -115,12 +115,6 @@ const RegistrationInfo = ({
         </div>
 
         <div className='p-6 md:p-8'>
-          {error && (
-            <div className='mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100'>
-              {error}
-            </div>
-          )}
-
           <form onSubmit={formik.handleSubmit} className='grid md:grid-cols-2 gap-5'>
             {/* Phone Number (Readonly) */}
             <div className='md:col-span-2'>
@@ -406,6 +400,11 @@ const RegistrationInfo = ({
               </button>
             </div>
           </form>
+          {error && (
+            <div className='mb-4 my-2 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100 md:text-center'>
+              {error}
+            </div>
+          )}
         </div>
       </div>
     </div>

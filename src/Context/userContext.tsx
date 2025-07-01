@@ -81,7 +81,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const reloadUser = async () => {
     try {
       const result = await verifyLogin()
-      if (result?.success && result.data?.user === 'Seller') {
+      if (result?.success && result.data?.role === 'Seller') {
         setUser(result.data || null)
         return result.data || null
       }

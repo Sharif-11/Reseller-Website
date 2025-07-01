@@ -50,7 +50,7 @@ const PublicRoute = ({ children }: { children: JSX.Element }) => {
   const location = useLocation()
 
   if (user) {
-    return <Navigate to={location.state.from.pathname || '/home'} replace />
+    return <Navigate to={location?.state?.from?.pathname || '/home'} replace />
   }
 
   return children
