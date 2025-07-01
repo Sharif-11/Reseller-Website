@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Download, Heart, MapPin, Package } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { fileDownloader } from '../Api/ftp.api'
 import { Product } from '../Api/shop.api'
 import { FAVORITES_KEY } from '../utils/utils.variables'
 
@@ -44,22 +45,14 @@ const Favorites = () => {
 
   const downloadAllImages = async (product: Product) => {
     if (!product.ProductImage) return
+    const imageUrls = product.ProductImage.map(image => image.imageUrl)
 
     try {
       setDownloadingId(product.productId)
-      for (let i = 0; i < product.ProductImage.length; i++) {
-        const image = product.ProductImage[i]
-        const response = await fetch(image.imageUrl)
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${product.name.replace(/[^a-z0-9]/gi, '_')}_image_${i + 1}.jpg`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        window.URL.revokeObjectURL(url)
-      }
+      const result = await fileDownloader.downloadAllFiles(imageUrls, {
+        baseNamePrefix: `product_${product.name.replace(/\s+/g, '_')}`,
+        delayBetweenDownloads: 500, // Optional delay between downloads
+      })
     } catch (error) {
       console.error('Error downloading images:', error)
     } finally {
