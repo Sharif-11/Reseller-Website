@@ -23,6 +23,7 @@ export type CartItem = {
   cartItemId: string
 }
 
+import axiosInstance from '../Axios/axiosInstance'
 import { CART_ITEMS_KEY, FAVORITES_KEY } from '../utils/utils.variables'
 
 const ProductDetail = () => {
@@ -121,43 +122,97 @@ const ProductDetail = () => {
   }
 
   // Download single image
-  const downloadImage = async (url: string, name: string) => {
+  /**
+   * Downloads a file through your backend API
+   * @param fileUrl - Public URL of the file (e.g., 'https://media.example.com/ftp_dev/uuid.jpg')
+   * @param baseName - Base filename for the downloaded file
+   * @param setDownloading - State setter for loading indicator
+   */
+  const downloadFileViaAPI = async (
+    fileUrl: string,
+    baseName: string,
+    setDownloading?: (loading: boolean) => void
+  ): Promise<void> => {
     try {
-      setDownloading(true)
-      const response = await fetch(url, {
-        mode: 'cors',
-      })
-      const blob = await response.blob()
-      const blobUrl = URL.createObjectURL(blob)
+      setDownloading?.(true)
 
+      // Hit your backend API endpoint
+      const response = await axiosInstance.post(
+        '/ftp/download',
+        { url: fileUrl },
+        {
+          responseType: 'blob',
+          timeout: 0, // Disable timeout entirely for downloads
+          headers: {
+            Accept: 'application/octet-stream',
+          },
+        }
+      )
+
+      // Extract filename from headers or generate one
+      const contentDisposition = response.headers['content-disposition']
+      const suggestedName =
+        contentDisposition?.split('filename=')[1] || `${baseName.replace(/\s+/g, '_')}.jpg`
+
+      // Trigger browser download
+      const blob = new Blob([response.data])
+      const downloadUrl = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
-      link.href = blobUrl
-      link.download = `${name.replace(/\s+/g, '_')}_${Date.now()}.jpg`
+      link.href = downloadUrl
+      link.download = suggestedName
+      link.style.display = 'none'
       document.body.appendChild(link)
       link.click()
 
+      // Cleanup
       setTimeout(() => {
         document.body.removeChild(link)
-        URL.revokeObjectURL(blobUrl)
-        setDownloading(false)
+        window.URL.revokeObjectURL(downloadUrl)
+        setDownloading?.(false)
       }, 100)
-    } catch (err) {
-      setDownloading(false)
+    } catch (error) {
+      setDownloading?.(false)
+      console.error('API download failed:', error)
+      throw error
     }
   }
 
   // Download all images
-  const downloadAllImages = async () => {
-    if (!product) return
-
-    setDownloading(true)
+  /**
+   * Downloads multiple files through your backend API
+   * @param fileUrls - Array of public file URLs
+   * @param baseNamePrefix - Prefix for downloaded files (e.g., 'product')
+   * @param setDownloading - State setter for loading indicator
+   * @param delayBetweenDownloads - Delay between requests (ms)
+   */
+  const downloadAllFilesViaAPI = async (
+    fileUrls: string[],
+    baseNamePrefix: string,
+    setDownloading?: (loading: boolean) => void,
+    delayBetweenDownloads: number = 300
+  ): Promise<void> => {
     try {
-      for (const image of product.ProductImage) {
-        await downloadImage(image.imageUrl, product.name)
-        await new Promise(resolve => setTimeout(resolve, 300))
+      setDownloading?.(true)
+
+      for (const [index, url] of fileUrls.entries()) {
+        try {
+          await downloadFileViaAPI(
+            url,
+            `${baseNamePrefix}_${index + 1}`,
+            undefined // No individual loading states
+          )
+        } catch (error) {
+          console.warn(`Failed to download file ${index + 1}:`, error)
+          // Continue with next file even if one fails
+        }
+
+        // Add delay between requests (except after last file)
+        if (index < fileUrls.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, delayBetweenDownloads))
+        }
       }
     } finally {
-      setDownloading(false)
+      setDownloading?.(false)
     }
   }
 
@@ -349,7 +404,7 @@ const ProductDetail = () => {
                 )}
                 <button
                   onClick={() =>
-                    downloadImage(
+                    downloadFileViaAPI(
                       selectedImage?.imageUrl || product.ProductImage[0]?.imageUrl || '',
                       product.name
                     )
@@ -373,7 +428,13 @@ const ProductDetail = () => {
                 <h3 className='text-sm font-medium'>ছবিসমূহ</h3>
                 {product.ProductImage.length > 1 && (
                   <button
-                    onClick={downloadAllImages}
+                    onClick={() =>
+                      downloadAllFilesViaAPI(
+                        product.ProductImage.map(img => img.imageUrl),
+                        product.name,
+                        setDownloading
+                      )
+                    }
                     disabled={downloading}
                     className='text-xs text-blue-600 flex items-center'
                   >

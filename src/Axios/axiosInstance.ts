@@ -1,30 +1,36 @@
-import axios from "axios";
-import { baseURL } from "./baseUrl";
+import axios from 'axios'
+import { baseURL } from './baseUrl'
 
 const axiosInstance = axios.create({
   baseURL: baseURL, // Replace with your API's base URL
   timeout: 10000, // Optional: Timeout in milliseconds
   headers: {
-    "Content-Type": "application/json", // Default headers
-    Authorization: `Bearer ${localStorage.getItem("token")}`, // Example: Attach token from localStorage
+    'Content-Type': 'application/json', // Default headers
+    Authorization: `Bearer ${localStorage.getItem('token')}`, // Example: Attach token from localStorage
   },
-});
+})
 
 // Optional: Adding request interceptors
 axiosInstance.interceptors.request.use(
-  (config) => {
-    // Modify the request (e.g., add authorization header dynamically)
-    const token = localStorage.getItem("token");
+  config => {
+    // 1. Add Authorization Header if token exists (for JWT in localStorage)
+    const token = localStorage.getItem('token')
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`
     }
-    return config;
+
+    // 2. Ensure cookies are sent with requests
+    config.withCredentials = true // This is crucial for cookies
+
+    // 3. Additional security headers (recommended)
+    config.headers['X-Requested-With'] = 'XMLHttpRequest'
+
+    return config
   },
-  (error) => {
-    // Handle request error
-    return Promise.reject(error);
+  error => {
+    return Promise.reject(error)
   }
-);
+)
 
 // Optional: Adding response interceptors
 // axiosInstance.interceptors.response.use(
@@ -42,4 +48,4 @@ axiosInstance.interceptors.request.use(
 //   }
 // );
 
-export default axiosInstance;
+export default axiosInstance
