@@ -46,7 +46,7 @@ const Header = ({
 
   return (
     <header
-      className='bg-gradient-to-r from-indigo-700 to-indigo-800 sticky top-0 z-50 shadow-lg'
+      className='bg-gradient-to-r from-indigo-700 to-indigo-800 sticky top-0 z-[100] shadow-lg'
       id='home'
     >
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>

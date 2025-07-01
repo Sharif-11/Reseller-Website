@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useState } from 'react'
+import { createContext, ReactNode, useEffect, useState } from 'react'
 import { verifyLogin } from '../Api/auth.api'
 import Loading from '../Components/Loading'
 export interface Wallet {
@@ -34,7 +34,6 @@ interface UserContextType {
   loading: boolean
   error: Error | null
   reloadUser: () => Promise<null | User> // Add reload function to context type
-  updateUser: () => Promise<User | null> // Function to update user data
 }
 
 // Create the context
@@ -44,44 +43,45 @@ export const UserContext = createContext<UserContextType>({
   loading: true,
   error: null,
   reloadUser: async () => null, // Add default reload function
-  updateUser: async () => null, // Add default update function
 })
 
 // Provider Component
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
-  const [loading] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error] = useState<Error | null>(null)
 
-  // const checkLogin = async () => {
-  //   const token = localStorage.getItem('token')
-  //   if (!token) {
-  //     setLoading(false)
-  //     return
-  //   }
-  //   try {
-  //     setLoading(true)
-  //     const result = await verifyLogin()
+  const checkLogin = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setLoading(false)
+      return
+    }
+    try {
+      setLoading(true)
+      const result = await verifyLogin()
 
-  //     if (result?.success) {
-  //       setUser(result.data?.user || null)
-  //     } else {
-  //       setUser(null)
-  //     }
-  //   } catch (error) {
-  //     console.error('Login verification failed:', error)
-  //     setError(error instanceof Error ? error : new Error('Login verification failed'))
-  //     setUser(null)
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
+      if (result?.success && result.data?.role === 'Seller') {
+        setUser(result.data || null)
+        result.data?.token && localStorage.setItem('token', result.data?.token || '') // Store token if available
+      } else {
+        setUser(null)
+      }
+    } catch (error) {
+      console.error('Error checking login:', error)
+      setUser(null)
+      // Optionally, you can set an error state here if needed
+      // setError(error as Error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // This function can be called to manually reload user data
   const reloadUser = async () => {
     try {
       const result = await verifyLogin()
-      if (result?.success) {
+      if (result?.success && result.data?.user === 'Seller') {
         setUser(result.data || null)
         return result.data || null
       }
@@ -90,26 +90,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       return null
     }
   }
-  const updateUser = async () => {
-    try {
-      const result = await verifyLogin()
-      if (result?.success) {
-        return (result.data?.user as User) || null
-      }
-      return null
-    } catch (error) {
-      return null
-    }
-  }
 
-  // useEffect(() => {
-  //   checkLogin()
-  // }, [])
+  useEffect(() => {
+    checkLogin()
+  }, [])
 
   if (loading) return <Loading />
 
   return (
-    <UserContext.Provider value={{ user, setUser, loading, error, reloadUser, updateUser }}>
+    <UserContext.Provider value={{ user, setUser, loading, error, reloadUser }}>
       {children}
     </UserContext.Provider>
   )

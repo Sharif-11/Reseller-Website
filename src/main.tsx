@@ -47,9 +47,10 @@ Sentry.init({
 
 const PublicRoute = ({ children }: { children: JSX.Element }) => {
   const { user } = useAuth()
+  const location = useLocation()
 
   if (user) {
-    return <Navigate to='/home' replace />
+    return <Navigate to={location.state.from.pathname || '/home'} replace />
   }
 
   return children
