@@ -52,6 +52,7 @@ const ProductDetail = () => {
   const [downloading, setDownloading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [priceError, setPriceError] = useState('')
+  const [userType, setUserType] = useState<'customer' | 'seller'>('customer')
 
   // Initialize product data
   useEffect(() => {
@@ -60,25 +61,30 @@ const ProductDetail = () => {
         try {
           setLoading(true)
 
-          const { success, data, message } = await productApi.getProductDetailForSeller(
-            parseInt(productId)
-          )
+          const { success, data, message } = await productApi.getProductDetail(parseInt(productId))
+          console.log({ success, data, message })
           if (success) {
-            setProduct(data.product)
-            setSellingPrice(data.product.basePrice.toString())
+            setProduct({
+              ...data.product,
+              basePrice: data.product.basePrice || data.product.price || 0,
+              suggestedMaxPrice: data.product.suggestedMaxPrice || data.product.price || 0,
+              price: data.product.price || undefined,
+            })
+            setUserType(data.userType)
+            const price = data.product.basePrice?.toString() || data.product.price?.toString() || ''
+            setSellingPrice(price)
           } else {
             setError(message || 'Product not found')
           }
         } catch (err) {
-          setError('Failed to load product')
-          setLoading(false)
+          console.log('Error fetching product:', err)
         } finally {
           setLoading(false)
         }
       }
       fetchProduct()
     } else if (location.state?.product) {
-      setSellingPrice(location.state.product.basePrice.toString())
+      // setSellingPrice(location.state.product.basePrice.toString())
     }
   }, [productId, location.state])
 
@@ -528,21 +534,33 @@ const ProductDetail = () => {
             </div>
 
             {/* Price Info */}
+
             <div className='bg-white rounded-lg shadow-sm p-4'>
-              <div className='space-y-2'>
-                <div className='flex items-center justify-between'>
-                  <span className='text-gray-600'>পাইকারি মূল্য:</span>
-                  <span className='text-lg font-bold text-blue-600'>
-                    ৳{product.basePrice.toLocaleString('bn-BD')}
-                  </span>
+              {userType === 'seller' ? (
+                <div className='space-y-2'>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-gray-600'>পাইকারি মূল্য:</span>
+                    <span className='text-lg font-bold text-blue-600'>
+                      ৳{product.basePrice.toLocaleString('bn-BD')}
+                    </span>
+                  </div>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-gray-600'>সর্বোচ্চ পাইকারি মূল্য:</span>
+                    <span className='text-lg text-[#e5307e] font-bold'>
+                      ৳{product.suggestedMaxPrice.toLocaleString('bn-BD')}
+                    </span>
+                  </div>
                 </div>
-                <div className='flex items-center justify-between'>
-                  <span className='text-gray-600'>সর্বোচ্চ পাইকারি মূল্য:</span>
-                  <span className='text-lg text-[#e5307e] font-bold'>
-                    ৳{product.suggestedMaxPrice.toLocaleString('bn-BD')}
-                  </span>
+              ) : (
+                <div className='space-y-2'>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-gray-600'>মূল্য:</span>
+                    <span className='text-lg font-bold text-blue-600'>
+                      ৳{product.price!.toLocaleString('bn-BD')}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Variants */}
@@ -591,27 +609,29 @@ const ProductDetail = () => {
                     className='w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
                   />
                 </div>
-                <div>
-                  <label className='block text-sm font-medium mb-1'>
-                    আপনার মূল্য (ন্যূনতম ৳{product.basePrice})
-                  </label>
-                  <input
-                    type='text'
-                    inputMode='numeric'
-                    value={sellingPrice}
-                    onChange={e => {
-                      const value = e.target.value
-                      // Allow only numbers and empty string
-                      if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
-                        setSellingPrice(value)
-                      }
-                    }}
-                    className={`w-full px-3 py-2 border ${
-                      priceError ? 'border-red-500' : 'border-gray-300'
-                    } rounded focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                  />
-                  {priceError && <p className='text-red-500 text-xs mt-1'>{priceError}</p>}
-                </div>
+                {userType === 'seller' && (
+                  <div>
+                    <label className='block text-sm font-medium mb-1'>
+                      আপনার মূল্য (ন্যূনতম ৳{product.basePrice})
+                    </label>
+                    <input
+                      type='text'
+                      inputMode='numeric'
+                      value={sellingPrice}
+                      onChange={e => {
+                        const value = e.target.value
+                        // Allow only numbers and empty string
+                        if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+                          setSellingPrice(value)
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border ${
+                        priceError ? 'border-red-500' : 'border-gray-300'
+                      } rounded focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                    />
+                    {priceError && <p className='text-red-500 text-xs mt-1'>{priceError}</p>}
+                  </div>
+                )}
               </div>
             </div>
 

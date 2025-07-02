@@ -14,7 +14,6 @@ import LandingPage from './Components/LandingPage.tsx'
 import LoginPage from './Components/Login.tsx'
 import Orders from './Components/Orders.tsx'
 import PasswordReset from './Components/PasswordReset.tsx'
-import ProductDetailDecider from './Components/ProductDetailDecider.tsx'
 import PublicProductDetails from './Components/ProductDetailPublic.tsx'
 import Products from './Components/Products.tsx'
 import Profile from './Components/Profile.tsx'
@@ -37,6 +36,7 @@ import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
+import ProductDetail from './Components/ProductDetail.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
@@ -156,7 +156,7 @@ createRoot(document.getElementById('root')!).render(
             />
             <Route path='product-detail/:productId' element={<PublicProductDetails />} />
             <Route path='products' element={<Products />} />
-            <Route path='products/:productId' element={<ProductDetailDecider />} />
+            <Route path='products/:productId' element={<ProductDetail />} />
             <Route
               path='cart'
               element={

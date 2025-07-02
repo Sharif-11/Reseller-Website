@@ -80,7 +80,7 @@ class ShopApi {
     page?: number
     limit?: number
   }) {
-    return apiClient.get('products', {
+    return apiClient.get('products/user', {
       params: {
         search,
         minPrice,
