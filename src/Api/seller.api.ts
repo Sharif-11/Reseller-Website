@@ -315,7 +315,7 @@ export const getTransactionHistory = async ({
 }
 export const getProduct = async (productId: string) => {
   try {
-    const { data } = await axiosInstance.get(`sellers/products/${productId}`)
+    const { data } = await axiosInstance.get(`products/${productId}`)
     const { success, message, statusCode } = data
     const responseData = data?.data
     return {

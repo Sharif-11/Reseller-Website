@@ -118,7 +118,10 @@ const Products = () => {
         limit: itemsPerPage,
       })
 
+      // setUserType(response.response.userType)
+
       setProducts(response.data || [])
+
       setFilteredProducts(response.data || [])
 
       // Initialize auto-slide for each product
@@ -196,7 +199,7 @@ const Products = () => {
           imageUrls.push(image.imageUrl)
         }
       }
-      const result = await fileDownloader.downloadAllFiles(imageUrls, {
+      await fileDownloader.downloadAllFiles(imageUrls, {
         baseNamePrefix: `product_${product.name.replace(/\s+/g, '_')}`,
         delayBetweenDownloads: 500, // Optional delay between downloads
         onProgress: progress => {
@@ -454,7 +457,7 @@ const Products = () => {
         {view === 'shops' && (
           <div>
             <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8'>
-              Choose Your Shop
+              শপ সিলেক্ট করুন
             </h1>
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'>
               {shops.map(shop => (
@@ -508,7 +511,7 @@ const Products = () => {
                 <span className='hidden sm:inline'>Back</span>
               </button>
               <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
-                Categories in {selectedShop.shopName}
+                প্রোডাক্ট ক্যাটাগরি ({selectedShop.shopName})
               </h1>
             </div>
 
@@ -732,7 +735,7 @@ const Products = () => {
                           <div className='flex items-center justify-between mb-2 sm:mb-3'>
                             <div>
                               <span className='text-sm sm:text-base font-bold text-gray-900'>
-                                {formatPrice(product.basePrice)}
+                                {formatPrice(product.basePrice || product.price!)}
                               </span>
                             </div>
                           </div>

@@ -49,7 +49,7 @@ const Favorites = () => {
 
     try {
       setDownloadingId(product.productId)
-      const result = await fileDownloader.downloadAllFiles(imageUrls, {
+      await fileDownloader.downloadAllFiles(imageUrls, {
         baseNamePrefix: `product_${product.name.replace(/\s+/g, '_')}`,
         delayBetweenDownloads: 500, // Optional delay between downloads
       })

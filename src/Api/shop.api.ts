@@ -36,6 +36,7 @@ export type Product = {
   published: boolean
   videoUrl: string | null
   basePrice: number
+  price?: number
   suggestedMaxPrice: number
   createdAt: Date
   updatedAt: Date
@@ -79,7 +80,7 @@ class ShopApi {
     page?: number
     limit?: number
   }) {
-    return apiClient.get('products/seller', {
+    return apiClient.get('products', {
       params: {
         search,
         minPrice,
