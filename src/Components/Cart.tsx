@@ -8,6 +8,7 @@ import {
   FiX,
 } from 'react-icons/fi'
 import { Link, useNavigate } from 'react-router-dom'
+import { useCartFavorite } from '../Context/cartContext'
 import { CartItem } from '../types/cart.types'
 import { CART_ITEMS_KEY } from '../utils/utils.variables'
 
@@ -27,6 +28,7 @@ const Cart = () => {
   const [isUpdating, setIsUpdating] = useState<number | null>(null)
   const [showInstructionModal, setShowInstructionModal] = useState(false)
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null)
+  const { loadCartCount } = useCartFavorite()
 
   // Load cart items from localStorage and group by shop
   useEffect(() => {
@@ -77,6 +79,9 @@ const Cart = () => {
 
     loadCartItems()
   }, [])
+  useEffect(() => {
+    loadCartCount()
+  }, [shopCarts])
 
   const removeItem = (shopId: number, cartItemId: string) => {
     const updatedShopCarts = shopCarts

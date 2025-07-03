@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fileDownloader } from '../Api/ftp.api'
 import { Product } from '../Api/shop.api'
+import { useCartFavorite } from '../Context/cartContext'
 import { FAVORITES_KEY } from '../utils/utils.variables'
 
 const Favorites = () => {
@@ -13,6 +14,7 @@ const Favorites = () => {
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const navigate = useNavigate()
   const itemsPerPage = 12
+  const { loadCartCount, loadFavoriteCount } = useCartFavorite()
 
   // Load favorites from localStorage
   useEffect(() => {
@@ -25,6 +27,7 @@ const Favorites = () => {
           const parsed = JSON.parse(savedFavorites)
           if (Array.isArray(parsed)) {
             setFavorites(parsed)
+            loadFavoriteCount()
           }
         }
       } catch (err) {
@@ -36,11 +39,16 @@ const Favorites = () => {
 
     loadFavorites()
   }, [])
+  useEffect(() => {
+    loadFavoriteCount()
+    loadCartCount()
+  }, [favorites])
 
   const removeFavorite = (productId: number) => {
     const updatedFavorites = favorites.filter(fav => fav.productId !== productId)
     setFavorites(updatedFavorites)
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites))
+    loadFavoriteCount()
   }
 
   const downloadAllImages = async (product: Product) => {
@@ -236,7 +244,7 @@ const Favorites = () => {
                   <div className='flex items-center justify-between mb-3'>
                     <div>
                       <span className='text-lg font-bold text-gray-900'>
-                        {formatPrice(product.basePrice)}
+                        {formatPrice(product.basePrice || product?.price!)}
                       </span>
                     </div>
                   </div>

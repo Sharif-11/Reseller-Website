@@ -40,6 +40,7 @@ import ProductDetail from './Components/ProductDetail.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
+import { CartFavoriteProvider } from './Context/cartContext.tsx'
 
 Sentry.init({
   dsn: 'https://283a749ae1d929c3da86a952b8290e15@o4509187069378560.ingest.de.sentry.io/4509187074359376',
@@ -84,216 +85,218 @@ const SellerRoute = ({ children }: { children: JSX.Element }) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <UserProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path='/' element={<Home />}>
-            <Route
-              index
-              element={
-                <PublicRoute>
-                  <LandingPage />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='about-us'
-              element={
-                <PublicRoute>
-                  <AboutUs />
-                </PublicRoute>
-              }
-            />
-            <Route path='passive-income' element={<ResellerPassiveIncome />} />
+    <CartFavoriteProvider>
+      <UserProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path='/' element={<Home />}>
+              <Route
+                index
+                element={
+                  <PublicRoute>
+                    <LandingPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path='about-us'
+                element={
+                  <PublicRoute>
+                    <AboutUs />
+                  </PublicRoute>
+                }
+              />
+              <Route path='passive-income' element={<ResellerPassiveIncome />} />
 
-            <Route
-              path='privacy-policy'
-              element={
-                <PublicRoute>
-                  <PrivacyPolicy />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='terms-conditions'
-              element={
-                <PublicRoute>
-                  <TermsAndConditions />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='return-refund-policy'
-              element={
-                <PublicRoute>
-                  <RefundPolicy />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='home'
-              element={
-                <SellerRoute>
-                  <SellerHomeDashboard />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='pay-due'
-              element={
-                <SellerRoute>
-                  <PayDue />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='seller-dashboard'
-              element={
-                <SellerRoute>
-                  <SellerDashboard />
-                </SellerRoute>
-              }
-            />
-            <Route path='product-detail/:productId' element={<PublicProductDetails />} />
-            <Route path='products' element={<Products />} />
-            <Route path='products/:productId' element={<ProductDetail />} />
-            <Route path='cart' element={<Cart />} />
-            <Route path='support' element={<SupportCenter />} />
-            <Route
-              path='selling-guide'
-              element={
-                <SellerRoute>
-                  <SalesGuidelines />
-                </SellerRoute>
-              }
-            />
-            <Route path='faq' element={<FAQSection />} />
-            <Route
-              path='support-ticket'
-              element={
-                <SellerRoute>
-                  <SupportTicket />
-                </SellerRoute>
-              }
-            />
-            <Route path='favorites' element={<Favorites />} />
-            <Route
-              path='add-wallet'
-              element={
-                <SellerRoute>
-                  <AddWallet />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='request-withdraw'
-              element={
-                <SellerRoute>
-                  <WithdrawRequest />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='balance-statement'
-              element={
-                <SellerRoute>
-                  <BalanceStatement />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='withdraw-history'
-              element={
-                <SellerRoute>
-                  <WithdrawHistory />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='payment-history'
-              element={
-                <SellerRoute>
-                  <PaymentHistory />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='checkout'
-              element={
-                <SellerRoute>
-                  <Checkout />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='register'
-              element={
-                <PublicRoute>
-                  <Register />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='customer-register'
-              element={
-                <PublicRoute>
-                  <CustomerRegister />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='login'
-              element={
-                <PublicRoute>
-                  <LoginPage />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='forgot-password'
-              element={
-                <PublicRoute>
-                  <PasswordReset />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='profile'
-              element={
-                <PrivateRoute>
-                  <Profile />
-                </PrivateRoute>
-              }
-            />
+              <Route
+                path='privacy-policy'
+                element={
+                  <PublicRoute>
+                    <PrivacyPolicy />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path='terms-conditions'
+                element={
+                  <PublicRoute>
+                    <TermsAndConditions />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path='return-refund-policy'
+                element={
+                  <PublicRoute>
+                    <RefundPolicy />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path='home'
+                element={
+                  <SellerRoute>
+                    <SellerHomeDashboard />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='pay-due'
+                element={
+                  <SellerRoute>
+                    <PayDue />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='seller-dashboard'
+                element={
+                  <SellerRoute>
+                    <SellerDashboard />
+                  </SellerRoute>
+                }
+              />
+              <Route path='product-detail/:productId' element={<PublicProductDetails />} />
+              <Route path='products' element={<Products />} />
+              <Route path='products/:productId' element={<ProductDetail />} />
+              <Route path='cart' element={<Cart />} />
+              <Route path='support' element={<SupportCenter />} />
+              <Route
+                path='selling-guide'
+                element={
+                  <SellerRoute>
+                    <SalesGuidelines />
+                  </SellerRoute>
+                }
+              />
+              <Route path='faq' element={<FAQSection />} />
+              <Route
+                path='support-ticket'
+                element={
+                  <SellerRoute>
+                    <SupportTicket />
+                  </SellerRoute>
+                }
+              />
+              <Route path='favorites' element={<Favorites />} />
+              <Route
+                path='add-wallet'
+                element={
+                  <SellerRoute>
+                    <AddWallet />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='request-withdraw'
+                element={
+                  <SellerRoute>
+                    <WithdrawRequest />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='balance-statement'
+                element={
+                  <SellerRoute>
+                    <BalanceStatement />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='withdraw-history'
+                element={
+                  <SellerRoute>
+                    <WithdrawHistory />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='payment-history'
+                element={
+                  <SellerRoute>
+                    <PaymentHistory />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='checkout'
+                element={
+                  <SellerRoute>
+                    <Checkout />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='register'
+                element={
+                  <PublicRoute>
+                    <Register />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path='customer-register'
+                element={
+                  <PublicRoute>
+                    <CustomerRegister />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path='login'
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path='forgot-password'
+                element={
+                  <PublicRoute>
+                    <PasswordReset />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path='profile'
+                element={
+                  <PrivateRoute>
+                    <Profile />
+                  </PrivateRoute>
+                }
+              />
 
-            <Route
-              path='add-referral-code'
-              element={
-                <SellerRoute>
-                  <Referral />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='orders'
-              element={
-                <SellerRoute>
-                  <Orders />
-                </SellerRoute>
-              }
-            />
-            <Route
-              path='change-password'
-              element={
-                <PrivateRoute>
-                  <ChangePasswordPage />
-                </PrivateRoute>
-              }
-            />
-            <Route path='*' element={<CatchAllRoute />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </UserProvider>
+              <Route
+                path='add-referral-code'
+                element={
+                  <SellerRoute>
+                    <Referral />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='orders'
+                element={
+                  <SellerRoute>
+                    <Orders />
+                  </SellerRoute>
+                }
+              />
+              <Route
+                path='change-password'
+                element={
+                  <PrivateRoute>
+                    <ChangePasswordPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route path='*' element={<CatchAllRoute />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </UserProvider>
+    </CartFavoriteProvider>
   </StrictMode>
 )

@@ -24,6 +24,7 @@ export type CartItem = {
 }
 
 import axiosInstance from '../Axios/axiosInstance'
+import { useCartFavorite } from '../Context/cartContext'
 import { CART_ITEMS_KEY, FAVORITES_KEY } from '../utils/utils.variables'
 
 const ProductDetail = () => {
@@ -33,6 +34,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(location.state?.product || null)
   const [loading, setLoading] = useState(!location.state?.product)
   const [error, setError] = useState<string | null>(null)
+  const { loadCartCount, loadFavoriteCount } = useCartFavorite()
 
   // User selections
   const [selectedImage, setSelectedImage] = useState<{ imageUrl: string; imageId: number } | null>(
@@ -245,11 +247,13 @@ const ProductDetail = () => {
       const updatedFavorites = savedFavorites.filter(fav => fav.productId !== product.productId)
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites))
       setIsFavorite(false)
+      loadFavoriteCount()
     } else {
       // Add to favorites
       savedFavorites.push(product)
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(savedFavorites))
       setIsFavorite(true)
+      loadFavoriteCount()
     }
   }
 
@@ -311,7 +315,7 @@ const ProductDetail = () => {
 
     // Save to localStorage
     localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(existingCart))
-
+    loadCartCount()
     // Navigate to cart
     navigate('/cart')
   }

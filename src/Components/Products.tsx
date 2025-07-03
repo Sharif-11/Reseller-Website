@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fileDownloader } from '../Api/ftp.api'
 import ShopApi, { Category, Product, Shop } from '../Api/shop.api'
+import { useCartFavorite } from '../Context/cartContext'
 import { FAVORITES_KEY } from '../utils/utils.variables'
 
 const Products = () => {
@@ -40,6 +41,7 @@ const Products = () => {
   const [totalPages] = useState<number>(1)
   const itemsPerPage = 12
   const navigate = useNavigate()
+  const { loadFavoriteCount } = useCartFavorite()
 
   // Image slider states
   const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({})
@@ -67,6 +69,9 @@ const Products = () => {
       loadProducts()
     }
   }, [searchTerm, priceRange, currentPage, selectedShop, selectedCategory])
+  useEffect(() => {
+    loadFavoriteCount()
+  }, [favorites])
 
   const loadShops = async () => {
     try {

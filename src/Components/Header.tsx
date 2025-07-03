@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { logout } from '../Api/auth.api'
 import logo from '../assets/shopbd_logo.png'
+import { useCartFavorite } from '../Context/cartContext'
 import { useAuth } from '../Hooks/useAuth'
 import { loadingText } from '../utils/utils.variables'
 
@@ -19,8 +20,7 @@ const Header = ({
   const { user, setUser } = useAuth()
 
   // Sample cart and favorite counts - replace with actual data from your state/context
-  const [cartCount, setCartCount] = useState(5)
-  const [favoriteCount, setFavoriteCount] = useState(3)
+  const { cartCount, favoriteCount } = useCartFavorite()
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
