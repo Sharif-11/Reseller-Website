@@ -157,14 +157,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path='product-detail/:productId' element={<PublicProductDetails />} />
             <Route path='products' element={<Products />} />
             <Route path='products/:productId' element={<ProductDetail />} />
-            <Route
-              path='cart'
-              element={
-                <PublicRoute>
-                  <Cart />
-                </PublicRoute>
-              }
-            />
+            <Route path='cart' element={<Cart />} />
             <Route path='support' element={<SupportCenter />} />
             <Route
               path='selling-guide'
@@ -183,14 +176,7 @@ createRoot(document.getElementById('root')!).render(
                 </SellerRoute>
               }
             />
-            <Route
-              path='favorites'
-              element={
-                <SellerRoute>
-                  <Favorites />
-                </SellerRoute>
-              }
-            />
+            <Route path='favorites' element={<Favorites />} />
             <Route
               path='add-wallet'
               element={

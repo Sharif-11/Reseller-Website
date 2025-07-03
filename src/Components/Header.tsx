@@ -4,6 +4,7 @@ import { logout } from '../Api/auth.api'
 import logo from '../assets/shopbd_logo.png'
 import { useAuth } from '../Hooks/useAuth'
 import { loadingText } from '../utils/utils.variables'
+
 const Header = ({
   isSidebarOpen,
   setIsSidebarOpen,
@@ -17,7 +18,9 @@ const Header = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const { user, setUser } = useAuth()
 
-  // Sample balance data - you should replace this with actual data from your app
+  // Sample cart and favorite counts - replace with actual data from your state/context
+  const [cartCount, setCartCount] = useState(5)
+  const [favoriteCount, setFavoriteCount] = useState(3)
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -37,12 +40,70 @@ const Header = ({
     }
     setLoading(false)
   }
+
   useEffect(() => {
     isDropdownOpen && setIsSidebarOpen(false)
   }, [isDropdownOpen])
+
   useEffect(() => {
     isSidebarOpen && setIsDropdownOpen(false)
   }, [isSidebarOpen])
+
+  // Render cart icon component
+  const CartIcon = () => (
+    <NavLink
+      to='/cart'
+      className='relative p-1 md:p-2 text-white hover:bg-indigo-600 rounded-full transition'
+    >
+      <svg
+        xmlns='http://www.w3.org/2000/svg'
+        className='h-6 w-6'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
+      >
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={2}
+          d='M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'
+        />
+      </svg>
+      {cartCount > 0 && (
+        <span className='absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center'>
+          {cartCount > 9 ? '9+' : cartCount}
+        </span>
+      )}
+    </NavLink>
+  )
+
+  // Render favorite icon component
+  const FavoriteIcon = () => (
+    <NavLink
+      to='/favorites'
+      className='relative p-1 md:p-2 text-white hover:bg-indigo-600 rounded-full transition'
+    >
+      <svg
+        xmlns='http://www.w3.org/2000/svg'
+        className='h-6 w-6'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
+      >
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={2}
+          d='M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'
+        />
+      </svg>
+      {favoriteCount > 0 && (
+        <span className='absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center'>
+          {favoriteCount > 9 ? '9+' : favoriteCount}
+        </span>
+      )}
+    </NavLink>
+  )
 
   return (
     <header
@@ -56,7 +117,7 @@ const Header = ({
             {user && (
               <button
                 onClick={() => setIsSidebarOpen(prev => !prev)}
-                className='md:hidden p-1  rounded-md hover:bg-indigo-600 transition'
+                className='md:hidden p-1 rounded-md hover:bg-indigo-600 transition'
                 aria-label='Toggle sidebar'
               >
                 <svg
@@ -106,12 +167,7 @@ const Header = ({
                 >
                   প্রোডাক্টস
                 </a>
-                <a
-                  href='/cart'
-                  className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
-                >
-                  Cart
-                </a>
+
                 <a
                   href='/login#login'
                   className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
@@ -124,19 +180,31 @@ const Header = ({
                 >
                   রেজিস্ট্রেশন
                 </a>
+
+                {/* For logged out users in desktop - show cart and favorite at rightmost */}
+                <div className='flex items-center space-x-2 ml-4'>
+                  <FavoriteIcon />
+                  <CartIcon />
+                </div>
               </>
             ) : (
               <>
-                {/* Balance Display */}
-                {user?.role === 'Seller' && (
-                  <div className='flex items-center space-x-4 ml-4'>
+                {/* For logged in users in desktop - show all three items */}
+                <div className='flex items-center space-x-4'>
+                  {/* Balance Display */}
+                  {user?.role === 'Seller' && (
                     <div className='text-white bg-indigo-600 px-3 py-1 rounded-md'>
                       <span className='font-medium'>ব্যালেন্স: </span>
                       <span>৳{Number(user?.balance).toFixed(2)}</span>
                     </div>
-                    <div className='text-indigo-100 bg-indigo-800 px-3 py-1 rounded-md'></div>
+                  )}
+
+                  {/* Favorite and Cart Icons */}
+                  <div className='flex items-center space-x-2'>
+                    <FavoriteIcon />
+                    <CartIcon />
                   </div>
-                )}
+                </div>
 
                 {/* User Dropdown */}
                 <div className='relative ml-4'>
@@ -209,8 +277,24 @@ const Header = ({
             )}
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button and Icons */}
           <div className='md:hidden flex items-center'>
+            {/* For logged in users in mobile - show balance instead of cart/favorites */}
+            {user ? (
+              user?.role === 'Seller' && (
+                <div className='text-white bg-indigo-600 px-2 py-1 rounded-md text-sm mr-2'>
+                  {/* <span className='font-medium'>ব্যালেন্স: </span> */}
+                  <span>৳{Number(user?.balance).toFixed(2)}</span>
+                </div>
+              )
+            ) : (
+              // For logged out users in mobile - show cart and favorite
+              <div className='flex items-center space-x-2 mr-2'>
+                <FavoriteIcon />
+                <CartIcon />
+              </div>
+            )}
+
             {!user && (
               <button
                 onClick={toggleMenu}
@@ -331,13 +415,6 @@ const Header = ({
               onClick={toggleMenu}
             >
               প্রোডাক্টস
-            </NavLink>
-            <NavLink
-              to='/cart'
-              className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
-              onClick={toggleMenu}
-            >
-              Cart
             </NavLink>
 
             <NavLink
