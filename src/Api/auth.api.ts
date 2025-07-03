@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axiosInstance from '../Axios/axiosInstance'
+import { apiClient } from './ApiClient'
 export interface RegisterInfo {
   phoneNo: string
   name: string
@@ -330,3 +331,16 @@ export const verifyLogin = async () => {
     }
   }
 }
+
+class AuthApi {
+  public async createCustomer({
+    customerPhoneNo,
+    sellerCode,
+  }: {
+    customerPhoneNo: string
+    sellerCode: string
+  }) {
+    return apiClient.post('auth/customer', { customerPhoneNo, sellerCode })
+  }
+}
+export const authApi = new AuthApi()

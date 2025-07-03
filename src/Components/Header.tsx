@@ -107,6 +107,12 @@ const Header = ({
                   প্রোডাক্টস
                 </a>
                 <a
+                  href='/cart'
+                  className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
+                >
+                  Cart
+                </a>
+                <a
                   href='/login#login'
                   className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
                 >
@@ -325,6 +331,13 @@ const Header = ({
               onClick={toggleMenu}
             >
               প্রোডাক্টস
+            </NavLink>
+            <NavLink
+              to='/cart'
+              className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
+              onClick={toggleMenu}
+            >
+              Cart
             </NavLink>
 
             <NavLink

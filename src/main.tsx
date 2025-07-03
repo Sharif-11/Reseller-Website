@@ -160,9 +160,9 @@ createRoot(document.getElementById('root')!).render(
             <Route
               path='cart'
               element={
-                <SellerRoute>
+                <PublicRoute>
                   <Cart />
-                </SellerRoute>
+                </PublicRoute>
               }
             />
             <Route path='support' element={<SupportCenter />} />
