@@ -32,6 +32,7 @@ import './index.css'
 import * as Sentry from '@sentry/react'
 import AddWallet from './Components/AddWallet.tsx'
 import CustomerCheckout from './Components/CustomerCheckout.tsx'
+import CustomerOrders from './Components/CustomerOrders.tsx'
 import CustomerRegister from './Components/CustomerRegister.tsx'
 import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
@@ -84,6 +85,15 @@ const SellerRoute = ({ children }: { children: JSX.Element }) => {
   }
 
   return children
+}
+const CommonRoute = ({ customer, seller }: { customer: JSX.Element; seller: JSX.Element }) => {
+  const { user } = useAuth()
+
+  if (user) {
+    return seller
+  }
+
+  return customer
 }
 
 createRoot(document.getElementById('root')!).render(
@@ -289,11 +299,7 @@ createRoot(document.getElementById('root')!).render(
               />
               <Route
                 path='orders'
-                element={
-                  <SellerRoute>
-                    <Orders />
-                  </SellerRoute>
-                }
+                element={<CommonRoute customer={<CustomerOrders />} seller={<Orders />} />}
               />
               <Route
                 path='change-password'

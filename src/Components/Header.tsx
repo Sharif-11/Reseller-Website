@@ -104,6 +104,34 @@ const Header = ({
       )}
     </NavLink>
   )
+  // Render order icon component
+  const OrderIcon = () => (
+    <NavLink
+      to='/orders'
+      className='relative p-1 md:p-2 text-white hover:bg-indigo-600 rounded-full transition'
+    >
+      <svg
+        xmlns='http://www.w3.org/2000/svg'
+        className='h-6 w-6'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
+      >
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={2}
+          d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+        />
+      </svg>
+    </NavLink>
+  )
+  // create an Order icon component
+  // {orderCount > 0 && (
+  //     <span className='absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center'>
+  //       {orderCount > 9 ? '9+' : orderCount}
+  //     </span>
+  //   )}
 
   return (
     <header
@@ -166,6 +194,12 @@ const Header = ({
                   className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
                 >
                   প্রোডাক্টস
+                </a>
+                <a
+                  href='/orders#orders'
+                  className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
+                >
+                  অর্ডারসমূহ
                 </a>
 
                 <a
@@ -415,6 +449,13 @@ const Header = ({
               onClick={toggleMenu}
             >
               প্রোডাক্টস
+            </NavLink>
+            <NavLink
+              to='/orders#orders'
+              className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
+              onClick={toggleMenu}
+            >
+              অর্ডারসমূহ
             </NavLink>
 
             <NavLink

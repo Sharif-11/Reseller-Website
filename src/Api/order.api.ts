@@ -29,6 +29,29 @@ class OrderApi {
       },
     })
   }
+  public async getCustomerOrders({
+    phoneNo,
+    page = 1,
+    limit = 10,
+    search,
+    orderStatus,
+  }: {
+    phoneNo: string
+    page?: number
+    limit?: number
+    search?: string
+    orderStatus?: string | string[]
+  }) {
+    return apiClient.get('orders/customer', {
+      params: {
+        page,
+        limit,
+        search,
+        orderStatus,
+        phoneNo,
+      },
+    })
+  }
 
   public async orderPaymentBySeller({
     orderId,
@@ -57,11 +80,50 @@ class OrderApi {
       transactionId,
     })
   }
+  public async orderPaymentByCustomer({
+    orderId,
+    customerWalletPhoneNo,
+    systemWalletPhoneNo,
+    amount,
+    transactionId,
+    customerWalletName,
+  }: {
+    orderId: number
+    customerWalletPhoneNo: string
+    systemWalletPhoneNo: string
+    amount: number
+    transactionId: string
+    customerWalletName: string
+  }) {
+    return apiClient.post('orders/customer/payment', {
+      orderId,
+      customerWalletPhoneNo,
+      systemWalletPhoneNo,
+      amount,
+      transactionId,
+      customerWalletName,
+    })
+  }
 
   public async cancelOrderBySeller({ orderId, reason }: { orderId: number; reason: string }) {
     return apiClient.post('orders/seller/cancel', {
       orderId,
       reason,
+    })
+  }
+  public async cancelOrderByCustomer({
+    orderId,
+    reason,
+    phoneNo,
+  }: {
+    orderId: number
+    reason: string
+    phoneNo: string
+  }) {
+    return apiClient.post('orders/customer/cancel', {
+      orderId,
+      reason,
+      phoneNo,
     })
   }
   public confirmOrderBySeller(orderId: number) {
