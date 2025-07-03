@@ -1,17 +1,8 @@
 import { useEffect, useState } from 'react'
-import {
-  FaComment,
-  FaEye,
-  FaMapMarkerAlt,
-  FaMoneyBillWave,
-  FaSearch,
-  FaStore,
-  FaUser,
-} from 'react-icons/fa'
+import { FaComment, FaEye, FaMapMarkerAlt, FaMoneyBillWave, FaStore, FaUser } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import { orderApi } from '../Api/order.api'
 import { walletApi } from '../Api/wallet.api'
-import { useAuth } from '../Hooks/useAuth'
 import { formatDate } from '../utils/date.utils'
 
 interface Order {
@@ -101,18 +92,17 @@ interface PaginationState {
 }
 
 const CustomerOrders = () => {
-  const { user } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<{
     type: 'cancel' | 'payment' | null
     id: number | null
   }>({ type: null, id: null })
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [showPhoneInput, setShowPhoneInput] = useState(true)
   const [systemWallets, setSystemWallets] = useState<SystemWallet[]>([])
-  const [walletLoading, setWalletLoading] = useState(false)
+  const [, setWalletLoading] = useState(false)
 
   const [pagination, setPagination] = useState<PaginationState>({
     currentPage: 1,
@@ -129,7 +119,7 @@ const CustomerOrders = () => {
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'BALANCE' | 'WALLET'>('BALANCE')
+  const [, setPaymentMethod] = useState<'BALANCE' | 'WALLET'>('BALANCE')
   const [customerWalletPhoneNo, setCustomerWalletPhoneNo] = useState('')
   const [transactionId, setTransactionId] = useState('')
   const [cancelReason, setCancelReason] = useState('')
@@ -137,6 +127,7 @@ const CustomerOrders = () => {
 
   const fetchOrders = async () => {
     if (!phoneNumber) return
+    setError('')
 
     try {
       setLoading(true)
@@ -171,6 +162,7 @@ const CustomerOrders = () => {
         setShowPhoneInput(false)
       } else {
         toast.error(response.message || 'অর্ডার লোড করতে সমস্যা হয়েছে')
+        setError(response.message || 'অর্ডার লোড করতে সমস্যা হয়েছে')
       }
     } catch (error) {
       toast.error('একটি ত্রুটি ঘটেছে')
@@ -198,10 +190,8 @@ const CustomerOrders = () => {
   }
 
   useEffect(() => {
-    if (phoneNumber) {
-      fetchOrders()
-    }
-  }, [activeTab, pagination.currentPage, pagination.pageSize, searchQuery, phoneNumber])
+    fetchOrders()
+  }, [activeTab, pagination.currentPage, pagination.pageSize, searchQuery])
 
   useEffect(() => {
     if (showPaymentModal) {
@@ -420,6 +410,7 @@ const CustomerOrders = () => {
             >
               অর্ডার খুঁজুন
             </button>
+            {error && <p className='text-red-500 text-sm mt-2'>{error}</p>}
           </form>
         </div>
       )}
@@ -427,20 +418,6 @@ const CustomerOrders = () => {
       {!showPhoneInput && (
         <>
           {/* Search Section */}
-          <div className='mb-4 sm:mb-6'>
-            <div className='relative'>
-              <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                <FaSearch className='text-gray-400 h-4 w-4' />
-              </div>
-              <input
-                type='text'
-                placeholder='অর্ডার আইডি বা দোকানের নাম দিয়ে খুঁজুন...'
-                className='block w-full pl-10 pr-3 py-3 sm:py-2 border border-gray-300 rounded-lg sm:rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-xs md:text-sm'
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
 
           {/* Tabs Section */}
           <div className='mb-4 sm:mb-6'>
@@ -916,21 +893,31 @@ const CustomerOrders = () => {
 
       {/* Order Detail Modal */}
       {showDetailModal && selectedOrder && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center pt-24 p-4 z-50 overflow-y-auto'>
-          <div className='bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto'>
-            <div className='p-4 border-b sticky top-0 bg-white z-10'>
-              <div className='flex justify-between items-center'>
-                <h2 className='text-xl font-bold'>
-                  অর্ডার #{selectedOrder.orderId}
-                  <span className='text-sm text-red-500 ml-2 text-xs'>
-                    {selectedOrder.cancelled && 'এই অর্ডারটি বাতিল হয়েছে'}
-                  </span>
-                </h2>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center p-2 sm:p-4 pt-[100px] md:p-8 z-50 overflow-y-auto'>
+          <div className='bg-white rounded-lg shadow-lg w-full max-w-full sm:max-w-2xl md:max-w-4xl max-h-[90vh] md:max-h-[95vh] overflow-y-auto'>
+            {/* Header - Sticky */}
+            <div className='p-3 sm:p-4 border-b sticky top-0 bg-white z-10'>
+              <div className='flex justify-between items-start gap-2'>
+                <div>
+                  <h2 className='text-lg sm:text-xl font-bold'>
+                    অর্ডার #{selectedOrder.orderId}
+                    {selectedOrder.cancelled && (
+                      <span className='text-red-500 ml-1 sm:ml-2 text-xs block sm:inline-block mt-1 sm:mt-0'>
+                        এই অর্ডারটি বাতিল হয়েছে
+                      </span>
+                    )}
+                  </h2>
+                </div>
                 <button
                   onClick={() => setShowDetailModal(false)}
-                  className='text-gray-500 hover:text-gray-700'
+                  className='text-gray-500 hover:text-gray-700 mt-1'
                 >
-                  <svg className='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <svg
+                    className='h-5 w-5 sm:h-6 sm:w-6'
+                    fill='none'
+                    viewBox='0 0 24 24'
+                    stroke='currentColor'
+                  >
                     <path
                       strokeLinecap='round'
                       strokeLinejoin='round'
@@ -940,56 +927,61 @@ const CustomerOrders = () => {
                   </svg>
                 </button>
               </div>
-              <div className='mt-2 flex items-center gap-2'>
+              <div className='mt-2 flex items-center gap-2 flex-wrap'>
                 {getStatusBadge(selectedOrder.orderStatus)}
-                <span className='text-sm text-gray-500'>{formatDate(selectedOrder.createdAt)}</span>
+                <span className='text-xs sm:text-sm text-gray-500'>
+                  {formatDate(selectedOrder.createdAt)}
+                </span>
               </div>
             </div>
 
-            <div className='p-4 space-y-4'>
+            {/* Content */}
+            <div className='p-3 sm:p-4 space-y-3 sm:space-y-4'>
               {/* Customer and Shop Info */}
-              <div className='bg-gray-50 p-4 rounded-lg space-y-2'>
+              <div className='bg-gray-50 p-3 sm:p-4 rounded-lg space-y-2'>
                 <div className='flex items-center gap-2'>
-                  <FaUser className='text-gray-600' />
-                  <p className='font-medium'>
+                  <FaUser className='text-gray-600 text-sm sm:text-base' />
+                  <p className='font-medium text-sm sm:text-base'>
                     {selectedOrder.customerName} ({selectedOrder.customerPhoneNo})
                   </p>
                 </div>
 
-                <p className='text-gray-600 ml-6'>
+                <p className='text-gray-600 text-xs sm:text-sm ml-6'>
                   {selectedOrder.customerUpazilla}, {selectedOrder.customerZilla}
                 </p>
 
                 <div className='flex items-start gap-2 ml-6'>
-                  <FaMapMarkerAlt className='text-gray-400 mt-1 flex-shrink-0' />
-                  <p>{selectedOrder.customerAddress}</p>
+                  <FaMapMarkerAlt className='text-gray-400 mt-0.5 sm:mt-1 flex-shrink-0 text-xs sm:text-sm' />
+                  <p className='text-xs sm:text-sm'>{selectedOrder.customerAddress}</p>
                 </div>
 
                 {selectedOrder.customerComments && (
                   <div className='flex items-start gap-2 ml-6'>
-                    <FaComment className='text-gray-400 mt-1 flex-shrink-0' />
-                    <p className='text-gray-600'>{selectedOrder.customerComments}</p>
+                    <FaComment className='text-gray-400 mt-0.5 sm:mt-1 flex-shrink-0 text-xs sm:text-sm' />
+                    <p className='text-gray-600 text-xs sm:text-sm'>
+                      {selectedOrder.customerComments}
+                    </p>
                   </div>
                 )}
 
                 <div className='border-t pt-2'></div>
 
                 <div className='flex items-center gap-2'>
-                  <FaStore className='text-gray-600' />
-                  <p className='font-medium'>
-                    {selectedOrder.sellerShopName}
-                    <span className='text-gray-600 ml-2'>{selectedOrder.shopLocation}</span>
+                  <FaStore className='text-gray-600 text-sm sm:text-base' />
+                  <p className='font-medium text-sm sm:text-base'>
+                    {selectedOrder.shopName}
+                    <span className='text-gray-600 ml-1 sm:ml-2'>{selectedOrder.shopLocation}</span>
                   </p>
                 </div>
               </div>
 
               {/* Tracking URL */}
               {selectedOrder.trackingUrl && (
-                <div className='bg-gray-50 p-4 rounded-lg'>
-                  <h3 className='font-medium text-lg mb-3'>ট্র্যাকিং লিঙ্ক</h3>
+                <div className='bg-gray-50 p-3 sm:p-4 rounded-lg'>
+                  <h3 className='font-medium text-base sm:text-lg mb-2 sm:mb-3'>ট্র্যাকিং লিঙ্ক</h3>
                   <div className='flex flex-col sm:flex-row gap-2 items-start sm:items-center'>
-                    <div className='flex-1 bg-white p-2 rounded border border-gray-200 overflow-hidden'>
-                      <p className='text-sm text-blue-600 truncate'>
+                    <div className='flex-1 bg-white p-1 sm:p-2 rounded border border-gray-200 overflow-hidden'>
+                      <p className='text-xs sm:text-sm text-blue-600 truncate'>
                         <a
                           href={selectedOrder.trackingUrl}
                           target='_blank'
@@ -1005,11 +997,11 @@ const CustomerOrders = () => {
                         navigator.clipboard.writeText(selectedOrder.trackingUrl || '')
                         toast.success('লিঙ্ক কপি করা হয়েছে')
                       }}
-                      className='px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 text-sm flex items-center gap-1 whitespace-nowrap'
+                      className='px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 text-xs sm:text-sm flex items-center gap-1 whitespace-nowrap'
                     >
                       <svg
                         xmlns='http://www.w3.org/2000/svg'
-                        className='h-4 w-4'
+                        className='h-3 w-3 sm:h-4 sm:w-4'
                         fill='none'
                         viewBox='0 0 24 24'
                         stroke='currentColor'
@@ -1028,13 +1020,16 @@ const CustomerOrders = () => {
               )}
 
               {/* Product Information */}
-              <div className='bg-gray-50 p-4 rounded-lg'>
-                <h3 className='font-medium text-lg mb-3'>পণ্য তালিকা</h3>
-                <div className='space-y-4'>
+              <div className='bg-gray-50 p-3 sm:p-4 rounded-lg'>
+                <h3 className='font-medium text-base sm:text-lg mb-2 sm:mb-3'>পণ্য তালিকা</h3>
+                <div className='space-y-3 sm:space-y-4'>
                   {selectedOrder.OrderProduct.map(product => (
-                    <div key={product.orderProductId} className='border-b pb-4 last:border-0'>
-                      <div className='flex gap-4'>
-                        <div className='w-20 h-20 bg-gray-200 rounded-md overflow-hidden'>
+                    <div
+                      key={product.orderProductId}
+                      className='border-b pb-3 sm:pb-4 last:border-0'
+                    >
+                      <div className='flex gap-3 sm:gap-4'>
+                        <div className='w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-md overflow-hidden'>
                           <img
                             src={product.productImage}
                             alt={product.productName}
@@ -1042,15 +1037,17 @@ const CustomerOrders = () => {
                           />
                         </div>
                         <div className='flex-1'>
-                          <h4 className='font-medium'>{product.productName}</h4>
-                          <p className='text-sm text-gray-600'>
+                          <h4 className='font-medium text-sm sm:text-base'>
+                            {product.productName}
+                          </h4>
+                          <p className='text-xs sm:text-sm text-gray-600'>
                             {product.productSellingPrice}৳ × {product.productQuantity} টি
                           </p>
                           {product.productVariant &&
                             Object.entries(product.productVariant).length > 0 && (
                               <div className='mt-1'>
                                 {Object.entries(product.productVariant).map(([key, value]) => (
-                                  <p key={key} className='text-xs text-gray-500'>
+                                  <p key={key} className='text-2xs sm:text-xs text-gray-500'>
                                     {key}: {value}
                                   </p>
                                 ))}
@@ -1058,7 +1055,7 @@ const CustomerOrders = () => {
                             )}
                         </div>
                         <div className='text-right'>
-                          <p className='font-medium'>
+                          <p className='font-medium text-sm sm:text-base'>
                             {product.productSellingPrice * product.productQuantity}৳
                           </p>
                         </div>
@@ -1069,13 +1066,13 @@ const CustomerOrders = () => {
               </div>
 
               {/* Payment and Summary */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4'>
                 {/* Payment Information */}
                 {selectedOrder.Payment && (
-                  <div className='bg-gray-50 p-4 rounded-lg'>
-                    <h3 className='font-medium text-lg mb-3'>পেমেন্ট তথ্য</h3>
-                    <div className='space-y-3'>
-                      <div className='flex justify-between'>
+                  <div className='bg-gray-50 p-3 sm:p-4 rounded-lg'>
+                    <h3 className='font-medium text-base sm:text-lg mb-2 sm:mb-3'>পেমেন্ট তথ্য</h3>
+                    <div className='space-y-2 sm:space-y-3'>
+                      <div className='flex justify-between text-xs sm:text-sm'>
                         <p className='text-gray-600'>পেমেন্ট পদ্ধতি</p>
                         <p className='font-medium'>
                           {selectedOrder.paymentType === 'BALANCE'
@@ -1086,7 +1083,7 @@ const CustomerOrders = () => {
                         </p>
                       </div>
 
-                      <div className='flex justify-between'>
+                      <div className='flex justify-between text-xs sm:text-sm'>
                         <p className='text-gray-600'>স্ট্যাটাস</p>
                         <p
                           className={`font-medium ${
@@ -1111,21 +1108,21 @@ const CustomerOrders = () => {
 
                       {selectedOrder.paymentType === 'WALLET' && (
                         <>
-                          <div className='flex justify-between'>
+                          <div className='flex justify-between text-xs sm:text-sm'>
                             <p className='text-gray-600'>সিস্টেম ওয়ালেট</p>
                             <p className='font-medium'>
                               {selectedOrder.Payment.systemWalletName || 'N/A'} (
                               {selectedOrder.Payment.systemWalletPhoneNo || 'N/A'})
                             </p>
                           </div>
-                          <div className='flex justify-between'>
+                          <div className='flex justify-between text-xs sm:text-sm'>
                             <p className='text-gray-600'>আপনার ওয়ালেট</p>
                             <p className='font-medium'>
                               {selectedOrder.Payment.userWalletName || 'N/A'} (
                               {selectedOrder.Payment.userWalletPhoneNo || 'N/A'})
                             </p>
                           </div>
-                          <div className='flex justify-between'>
+                          <div className='flex justify-between text-xs sm:text-sm'>
                             <p className='text-gray-600'>ট্রানজেকশন আইডি</p>
                             <p className='font-medium'>
                               {selectedOrder.Payment.transactionId || 'N/A'}
@@ -1138,18 +1135,18 @@ const CustomerOrders = () => {
                 )}
 
                 {/* Summary */}
-                <div className='bg-gray-50 p-4 rounded-lg'>
-                  <div className='space-y-2'>
-                    <div className='flex justify-between'>
+                <div className='bg-gray-50 p-3 sm:p-4 rounded-lg'>
+                  <div className='space-y-1 sm:space-y-2'>
+                    <div className='flex justify-between text-xs sm:text-sm'>
                       <p className='text-gray-600'>পণ্যের মূল্য</p>
                       <p className='font-medium'>{selectedOrder.totalProductSellingPrice}৳</p>
                     </div>
-                    <div className='flex justify-between'>
+                    <div className='flex justify-between text-xs sm:text-sm'>
                       <p className='text-gray-600'>ডেলিভারি চার্জ</p>
                       <p className='font-medium'>{selectedOrder.deliveryCharge}৳</p>
                     </div>
                     {selectedOrder.cashOnAmount && (
-                      <div className='border-t pt-2 mt-2 flex justify-between font-bold'>
+                      <div className='border-t pt-1 sm:pt-2 mt-1 sm:mt-2 flex justify-between font-bold text-xs sm:text-sm'>
                         <p>ক্যাশ অন ডেলিভারি অ্যামাউন্ট</p>
                         <p>{selectedOrder.cashOnAmount}৳</p>
                       </div>
@@ -1159,10 +1156,11 @@ const CustomerOrders = () => {
               </div>
             </div>
 
-            <div className='p-4 border-t flex justify-end'>
+            {/* Footer */}
+            <div className='p-3 sm:p-4 border-t flex justify-end'>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+                className='px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs sm:text-sm'
               >
                 বন্ধ করুন
               </button>

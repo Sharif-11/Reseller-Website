@@ -32,7 +32,6 @@ const CustomerCheckout = () => {
   const [subtotal] = useState(
     shopCart.items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
   )
-  const [totalAmount] = useState<number>(0)
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0)
 
   // Add this useEffect to watch for zilla changes and update delivery charge
