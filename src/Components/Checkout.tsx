@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import * as Yup from 'yup'
 import districts from '../../public/zillasInfo.json'
 import { orderApi } from '../Api/order.api'
+import { useCartFavorite } from '../Context/cartContext'
 import { OrderData } from '../types/order.types'
 import { CART_ITEMS_KEY, DRAFT_KEY } from '../utils/utils.variables'
 import { ShopCart } from './Cart'
@@ -26,6 +27,7 @@ const Checkout = () => {
   const [upazillas, setUpazillas] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formErrors, setFormErrors] = useState<string[]>([])
+  const { loadCartCount } = useCartFavorite()
 
   // Cart items and price calculation
   const shopCart = location.state?.shopCart as ShopCart
@@ -107,6 +109,8 @@ const Checkout = () => {
             (item: CartItem) => item.shopId !== shopCart.shopId
           )
           localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCartItems))
+          loadCartCount() // Update cart count in context
+
           navigate('/orders', { state: { orderSuccess: true } })
         } else {
           setFormErrors([message!])
