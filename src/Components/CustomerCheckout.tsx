@@ -7,7 +7,7 @@ import districts from '../../public/zillasInfo.json'
 import { orderApi } from '../Api/order.api'
 import { walletApi } from '../Api/wallet.api'
 import { useCartFavorite } from '../Context/cartContext'
-import { OrderData } from '../types/order.types'
+import { CustomerOrderData } from '../types/order.types'
 import { CART_ITEMS_KEY, DRAFT_KEY } from '../utils/utils.variables'
 import { ShopCart } from './Cart'
 import { CartItem } from './ProductDetail'
@@ -36,7 +36,11 @@ const CustomerCheckout = () => {
   const { loadCartCount } = useCartFavorite()
   const shopCart = location.state?.shopCart as ShopCart
   const totalItems = shopCart.items.reduce((sum, item) => sum + item.quantity, 0)
-  const subtotal = shopCart.items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
+  const [subtotal, setSubtotal] = useState(
+    shopCart.items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
+  )
+  const [deliveryCharge, setDeliveryCharge] = useState<number | null>(null)
+  const [totalAmount, setTotalAmount] = useState<number>(0)
 
   const validationSchema = Yup.object({
     customerPhone: Yup.string()
@@ -71,7 +75,7 @@ const CustomerCheckout = () => {
     onSubmit: async values => {
       setIsSubmitting(true)
       try {
-        const orderData: OrderData = {
+        const orderData: CustomerOrderData = {
           shopId: shopCart.shopId,
           customerName: values.customerName,
           customerPhoneNo: values.customerPhone,
@@ -79,9 +83,10 @@ const CustomerCheckout = () => {
           customerUpazilla: values.upazilla,
           deliveryAddress: values.deliveryAddress,
           comments: values.comments,
-          paymentMethod: values.systemWallet,
-          paymentPhoneNo: values.customerWallet,
-          paymentTransactionId: values.transactionId,
+          systemWalletPhoneNo: values.systemWallet,
+          systemWalletName:
+            systemWallets.find(wallet => wallet.walletId === values.systemWallet)?.walletName || '',
+          customerWalletPhoneNo: values.customerWallet,
           products: shopCart.items.map(item => ({
             id: item.productId,
             imageUrl: item.imageUrl,
@@ -90,9 +95,15 @@ const CustomerCheckout = () => {
             sellingPrice: item.sellingPrice,
             selectedVariants: item.selectedOptions,
           })),
+          transactionId: values.transactionId,
+          amount: (formik.values.zilla === shopCart.shopLocation
+            ? shopCart.deliveryChargeInside
+            : shopCart.deliveryChargeOutside)!,
         }
 
-        const { success, message } = await orderApi.createCustomerOrder(orderData as OrderData)
+        const { success, message } = await orderApi.createCustomerOrder(
+          orderData as CustomerOrderData
+        )
         if (success) {
           clearDraft()
           const cartItems: CartItem[] = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
@@ -113,11 +124,21 @@ const CustomerCheckout = () => {
       }
     },
   })
-  const deliveryCharge =
-    formik.values.zilla === shopCart.shopLocation
-      ? shopCart.deliveryChargeInside
-      : shopCart.deliveryChargeOutside
-  const totalAmount = subtotal + (deliveryCharge || 0)
+  useEffect(() => {
+    const deliveryCharge =
+      formik.values.zilla === shopCart.shopLocation
+        ? shopCart.deliveryChargeInside
+        : shopCart.deliveryChargeOutside
+    const totalAmount = subtotal + (deliveryCharge || 0)
+    setDeliveryCharge(deliveryCharge || null)
+    setTotalAmount(totalAmount)
+  }, [
+    formik.values.zilla,
+    shopCart.shopLocation,
+    shopCart.deliveryChargeInside,
+    shopCart.deliveryChargeOutside,
+    subtotal,
+  ])
 
   // Cart items and price calculation
 
@@ -325,7 +346,7 @@ const CustomerCheckout = () => {
               <span className='text-gray-600'>পণ্যের মূল্য:</span>
               <span className='text-gray-900'>৳{subtotal.toLocaleString('bn-BD')}</span>
             </div>
-            {deliveryCharge && (
+            {!!deliveryCharge && (
               <div className='flex justify-between'>
                 <span className='text-gray-600'>ডেলিভারি চার্জ:</span>
                 <span className='text-gray-900'>৳{deliveryCharge.toLocaleString('bn-BD')}</span>
@@ -501,7 +522,7 @@ const CustomerCheckout = () => {
                     >
                       <option value=''>পেমেন্ট সিস্টেম নির্বাচন করুন</option>
                       {systemWallets.map(wallet => (
-                        <option key={wallet.id} value={wallet.walletPhoneNo}>
+                        <option key={wallet.walletId} value={wallet.walletId}>
                           {wallet.walletName} ( {wallet.walletPhoneNo} )
                         </option>
                       ))}

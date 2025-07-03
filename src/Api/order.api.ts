@@ -1,9 +1,12 @@
-import { OrderData } from '../types/order.types'
+import { CustomerOrderData, OrderData } from '../types/order.types'
 import { apiClient } from './ApiClient'
 
 class OrderApi {
   public async createSellerOrder(data: OrderData) {
     return apiClient.post('orders/seller', data)
+  }
+  public async createCustomerOrder(data: CustomerOrderData) {
+    return apiClient.post('orders/customer', data)
   }
 
   public async getSellerOrders({

@@ -18,3 +18,28 @@ export interface OrderData {
   comments?: string
   products: OrderProduct[]
 }
+export interface OrderProductData {
+  id: number
+  imageUrl: string
+  imageId: number
+  quantity: number
+  sellingPrice: number
+  selectedVariants?: {
+    [key: string]: string | number
+  }
+}
+export interface CustomerOrderData {
+  shopId: number
+  customerName: string
+  customerPhoneNo: string
+  customerZilla: string
+  customerUpazilla: string
+  deliveryAddress: string
+  comments?: string
+  systemWalletPhoneNo: string
+  systemWalletName: string
+  customerWalletPhoneNo: string
+  transactionId: string
+  amount: number
+  products: OrderProductData[]
+}
