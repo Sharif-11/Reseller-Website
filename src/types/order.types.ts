@@ -35,11 +35,6 @@ export interface CustomerOrderData {
   customerZilla: string
   customerUpazilla: string
   deliveryAddress: string
-  comments?: string
-  systemWalletPhoneNo: string
-  systemWalletName: string
-  customerWalletPhoneNo: string
-  transactionId: string
-  amount: number
   products: OrderProductData[]
+  comments?: string
 }

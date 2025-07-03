@@ -51,7 +51,7 @@ const PublicRoute = ({ children }: { children: JSX.Element }) => {
   const { user } = useAuth()
   const location = useLocation()
   let pathname = location?.state?.from?.pathname
-  pathname = pathname === '/checkout' ? '/cart' : pathname
+  pathname = pathname === '/checkout' || pathname === '/customer-checkout' ? '/cart' : pathname
 
   if (user) {
     return <Navigate to={pathname || '/home'} replace />
@@ -230,7 +230,14 @@ createRoot(document.getElementById('root')!).render(
                   </SellerRoute>
                 }
               />
-              <Route path='customer-checkout' element={<CustomerCheckout />} />
+              <Route
+                path='customer-checkout'
+                element={
+                  <PublicRoute>
+                    <CustomerCheckout />
+                  </PublicRoute>
+                }
+              />
               <Route
                 path='register'
                 element={
