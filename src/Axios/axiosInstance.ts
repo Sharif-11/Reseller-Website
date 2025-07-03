@@ -6,7 +6,9 @@ const axiosInstance = axios.create({
   timeout: 10000, // Optional: Timeout in milliseconds
   headers: {
     'Content-Type': 'application/json', // Default headers
-    Authorization: `Bearer ${localStorage.getItem('token')}`, // Example: Attach token from localStorage
+    Authorization: `Bearer ${
+      localStorage.getItem('token') || localStorage.getItem('customerToken')
+    }`, // Example: Attach token from localStorage
   },
 })
 
@@ -14,7 +16,8 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   config => {
     // 1. Add Authorization Header if token exists (for JWT in localStorage)
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('token') || localStorage.getItem('customerToken')
+    console.log()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }

@@ -1,9 +1,9 @@
 import { useFormik } from 'formik'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { FiLock, FiPhone, FiUser } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
 import * as Yup from 'yup'
-import { RegisterInfo, checkExistingCustomer, registerCustomer } from '../Api/auth.api'
+import { RegisterInfo, registerCustomer } from '../Api/auth.api'
 import { omitEmptyStringKeys } from '../utils/omitEmptyStrings'
 import CustomerLogin from './CustomerLogin'
 
@@ -19,23 +19,23 @@ const CustomerRegistration = ({ mobileNumber, referralCode }: CustomerRegistrati
   const [customerExists, setCustomerExists] = useState(false)
   const [checkingExistingCustomer, setCheckingExistingCustomer] = useState(true)
 
-  useEffect(() => {
-    const check = async () => {
-      try {
-        const exists = await checkExistingCustomer(mobileNumber)
-        setCustomerExists(exists.data)
-        if (exists.data) {
-          setError('এই মোবাইল নম্বর দিয়ে ইতিমধ্যে রেজিস্ট্রেশন করা হয়েছে। লগইন করুন।')
-        }
-      } catch (error) {
-        setError('গ্রাহক তথ্য চেক করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।')
-      } finally {
-        setCheckingExistingCustomer(false)
-      }
-    }
+  // useEffect(() => {
+  //   const check = async () => {
+  //     try {
+  //       const exists = await checkExistingCustomer(mobileNumber)
+  //       setCustomerExists(exists.data)
+  //       if (exists.data) {
+  //         setError('এই মোবাইল নম্বর দিয়ে ইতিমধ্যে রেজিস্ট্রেশন করা হয়েছে। লগইন করুন।')
+  //       }
+  //     } catch (error) {
+  //       setError('গ্রাহক তথ্য চেক করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।')
+  //     } finally {
+  //       setCheckingExistingCustomer(false)
+  //     }
+  //   }
 
-    check()
-  }, [mobileNumber])
+  //   check()
+  // }, [mobileNumber])
 
   const validationSchema = Yup.object({
     name: Yup.string().max(48, 'নামটি আরও ছোট হতে হবে').required('নাম আবশ্যক'),

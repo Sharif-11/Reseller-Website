@@ -9,6 +9,7 @@ import {
 } from 'react-icons/fi'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCartFavorite } from '../Context/cartContext'
+import { useAuth } from '../Hooks/useAuth'
 import { CartItem } from '../types/cart.types'
 import { CART_ITEMS_KEY } from '../utils/utils.variables'
 
@@ -23,6 +24,7 @@ export type ShopCart = {
 
 const Cart = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [shopCarts, setShopCarts] = useState<ShopCart[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState<number | null>(null)
@@ -133,7 +135,8 @@ const Cart = () => {
     setShowInstructionModal(false)
     const selectedShopCart = shopCarts.find(cart => cart.shopId === selectedShopId)
     if (selectedShopCart) {
-      navigate('/checkout', { state: { shopCart: selectedShopCart } })
+      user && navigate('/checkout', { state: { shopCart: selectedShopCart } })
+      user || navigate('/customer-checkout', { state: { shopCart: selectedShopCart } })
     }
   }
 

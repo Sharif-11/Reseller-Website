@@ -31,6 +31,7 @@ import './index.css'
 
 import * as Sentry from '@sentry/react'
 import AddWallet from './Components/AddWallet.tsx'
+import CustomerCheckout from './Components/CustomerCheckout.tsx'
 import CustomerRegister from './Components/CustomerRegister.tsx'
 import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
@@ -49,9 +50,11 @@ Sentry.init({
 const PublicRoute = ({ children }: { children: JSX.Element }) => {
   const { user } = useAuth()
   const location = useLocation()
+  let pathname = location?.state?.from?.pathname
+  pathname = pathname === '/checkout' ? '/cart' : pathname
 
   if (user) {
-    return <Navigate to={location?.state?.from?.pathname || '/home'} replace />
+    return <Navigate to={pathname || '/home'} replace />
   }
 
   return children
@@ -227,6 +230,7 @@ createRoot(document.getElementById('root')!).render(
                   </SellerRoute>
                 }
               />
+              <Route path='customer-checkout' element={<CustomerCheckout />} />
               <Route
                 path='register'
                 element={

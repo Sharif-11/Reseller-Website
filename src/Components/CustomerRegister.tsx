@@ -15,10 +15,12 @@ const CustomerRegister = () => {
 
   const customerRegistration = async () => {
     try {
-      const { success, message } = await authApi.createCustomer({
+      const { success, message, data } = await authApi.createCustomer({
         customerPhoneNo: mobileNumber,
         sellerCode: referralCode!,
       })
+      const { token } = data
+      localStorage.setItem('customerToken', token)
       setRegistrationStatus({ success, message: message! })
     } catch (error) {
       setRegistrationStatus({ success: false, message: 'কাস্টমার রেজিস্ট্রেশন ব্যর্থ হয়েছে।' })
