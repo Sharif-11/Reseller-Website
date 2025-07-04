@@ -31,6 +31,8 @@ const Checkout = () => {
 
   // Cart items and price calculation
   const shopCart = location?.state?.shopCart as ShopCart
+  const totalDeliveryChargeInside = location?.state?.totalDeliveryChargeInside || 0
+  const totalDeliveryChargeOutside = location?.state?.totalDeliveryChargeOutside || 0
   const totalItems = shopCart?.items.reduce((sum, item) => sum + item.quantity, 0)
   const subtotal = shopCart?.items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
   const totalCommission = shopCart?.items.reduce(
@@ -205,18 +207,20 @@ const Checkout = () => {
           <div className='flex flex-wrap gap-4 text-sm'>
             {shopCart?.deliveryChargeInside && (
               <div className='flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full'>
-                <span className='text-blue-700 font-medium'>এলাকার ভিতরে:</span>
-                <span className='text-blue-800 font-semibold'>
-                  ৳{shopCart?.deliveryChargeInside.toLocaleString('bn-BD')}
+                <span className='text-blue-700 font-medium'>
+                  {shopCart?.shopLocation} এর ভিতরে:{' '}
+                  {totalDeliveryChargeInside.toLocaleString('bn-BD')} ৳
                 </span>
               </div>
             )}
 
             {shopCart?.deliveryChargeOutside && (
               <div className='flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-full'>
-                <span className='text-green-700 font-medium'>এলাকার বাইরে:</span>
+                <span className='text-green-700 font-medium'>
+                  {shopCart?.shopLocation} এর বাইরে:
+                </span>
                 <span className='text-green-800 font-semibold'>
-                  ৳{shopCart?.deliveryChargeOutside.toLocaleString('bn-BD')}
+                  {totalDeliveryChargeOutside.toLocaleString('bn-BD')}৳
                 </span>
               </div>
             )}
@@ -556,18 +560,18 @@ const Checkout = () => {
                   <div className='flex flex-wrap gap-2 mt-2'>
                     {shopCart?.deliveryChargeInside && (
                       <div className='flex items-center gap-1 bg-blue-50/70 px-2.5 py-1 rounded-md'>
-                        <span className='text-blue-700'>ভিতরে:</span>
+                        <span className='text-blue-700'>{shopCart?.shopLocation} এর ভিতরে:</span>
                         <span className='text-blue-800 font-medium'>
-                          ৳{shopCart?.deliveryChargeInside.toLocaleString('bn-BD')}
+                          ৳{totalDeliveryChargeInside.toLocaleString('bn-BD')}
                         </span>
                       </div>
                     )}
 
                     {shopCart?.deliveryChargeOutside && (
                       <div className='flex items-center gap-1 bg-amber-50/70 px-2.5 py-1 rounded-md'>
-                        <span className='text-amber-700'>বাইরে:</span>
+                        <span className='text-amber-700'>{shopCart?.shopLocation} এর বাইরে:</span>
                         <span className='text-amber-800 font-medium'>
-                          ৳{shopCart?.deliveryChargeOutside.toLocaleString('bn-BD')}
+                          ৳{totalDeliveryChargeOutside.toLocaleString('bn-BD')}
                         </span>
                       </div>
                     )}

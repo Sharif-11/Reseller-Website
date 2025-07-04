@@ -19,6 +19,8 @@ export type ShopCart = {
   shopLocation?: string
   deliveryChargeInside?: number
   deliveryChargeOutside?: number
+  totalDeliveryChargeInside?: number
+  totalDeliveryChargeOutside?: number
   items: CartItem[]
 }
 
@@ -31,6 +33,35 @@ const Cart = () => {
   const [showInstructionModal, setShowInstructionModal] = useState(false)
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null)
   const { loadCartCount } = useCartFavorite()
+
+  // Calculate delivery charges for a shop
+  const calculateDeliveryCharges = (shopCart: ShopCart) => {
+    const totalItems = calculateShopTotalItems(shopCart.items)
+    console.log(`Calculating delivery charges for shop ${shopCart.shopId} with ${totalItems} items`)
+    let insideCharge = Number(shopCart.deliveryChargeInside) || 0
+    let outsideCharge = Number(shopCart.deliveryChargeOutside) || 0
+
+    // Add 10 tk for each additional item beyond 3
+    if (totalItems > 3) {
+      const additionalItems = totalItems - 3
+      insideCharge += additionalItems * 10
+      outsideCharge += additionalItems * 10
+    }
+    console.log({
+      insideCharge,
+      outsideCharge,
+      shopId: shopCart.shopId,
+      shopLocation: shopCart.shopLocation,
+      totalItems,
+      deliveryChargeInside: shopCart.deliveryChargeInside,
+      deliveryChargeOutside: shopCart.deliveryChargeOutside,
+    })
+
+    return {
+      totalDeliveryChargeInside: insideCharge,
+      totalDeliveryChargeOutside: outsideCharge,
+    }
+  }
 
   // Load cart items from localStorage and group by shop
   useEffect(() => {
@@ -63,7 +94,16 @@ const Cart = () => {
               })
             })
 
-            setShopCarts(Array.from(shopMap.values()))
+            // Calculate delivery charges for each shop
+            const shopCartsWithDelivery = Array.from(shopMap.values()).map(shopCart => {
+              const deliveryCharges = calculateDeliveryCharges(shopCart)
+              return {
+                ...shopCart,
+                ...deliveryCharges,
+              }
+            })
+
+            setShopCarts(shopCartsWithDelivery)
           } else {
             console.error('Invalid cart format - resetting')
             localStorage.removeItem(CART_ITEMS_KEY)
@@ -90,7 +130,9 @@ const Cart = () => {
       .map(shopCart => {
         if (shopCart.shopId === shopId) {
           const filteredItems = shopCart.items.filter(item => item.cartItemId !== cartItemId)
-          return { ...shopCart, items: filteredItems }
+          const updatedShopCart = { ...shopCart, items: filteredItems }
+          const deliveryCharges = calculateDeliveryCharges(updatedShopCart)
+          return { ...updatedShopCart, ...deliveryCharges }
         }
         return shopCart
       })
@@ -109,7 +151,9 @@ const Cart = () => {
         const updatedItems = shopCart.items.map(item =>
           item.cartItemId === cartItemId ? { ...item, quantity: newQuantity } : item
         )
-        return { ...shopCart, items: updatedItems }
+        const updatedShopCart = { ...shopCart, items: updatedItems }
+        const deliveryCharges = calculateDeliveryCharges(updatedShopCart)
+        return { ...updatedShopCart, ...deliveryCharges }
       }
       return shopCart
     })
@@ -135,7 +179,14 @@ const Cart = () => {
     setShowInstructionModal(false)
     const selectedShopCart = shopCarts.find(cart => cart.shopId === selectedShopId)
     if (selectedShopCart) {
-      user && navigate('/checkout', { state: { shopCart: selectedShopCart } })
+      user &&
+        navigate('/checkout', {
+          state: {
+            shopCart: selectedShopCart,
+            totalDeliveryChargeInside: selectedShopCart.totalDeliveryChargeInside,
+            totalDeliveryChargeOutside: selectedShopCart.totalDeliveryChargeOutside,
+          },
+        })
       user || navigate('/customer-checkout', { state: { shopCart: selectedShopCart } })
     }
   }
@@ -245,8 +296,15 @@ const Cart = () => {
               </div>
               <div className='text-right'>
                 <p className='text-xs text-gray-600'>
-                  ডেলিভারি চার্জ: ৳{shopCart.deliveryChargeInside} (শহরে), ৳
-                  {shopCart.deliveryChargeOutside} (বাইরে)
+                  {shopCart.shopLocation && (
+                    <>
+                      <span>ডেলিভারি চার্জ: </span>
+                      <span>
+                        শহরে ({shopCart.shopLocation}): ৳{shopCart.totalDeliveryChargeInside}
+                      </span>
+                      <span>, বাইরে: ৳{shopCart.totalDeliveryChargeOutside}</span>
+                    </>
+                  )}
                 </p>
               </div>
             </div>
@@ -361,7 +419,7 @@ const Cart = () => {
 
             {/* Shop Cart Summary */}
             <div className='p-4 border-t'>
-              <div className='flex justify-between items-center'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
                 <div>
                   <p className='text-sm text-gray-600'>
                     মোট পণ্য: {calculateShopTotalItems(shopCart.items)} টি
@@ -370,6 +428,21 @@ const Cart = () => {
                     মোট মূল্য: ৳{calculateShopSubtotal(shopCart.items).toLocaleString('bn-BD')}
                   </p>
                 </div>
+                <div className='text-right'>
+                  {shopCart.shopLocation && (
+                    <>
+                      <p className='text-sm text-gray-600'>
+                        ডেলিভারি চার্জ (শহরে - {shopCart.shopLocation}): ৳
+                        {shopCart.totalDeliveryChargeInside}
+                      </p>
+                      <p className='text-sm text-gray-600'>
+                        ডেলিভারি চার্জ (বাইরে): ৳{shopCart.totalDeliveryChargeOutside}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className='flex justify-end'>
                 <button
                   onClick={() => handleOrderClick(shopCart.shopId)}
                   className='px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm'
