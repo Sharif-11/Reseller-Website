@@ -122,6 +122,27 @@ const SellerHomeDashboard = () => {
             </div>
           </div>
         )}
+        {/* Fraud Check Warning */}
+        <div className='bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-r-lg'>
+          <div className='flex items-start'>
+            <div className='flex-shrink-0'>
+              <FaExclamationTriangle className='h-5 w-5 text-yellow-600' />
+            </div>
+            <div className='ml-3 flex-1'>
+              <div className='flex justify-between items-center'>
+                <p className='text-sm text-yellow-700 font-medium'>
+                  প্রতারণা থেকে সতর্ক থাকুন! কোনো পেমেন্টের আগে ক্রেতার তথ্য যাচাই করুন
+                </p>
+                <button
+                  onClick={() => window.open('https://elitemart.com.bd/fraud-check', '_blank')}
+                  className='px-3 py-1 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors'
+                >
+                  ফ্রড চেক করুন
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Quick Links Grid - Updated to show 3 columns on mobile */}
         <div className='grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2 md:gap-4'>
