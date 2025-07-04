@@ -34,12 +34,12 @@ const SellerHomeDashboard = () => {
 
   const quickLinks = [
     {
-      title: 'সমস্ত পণ্য',
+      title: 'সকল প্রোডাক্টস',
       icon: <FaBoxOpen className='text-3xl text-blue-600' />,
       url: '/products',
     },
     {
-      title: 'বিক্রয় নির্দেশিকা',
+      title: 'সেলস গাইডলাইন',
       icon: <FaBook className='text-3xl text-green-600' />,
       url: '/selling-guide',
     },

@@ -192,7 +192,7 @@ const TermsAndConditions = () => {
               ✉️
             </span>
             <span className='text-gray-700'>
-              ইমেইল: <span className='font-medium'>support@resellerbd.com</span>
+              ইমেইল: <span className='font-medium'>support@shopbdresellerjobs.shop</span>
             </span>
           </div>
         </div>

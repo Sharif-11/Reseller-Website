@@ -1,51 +1,92 @@
-import { FaPhoneAlt } from 'react-icons/fa'
+import {
+  FaEnvelope,
+  FaFacebook,
+  FaMapMarkerAlt,
+  FaPhoneAlt,
+  FaTelegram,
+  FaWhatsapp,
+} from 'react-icons/fa'
 
 const Footer = () => {
   return (
-    <footer className='bg-gray-900 text-white pt-12 pb-6'>
-      <div className='container mx-auto px-4'>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8'>
+    <footer className='bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-white'>
+      {/* Main Footer Content */}
+      <div className='container mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:py-16'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12'>
           {/* Company Info */}
-          <div className='mb-6'>
-            <h3 className='text-2xl font-bold mb-4 text-blue-400'>শপ বিডি রিসেলার জবস</h3>
-            <p className='mb-4'>বাংলাদেশের নির্ভরযোগ্য ড্রপশিপিং ও রিসেলিং প্ল্যাটফর্ম</p>
-            {/* <div className="flex space-x-4">
-              <a href="#" className="text-gray-300 hover:text-blue-400 transition">
-                <FaFacebook size={20} />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-blue-400 transition">
-                <FaInstagram size={20} />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-blue-400 transition">
-                <FaLinkedin size={20} />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-blue-400 transition">
-                <FaTwitter size={20} />
-              </a>
-            </div> */}
+          <div className='sm:col-span-2 lg:col-span-1'>
+            <div className='mb-6 text-center sm:text-left'>
+              <h3 className='text-xl sm:text-2xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent'>
+                শপ বিডি রিসেলার জবস
+              </h3>
+              <p className='text-gray-300 text-sm sm:text-base leading-relaxed mb-4 sm:mb-6'>
+                বাংলাদেশের নির্ভরযোগ্য ড্রপশিপিং ও রিসেলিং প্ল্যাটফর্ম। আমরা আপনার ব্যবসার সফলতার
+                জন্য প্রতিশ্রুতিবদ্ধ।
+              </p>
+
+              {/* Social Media Links */}
+              <div className='flex justify-center sm:justify-start space-x-3 sm:space-x-4'>
+                <a
+                  href='#'
+                  className='w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-300 hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:scale-110'
+                >
+                  <FaFacebook size={16} className='sm:text-lg' />
+                </a>
+                <a
+                  href='#'
+                  className='w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-300 hover:bg-blue-500 hover:text-white transition-all duration-300 transform hover:scale-110'
+                >
+                  <FaTelegram size={16} className='sm:text-lg' />
+                </a>
+                <a
+                  href='#'
+                  className='w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-300 hover:bg-green-500 hover:text-white transition-all duration-300 transform hover:scale-110'
+                >
+                  <FaWhatsapp size={16} className='sm:text-lg' />
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* Quick Links */}
-          <div className='mb-6'>
-            <h4 className='text-lg font-semibold mb-4 border-b border-blue-400 pb-2'>দ্রুত লিংক</h4>
-            <ul className='space-y-2'>
+          <div className='text-center sm:text-left'>
+            <h4 className='text-base sm:text-lg font-semibold mb-4 sm:mb-6 relative'>
+              <span className='border-b-2 border-blue-400 pb-2'>দ্রুত লিংক</span>
+            </h4>
+            <ul className='space-y-2 sm:space-y-4'>
               <li>
-                <a href='/about-us#about-us' className='hover:text-blue-400 transition'>
+                <a
+                  href='/about-us#about-us'
+                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                >
+                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
                   আমাদের সম্পর্কে
                 </a>
               </li>
               <li>
-                <a href='#products' className='hover:text-blue-400 transition'>
-                  পণ্য সমূহ
+                <a
+                  href='products#products'
+                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                >
+                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                  আমাদের প্রোডাক্টসমূহ
                 </a>
               </li>
               <li>
-                <a href='#how-it-works' className='hover:text-blue-400 transition'>
+                <a
+                  href='/#how-it-works'
+                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                >
+                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
                   কিভাবে কাজ করে
                 </a>
               </li>
               <li>
-                <a href='/faq' className='hover:text-blue-400 transition'>
+                <a
+                  href='/faq'
+                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                >
+                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
                   সচরাচর প্রশ্ন
                 </a>
               </li>
@@ -53,53 +94,107 @@ const Footer = () => {
           </div>
 
           {/* Legal Links */}
-          <div className='mb-6'>
-            <h4 className='text-lg font-semibold mb-4 border-b border-blue-400 pb-2'>
-              গুরুত্বপূর্ণ লিংক
+          <div className='text-center sm:text-left'>
+            <h4 className='text-base sm:text-lg font-semibold mb-4 sm:mb-6 relative'>
+              <span className='border-b-2 border-blue-400 pb-2'>গুরুত্বপূর্ণ লিংক</span>
             </h4>
-            <ul className='space-y-2'>
+            <ul className='space-y-2 sm:space-y-4'>
               <li>
-                <a href='/privacy-policy' className='hover:text-blue-400 transition'>
+                <a
+                  href='/privacy-policy'
+                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                >
+                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
                   প্রাইভেসি পলিসি
                 </a>
               </li>
               <li>
-                <a href='/return-refund-policy' className='hover:text-blue-400 transition'>
+                <a
+                  href='/return-refund-policy'
+                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                >
+                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
                   রিটার্ন ও রিফান্ড পলিসি
                 </a>
               </li>
               <li>
-                <a href='/terms-conditions' className='hover:text-blue-400 transition'>
-                  শর্তাবলী
+                <a
+                  href='/terms-conditions'
+                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                >
+                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                  টার্মস ও কন্ডিশন
                 </a>
               </li>
             </ul>
           </div>
 
           {/* Contact Info */}
-          <div className='mb-6'>
-            <h4 className='text-lg font-semibold mb-4 border-b border-blue-400 pb-2'>যোগাযোগ</h4>
-            <ul className='space-y-3'>
-              <li className='flex items-start'>
-                <FaPhoneAlt className='mt-1 mr-3 text-blue-400' />
-                <span>09638755704</span>
+          <div className='sm:col-span-2 lg:col-span-1'>
+            <h4 className='text-base sm:text-lg font-semibold mb-4 sm:mb-6 relative text-center sm:text-left'>
+              <span className='border-b-2 border-blue-400 pb-2'>যোগাযোগ</span>
+            </h4>
+            <ul className='space-y-4 sm:space-y-5'>
+              <li className='flex flex-col sm:flex-row items-center sm:items-start group'>
+                <div className='w-8 h-8 sm:w-10 sm:h-10 bg-blue-500/20 rounded-full flex items-center justify-center mb-2 sm:mb-0 sm:mr-4 group-hover:bg-blue-500/30 transition-colors duration-200'>
+                  <FaPhoneAlt className='text-blue-400' size={14} />
+                </div>
+                <div className='text-center sm:text-left'>
+                  <p className='text-gray-400 text-xs sm:text-sm'>ফোন</p>
+                  <a
+                    href='tel:09638755704'
+                    className='text-gray-300 hover:text-blue-400 transition-colors duration-200 font-medium text-sm sm:text-base'
+                  >
+                    09638755704
+                  </a>
+                </div>
               </li>
-              {/* <li className="flex items-start">
-                <FaEnvelope className="mt-1 mr-3 text-blue-400" />
-                <span>support@resellerbd.com</span>
+              <li className='flex flex-col sm:flex-row items-center sm:items-start group'>
+                <div className='w-8 h-8 sm:w-10 sm:h-10 bg-blue-500/20 rounded-full flex items-center justify-center mb-2 sm:mb-0 sm:mr-4 group-hover:bg-blue-500/30 transition-colors duration-200'>
+                  <FaEnvelope className='text-blue-400' size={14} />
+                </div>
+                <div className='text-center sm:text-left'>
+                  <p className='text-gray-400 text-xs sm:text-sm'>ইমেইল</p>
+                  <a
+                    href='mailto:support@shopbdresellerjobs.shop'
+                    className='text-gray-300 hover:text-blue-400 transition-colors duration-200 font-medium break-all text-sm sm:text-base'
+                  >
+                    support@shopbdresellerjobs.shop
+                  </a>
+                </div>
               </li>
-              <li className="flex items-start">
-                <FaMapMarkerAlt className="mt-1 mr-3 text-blue-400" />
-                <span>রোড নং ১২, মোহাম্মদপুর, ঢাকা, বাংলাদেশ</span>
-              </li> */}
+              <li className='flex flex-col sm:flex-row items-center sm:items-start group'>
+                <div className='w-8 h-8 sm:w-10 sm:h-10 bg-blue-500/20 rounded-full flex items-center justify-center mb-2 sm:mb-0 sm:mr-4 group-hover:bg-blue-500/30 transition-colors duration-200'>
+                  <FaMapMarkerAlt className='text-blue-400' size={14} />
+                </div>
+                <div className='text-center sm:text-left'>
+                  <p className='text-gray-400 text-xs sm:text-sm'>ঠিকানা</p>
+                  <span className='text-gray-300 font-medium text-sm sm:text-base'>
+                    চট্টগ্রাম, বাংলাদেশ
+                  </span>
+                </div>
+              </li>
             </ul>
           </div>
         </div>
+      </div>
 
-        {/* Copyright */}
-        <div className='border-t border-gray-700 pt-6 text-center text-gray-400'>
-          <p>&copy; {new Date().getFullYear()} শপ বিডি রিসেলার জবস. সকল স্বত্ব সংরক্ষিত</p>
-          <p className='mt-2 text-sm'>ডিজাইন ও ডেভেলপমেন্ট - শপ বিডি রিসেলার জবস টিম</p>
+      {/* Bottom Bar */}
+      <div className='bg-gray-900/80 border-t border-gray-700/50'>
+        <div className='container mx-auto px-4 sm:px-6 py-4 sm:py-6'>
+          <div className='flex flex-col items-center space-y-3 sm:flex-row sm:justify-between sm:space-y-0'>
+            <div className='text-center sm:text-left order-2 sm:order-1'>
+              <p className='text-gray-400 text-xs sm:text-sm'>
+                &copy; {new Date().getFullYear()} শপ বিডি রিসেলার জবস। সকল স্বত্ব সংরক্ষিত
+              </p>
+            </div>
+            <div className='text-center sm:text-right order-1 sm:order-2'>
+              <p className='text-gray-500 text-xs sm:text-sm'>
+                ডিজাইন ও ডেভেলপমেন্ট -{' '}
+                <span className='text-blue-400'>শপ বিডি রিসেলার জবস টিম</span>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

@@ -23,9 +23,9 @@ const SupportCenter = () => {
     {
       title: 'ইমেইল সাপোর্ট',
       icon: <FaEnvelope className='text-xl md:text-2xl text-red-600' />,
-      details: 'support@yourdomain.com',
+      details: 'support@shopbdresellerjobs.shop',
       action: 'ইমেইল পাঠান',
-      link: 'mailto:support@yourdomain.com',
+      link: 'mailto:support@shopbdresellerjobs.shop',
       bgColor: 'bg-red-50 hover:bg-red-100',
     },
     {

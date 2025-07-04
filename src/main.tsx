@@ -30,10 +30,12 @@ import { useAuth } from './Hooks/useAuth.tsx'
 import './index.css'
 
 import * as Sentry from '@sentry/react'
+import { QueryClient, QueryClientProvider } from 'react-query'
 import AddWallet from './Components/AddWallet.tsx'
 import CustomerCheckout from './Components/CustomerCheckout.tsx'
 import CustomerOrders from './Components/CustomerOrders.tsx'
 import CustomerRegister from './Components/CustomerRegister.tsx'
+import Footer from './Components/Footer.tsx'
 import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
@@ -70,6 +72,16 @@ const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   }
 
   return children
+}
+const WithFooter = ({ children }: { children: JSX.Element }) => {
+  const { user } = useAuth()
+  if (user) return children
+  return (
+    <>
+      {children}
+      <Footer />
+    </>
+  )
 }
 
 const SellerRoute = ({ children }: { children: JSX.Element }) => {
@@ -125,7 +137,9 @@ createRoot(document.getElementById('root')!).render(
                 path='privacy-policy'
                 element={
                   <PublicRoute>
-                    <PrivacyPolicy />
+                    <WithFooter>
+                      <PrivacyPolicy />
+                    </WithFooter>
                   </PublicRoute>
                 }
               />
@@ -133,7 +147,9 @@ createRoot(document.getElementById('root')!).render(
                 path='terms-conditions'
                 element={
                   <PublicRoute>
-                    <TermsAndConditions />
+                    <WithFooter>
+                      <TermsAndConditions />
+                    </WithFooter>
                   </PublicRoute>
                 }
               />
@@ -141,7 +157,9 @@ createRoot(document.getElementById('root')!).render(
                 path='return-refund-policy'
                 element={
                   <PublicRoute>
-                    <RefundPolicy />
+                    <WithFooter>
+                      <RefundPolicy />
+                    </WithFooter>
                   </PublicRoute>
                 }
               />
@@ -164,16 +182,46 @@ createRoot(document.getElementById('root')!).render(
               <Route
                 path='seller-dashboard'
                 element={
-                  <SellerRoute>
-                    <SellerDashboard />
-                  </SellerRoute>
+                  <QueryClientProvider client={new QueryClient()}>
+                    <SellerRoute>
+                      <SellerDashboard />
+                    </SellerRoute>
+                  </QueryClientProvider>
                 }
               />
               <Route path='product-detail/:productId' element={<PublicProductDetails />} />
-              <Route path='products' element={<Products />} />
-              <Route path='products/:productId' element={<ProductDetail />} />
-              <Route path='cart' element={<Cart />} />
-              <Route path='support' element={<SupportCenter />} />
+              <Route
+                path='products'
+                element={
+                  <WithFooter>
+                    <Products />
+                  </WithFooter>
+                }
+              />
+              <Route
+                path='products/:productId'
+                element={
+                  <WithFooter>
+                    <ProductDetail />
+                  </WithFooter>
+                }
+              />
+              <Route
+                path='cart'
+                element={
+                  <WithFooter>
+                    <Cart />
+                  </WithFooter>
+                }
+              />
+              <Route
+                path='support'
+                element={
+                  <WithFooter>
+                    <SupportCenter />
+                  </WithFooter>
+                }
+              />
               <Route
                 path='selling-guide'
                 element={
@@ -182,7 +230,14 @@ createRoot(document.getElementById('root')!).render(
                   </SellerRoute>
                 }
               />
-              <Route path='faq' element={<FAQSection />} />
+              <Route
+                path='faq'
+                element={
+                  <WithFooter>
+                    <FAQSection />
+                  </WithFooter>
+                }
+              />
               <Route
                 path='support-ticket'
                 element={

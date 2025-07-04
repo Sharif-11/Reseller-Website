@@ -1,357 +1,295 @@
-import { useEffect, useState } from 'react'
-import { BsGraphUp } from 'react-icons/bs'
-import { FaExchangeAlt, FaPercentage } from 'react-icons/fa'
-import {
-  FiAlertCircle,
-  FiBarChart2,
-  FiCheckCircle,
-  FiDollarSign,
-  FiLoader,
-  FiRefreshCw,
-  FiShoppingBag,
-  FiTrendingUp,
-} from 'react-icons/fi'
-import { MdPendingActions } from 'react-icons/md'
-import { getSellerDashboardStats } from '../Api/seller.api'
+import { ReactNode, useState } from 'react'
+import { useQuery } from 'react-query'
+import { dashboardApiService } from '../Api/dashboard.api'
 
-interface DashboardStats {
-  overall: {
-    totalOrders: number
-    completedOrders: number
-    returnedOrders: number
-    otherOrders: number
-    totalSelling: number
-    totalCommission: number
+interface StatCardProps {
+  title: string
+  value: string | number
+  icon: ReactNode
+  trend?: {
+    value: string | number
+    positive: boolean
   }
-  last7Days: {
-    totalOrders: number
-    completedOrders: number
-    returnedOrders: number
-    otherOrders: number
-    totalSelling: number
-    totalCommission: number
-  }
+  className?: string
 }
 
-const SellerDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // Simulate API call - replace with actual API endpoint
-  const fetchDashboardStats = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const { success, message, data } = await getSellerDashboardStats()
-      if (!success) {
-        throw new Error(message || 'ড্যাশবোর্ড ডেটা লোড করতে সমস্যা হয়েছে')
-      }
-      setStats(data)
-
-      // Replace this with your actual API call
-      // const response = await fetch('/api/seller/dashboard-stats')
-      // const data = await response.json()
-
-      // Mock data that matches backend response structure
-      // const mockData: DashboardStats = {
-      //   overall: {
-      //     totalOrders: 142,
-      //     completedOrders: 87,
-      //     returnedOrders: 8,
-      //     otherOrders: 47, // pending + processing + shipped + cancelled + faulty
-      //     totalSelling: 125870,
-      //     totalCommission: 25174,
-      //   },
-      //   last7Days: {
-      //     totalOrders: 23,
-      //     completedOrders: 15,
-      //     returnedOrders: 2,
-      //     otherOrders: 6,
-      //     totalSelling: 18450,
-      //     totalCommission: 3690,
-      //   },
-      // }
-
-      // // Simulate API delay
-      // await new Promise(resolve => setTimeout(resolve, 1000))
-      // setStats(mockData)
-    } catch (err) {
-      setError('ড্যাশবোর্ড ডেটা লোড করতে সমস্যা হয়েছে')
-      console.error('Dashboard fetch error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchDashboardStats()
-  }, [])
-
-  // Calculate performance metrics
-  const getPerformanceMetrics = () => {
-    if (!stats) return { completionRate: '0', avgOrderValue: '0', growthRate: '0' }
-
-    const completionRate =
-      stats.overall.totalOrders > 0
-        ? ((stats.overall.completedOrders / stats.overall.totalOrders) * 100).toFixed(1)
-        : '0'
-
-    const avgOrderValue =
-      stats.overall.completedOrders > 0
-        ? (stats.overall.totalSelling / stats.overall.completedOrders).toFixed(0)
-        : '0'
-
-    // Calculate growth rate (last 7 days vs overall average)
-    const dailyAvgOverall = stats.overall.totalOrders > 0 ? stats.overall.totalOrders / 30 : 0 // assuming 30 days overall
-    const dailyAvgLast7Days = stats.last7Days.totalOrders / 7
-    const growthRate =
-      dailyAvgOverall > 0
-        ? (((dailyAvgLast7Days - dailyAvgOverall) / dailyAvgOverall) * 100).toFixed(1)
-        : '0'
-
-    return { completionRate, avgOrderValue, growthRate }
-  }
-
-  const { completionRate, avgOrderValue, growthRate } = getPerformanceMetrics()
-
-  if (loading) {
-    return (
-      <div className='bg-gray-50 p-4 md:p-6 min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <FiLoader className='animate-spin text-4xl text-indigo-600 mx-auto mb-4' />
-          <p className='text-gray-600'>ড্যাশবোর্ড ডেটা লোড হচ্ছে...</p>
+const StatCard = ({ title, value, icon, trend, className = '' }: StatCardProps) => {
+  return (
+    <div className={`bg-white rounded-lg shadow p-4 h-full ${className}`}>
+      <div className='flex justify-between items-start'>
+        <div>
+          <p className='text-sm font-medium text-gray-500'>{title}</p>
+          <p className='text-xl md:text-2xl font-semibold text-gray-900 mt-1'>{value}</p>
+          {trend && (
+            <span
+              className={`inline-flex items-center text-xs mt-1 ${
+                trend.positive ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {trend.positive ? (
+                <svg className='w-3 h-3 mr-1' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M5 15l7-7 7 7'
+                  />
+                </svg>
+              ) : (
+                <svg className='w-3 h-3 mr-1' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M19 9l-7 7-7-7'
+                  />
+                </svg>
+              )}
+              {trend.value}
+            </span>
+          )}
         </div>
+        <div className='bg-indigo-50 rounded-full p-2 md:p-3 text-indigo-600'>{icon}</div>
+      </div>
+    </div>
+  )
+}
+
+const TimePeriodTabs = ({
+  activeTab,
+  setActiveTab,
+}: {
+  activeTab: '7days' | '30days' | 'allTime'
+  setActiveTab: (tab: '7days' | '30days' | 'allTime') => void
+}) => {
+  return (
+    <div className='flex flex-wrap gap-2 mb-6'>
+      <button
+        onClick={() => setActiveTab('7days')}
+        className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
+          activeTab === '7days'
+            ? 'bg-indigo-600 text-white shadow-sm'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`}
+      >
+        Last 7 Days
+      </button>
+      <button
+        onClick={() => setActiveTab('30days')}
+        className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
+          activeTab === '30days'
+            ? 'bg-indigo-600 text-white shadow-sm'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`}
+      >
+        Last 30 Days
+      </button>
+      <button
+        onClick={() => setActiveTab('allTime')}
+        className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
+          activeTab === 'allTime'
+            ? 'bg-indigo-600 text-white shadow-sm'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`}
+      >
+        All Time
+      </button>
+    </div>
+  )
+}
+
+const SellerStats = () => {
+  const [activeTab, setActiveTab] = useState<'7days' | '30days' | 'allTime'>('7days')
+
+  const { data, isLoading, error } = useQuery(
+    'sellerDashboard',
+    async () => {
+      const response = await dashboardApiService.getDashboardData()
+      if (!response.success) throw new Error(response.message)
+      return response.data
+    },
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  )
+
+  if (isLoading) {
+    return (
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className='bg-white rounded-lg shadow p-4 h-24 animate-pulse'></div>
+        ))}
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className='bg-gray-50 p-4 md:p-6 min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <FiAlertCircle className='text-4xl text-red-500 mx-auto mb-4' />
-          <p className='text-red-600 mb-4'>{error}</p>
-          <button
-            onClick={fetchDashboardStats}
-            className='px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors'
-          >
-            পুনরায় চেষ্টা করুন
-          </button>
-        </div>
+      <div className='bg-white rounded-lg shadow p-4 text-center text-red-500'>
+        {(error as Error).message}
       </div>
     )
   }
 
-  if (!stats) return null
+  if (!data) return null
+
+  // Get the current time period data based on active tab
+  const currentStats =
+    data[activeTab === '7days' ? 'last7Days' : activeTab === '30days' ? 'last30Days' : 'allTime']
 
   return (
-    <div className='bg-gray-50 p-4 md:p-6 min-h-screen'>
-      <div className='max-w-7xl mx-auto'>
-        {/* Dashboard Header */}
-        <div className='mb-6 md:mb-8 flex justify-between items-center'>
-          <div>
-            <h1 className='text-xs md:text-xs font-bold text-gray-800'>সেলার ড্যাশবোর্ড</h1>
-            <p className='text-gray-600 mt-1 text-xs'>
-              আপনার ব্যবসার সার্বিক পরিসংখ্যান ও বিশ্লেষণ
-            </p>
-          </div>
-          <button
-            onClick={fetchDashboardStats}
-            className='px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-xs'
-          >
-            <FiRefreshCw className={loading ? 'animate-spin' : ''} />
-            রিফ্রেশ
-          </button>
-        </div>
+    <div className='space-y-6'>
+      <h2 className='text-xl font-bold text-gray-800'>Sales Overview</h2>
 
-        {/* Main Stats Grid */}
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-          {/* Total Sales Card */}
-          <div className='bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-500'>
-            <div className='flex justify-between items-start'>
-              <div>
-                <p className='text-sm font-medium text-gray-500'>মোট বিক্রয়</p>
-                <p className='text-2xl font-bold text-gray-800 mt-1'>
-                  ৳{stats.overall.totalSelling.toLocaleString()}
-                </p>
-                <div className='flex items-center mt-2 text-sm'>
-                  <FiTrendingUp
-                    className={`mr-1 ${
-                      parseFloat(growthRate) >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  />
-                  <span className={parseFloat(growthRate) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {parseFloat(growthRate) >= 0 ? '+' : ''}
-                    {growthRate}% গত সপ্তাহ থেকে
-                  </span>
-                </div>
-              </div>
-              <div className='p-3 rounded-lg bg-blue-50 text-blue-600'>
-                <FiDollarSign className='text-2xl' />
-              </div>
-            </div>
-          </div>
+      <TimePeriodTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
-          {/* Orders Summary Card */}
-          <div className='bg-white rounded-xl shadow-sm p-5 border-l-4 border-indigo-500'>
-            <div className='flex justify-between items-start'>
-              <div>
-                <p className='text-sm font-medium text-gray-500'>মোট অর্ডার</p>
-                <p className='text-2xl font-bold text-gray-800 mt-1'>{stats.overall.totalOrders}</p>
-                <div className='flex items-center mt-2 text-sm text-green-500'>
-                  <FiBarChart2 className='mr-1' />
-                  <span>{stats.overall.completedOrders} কমপ্লিটেড</span>
-                </div>
-              </div>
-              <div className='p-3 rounded-lg bg-indigo-50 text-indigo-600'>
-                <FiShoppingBag className='text-2xl' />
-              </div>
-            </div>
-          </div>
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+        <StatCard
+          title='Total Orders'
+          value={currentStats.totalOrders}
+          icon={
+            <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
+              />
+            </svg>
+          }
+        />
 
-          {/* Commission Card */}
-          <div className='bg-white rounded-xl shadow-sm p-5 border-l-4 border-green-500'>
-            <div className='flex justify-between items-start'>
-              <div>
-                <p className='text-sm font-medium text-gray-500'>মোট কমিশন</p>
-                <p className='text-2xl font-bold text-gray-800 mt-1'>
-                  ৳{stats.overall.totalCommission.toLocaleString()}
-                </p>
-                <div className='flex items-center mt-2 text-sm text-gray-500'>
-                  <FaPercentage className='mr-1' />
-                  <span>
-                    {stats.overall.totalSelling > 0
-                      ? (
-                          (stats.overall.totalCommission / stats.overall.totalSelling) *
-                          100
-                        ).toFixed(1)
-                      : '0'}
-                    % কমিশন রেট
-                  </span>
-                </div>
-              </div>
-              <div className='p-3 rounded-lg bg-green-50 text-green-600'>
-                <BsGraphUp className='text-2xl' />
-              </div>
-            </div>
-          </div>
+        <StatCard
+          title='Total Sales'
+          value={`$${currentStats.totalSales.toLocaleString()}`}
+          icon={
+            <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+              />
+            </svg>
+          }
+        />
 
-          {/* Performance Card */}
-          <div className='bg-white rounded-xl shadow-sm p-5 border-l-4 border-purple-500'>
-            <div className='flex justify-between items-start'>
-              <div>
-                <p className='text-sm font-medium text-gray-500'>কমপ্লিটেড হার</p>
-                <p className='text-2xl font-bold text-gray-800 mt-1'>{completionRate}%</p>
-                <div className='flex items-center mt-2 text-sm text-gray-500'>
-                  <span>গড় অর্ডার: ৳{avgOrderValue}</span>
-                </div>
-              </div>
-              <div className='p-3 rounded-lg bg-purple-50 text-purple-600'>
-                <FiCheckCircle className='text-2xl' />
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title='Products Sold'
+          value={currentStats.totalProductsSold}
+          icon={
+            <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'
+              />
+            </svg>
+          }
+        />
 
-        {/* Last 7 Days Comparison */}
-        <div className='bg-white rounded-xl shadow-sm p-5 mb-6'>
-          <h2 className='text-lg font-semibold text-gray-800 mb-4'>গত ৭ দিনের তুলনা</h2>
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-            <div className='bg-gray-50 rounded-lg p-4'>
-              <p className='text-sm font-medium text-gray-500'>অর্ডার</p>
-              <p className='text-xl font-bold text-gray-800'>{stats.last7Days.totalOrders}</p>
-              <p className='text-xs text-gray-500 mt-1'>মোট {stats.overall.totalOrders} এর মধ্যে</p>
-            </div>
-            <div className='bg-gray-50 rounded-lg p-4'>
-              <p className='text-sm font-medium text-gray-500'>কমপ্লিটেড</p>
-              <p className='text-xl font-bold text-green-600'>{stats.last7Days.completedOrders}</p>
-              <p className='text-xs text-gray-500 mt-1'>
-                মোট {stats.overall.completedOrders} এর মধ্যে
-              </p>
-            </div>
-            <div className='bg-gray-50 rounded-lg p-4'>
-              <p className='text-sm font-medium text-gray-500'>বিক্রয়</p>
-              <p className='text-xl font-bold text-blue-600'>
-                ৳{stats.last7Days.totalSelling.toLocaleString()}
-              </p>
-              <p className='text-xs text-gray-500 mt-1'>
-                মোট ৳{stats.overall.totalSelling.toLocaleString()} এর মধ্যে
-              </p>
-            </div>
-            <div className='bg-gray-50 rounded-lg p-4'>
-              <p className='text-sm font-medium text-gray-500'>কমিশন</p>
-              <p className='text-xl font-bold text-purple-600'>
-                ৳{stats.last7Days.totalCommission.toLocaleString()}
-              </p>
-              <p className='text-xs text-gray-500 mt-1'>
-                মোট ৳{stats.overall.totalCommission.toLocaleString()} এর মধ্যে
-              </p>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title='Completed Orders'
+          value={currentStats.totalOrdersCompleted}
+          icon={
+            <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M5 13l4 4L19 7'
+              />
+            </svg>
+          }
+        />
+      </div>
 
-        {/* Order Status Grid */}
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6'>
-          {/* Returned Orders */}
-          <div className='bg-white rounded-lg shadow-sm p-4'>
-            <div className='flex items-center justify-between mb-2'>
-              <h3 className='font-medium text-gray-700'>রিটার্নড অর্ডার</h3>
-              <div className='p-2 rounded-lg bg-red-50 text-red-600'>
-                <FaExchangeAlt className='text-lg' />
-              </div>
-            </div>
-            <p className='text-2xl font-bold text-red-800'>{stats.overall.returnedOrders}</p>
-            <p className='text-sm text-red-400 mt-1'>
-              {stats.overall.totalOrders > 0
-                ? ((stats.overall.returnedOrders / stats.overall.totalOrders) * 100).toFixed(1)
-                : '0'}
-              % ফেরত হার
-            </p>
-            <div className='mt-2 text-xs text-red-400'>
-              গত ৭ দিনে: {stats.last7Days.returnedOrders}টি
-            </div>
-          </div>
+      <h2 className='text-xl font-bold text-gray-800 mt-8'>Commission & Referrals</h2>
 
-          {/* Other Orders */}
-          <div className='bg-white rounded-lg shadow-sm p-4'>
-            <div className='flex items-center justify-between mb-2'>
-              <h3 className='font-medium text-gray-700'>অন্যান্য অর্ডার</h3>
-              <div className='p-2 rounded-lg bg-gray-100 text-gray-600'>
-                <MdPendingActions className='text-lg' />
-              </div>
-            </div>
-            <p className='text-2xl font-bold text-gray-800'>{stats.overall.otherOrders}</p>
-            <p className='text-sm text-gray-500 mt-1'>পেন্ডিং, প্রক্রিয়াধীন, শিপড ইত্যাদি</p>
-            <div className='mt-2 text-xs text-gray-400'>
-              গত ৭ দিনে: {stats.last7Days.otherOrders}টি
-            </div>
-          </div>
-        </div>
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+        <StatCard
+          title='Total Commission'
+          value={`$${currentStats.totalCommission.toLocaleString()}`}
+          icon={
+            <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+              />
+            </svg>
+          }
+        />
 
-        {/* Performance Insights */}
-        <div className='bg-white rounded-xl shadow-sm p-5'>
-          <div className='flex justify-between items-center mb-4'>
-            <h2 className='text-lg font-semibold text-gray-800'>পারফরমেন্স ইনসাইট</h2>
+        <StatCard
+          title='Total Referrals'
+          value={data.totalReferrals}
+          icon={
+            <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'
+              />
+            </svg>
+          }
+        />
+
+        <StatCard
+          title='Level 1 Referrals'
+          value={data.totalLevel1Referrals}
+          icon={
+            <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'
+              />
+            </svg>
+          }
+        />
+
+        <StatCard
+          title='Level 2 Referrals'
+          value={data.totalLevel2Referrals}
+          icon={
+            <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'
+              />
+            </svg>
+          }
+        />
+      </div>
+
+      {/* Comparison section */}
+      <div className='mt-8 bg-white rounded-lg shadow p-6'>
+        <h3 className='text-lg font-semibold text-gray-800 mb-4'>Performance Comparison</h3>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+          <div className='border rounded-lg p-4'>
+            <h4 className='text-sm font-medium text-gray-500'>Last 7 Days</h4>
+            <p className='text-lg font-semibold'>${data.last7Days.totalSales.toLocaleString()}</p>
+            <p className='text-sm text-gray-500'>{data.last7Days.totalOrders} orders</p>
           </div>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            <div className='text-center p-4 bg-blue-50 rounded-lg'>
-              <div className='text-2xl font-bold text-blue-600'>{completionRate}%</div>
-              <div className='text-sm text-gray-600 mt-1'>অর্ডার সম্পন্নের হার</div>
-            </div>
-            <div className='text-center p-4 bg-green-50 rounded-lg'>
-              <div className='text-2xl font-bold text-green-600'>৳{avgOrderValue}</div>
-              <div className='text-sm text-gray-600 mt-1'>গড় অর্ডার মূল্য</div>
-            </div>
-            <div className='text-center p-4 bg-purple-50 rounded-lg'>
-              <div className='text-2xl font-bold text-purple-600'>
-                {stats.overall.totalSelling > 0
-                  ? ((stats.overall.totalCommission / stats.overall.totalSelling) * 100).toFixed(1)
-                  : '0'}
-                %
-              </div>
-              <div className='text-sm text-gray-600 mt-1'>গড় কমিশন রেট</div>
-            </div>
+          <div className='border rounded-lg p-4'>
+            <h4 className='text-sm font-medium text-gray-500'>Last 30 Days</h4>
+            <p className='text-lg font-semibold'>${data.last30Days.totalSales.toLocaleString()}</p>
+            <p className='text-sm text-gray-500'>{data.last30Days.totalOrders} orders</p>
+          </div>
+          <div className='border rounded-lg p-4'>
+            <h4 className='text-sm font-medium text-gray-500'>All Time</h4>
+            <p className='text-lg font-semibold'>${data.allTime.totalSales.toLocaleString()}</p>
+            <p className='text-sm text-gray-500'>{data.allTime.totalOrders} orders</p>
           </div>
         </div>
       </div>
@@ -359,4 +297,4 @@ const SellerDashboard = () => {
   )
 }
 
-export default SellerDashboard
+export default SellerStats

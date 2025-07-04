@@ -5,7 +5,7 @@ const SalesGuidelines = () => {
     <div className='bg-white rounded-lg shadow-md p-6 my-6 border border-gray-200'>
       <h2 className='text-xl md:text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200 flex items-center'>
         <FaHandshake className='mr-2 text-blue-600' />
-        শপ বিডি রিসেলার জবস - বিক্রয় নির্দেশিকা
+        শপ বিডি রিসেলার জবস - সেলস গাইডলাইন
       </h2>
 
       <div className='space-y-6'>
