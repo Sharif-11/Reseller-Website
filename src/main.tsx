@@ -22,7 +22,7 @@ import Register from './Components/Register.tsx'
 import SalesGuidelines from './Components/SalesGuideline.tsx'
 import SellerHomeDashboard from './Components/SellersAdminDashboard.tsx'
 import SupportCenter from './Components/SupportCenter.tsx'
-import SupportTicket from './Components/SupportTicket.tsx'
+
 import WithdrawHistory from './Components/WithdrawHistory.tsx'
 import WithdrawRequest from './Components/WithdrawRequest.tsx'
 import { UserProvider } from './Context/userContext.tsx'
@@ -31,6 +31,7 @@ import './index.css'
 
 import * as Sentry from '@sentry/react'
 import { QueryClient, QueryClientProvider } from 'react-query'
+import NewSupportTicketPage from './Components/AddTicket.tsx'
 import AddWallet from './Components/AddWallet.tsx'
 import CustomerCheckout from './Components/CustomerCheckout.tsx'
 import CustomerOrders from './Components/CustomerOrders.tsx'
@@ -43,6 +44,11 @@ import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import ProductDetail from './Components/ProductDetail.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
+import SupportTicketDetailPage from './Components/SupportTicketDetail.tsx'
+import {
+  default as SupportTicketPage,
+  default as SupportTicketsPage,
+} from './Components/SupportTicketList.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
 import { CartFavoriteProvider } from './Context/cartContext.tsx'
 
@@ -239,10 +245,10 @@ createRoot(document.getElementById('root')!).render(
                 }
               />
               <Route
-                path='support-ticket'
+                path='support-tickets'
                 element={
                   <SellerRoute>
-                    <SupportTicket />
+                    <SupportTicketsPage />
                   </SellerRoute>
                 }
               />
@@ -361,6 +367,30 @@ createRoot(document.getElementById('root')!).render(
                 element={
                   <PrivateRoute>
                     <ChangePasswordPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path='support-tickets'
+                element={
+                  <PrivateRoute>
+                    <SupportTicketPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path='support-tickets/:ticketId'
+                element={
+                  <PrivateRoute>
+                    <SupportTicketDetailPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path='support-tickets/new'
+                element={
+                  <PrivateRoute>
+                    <NewSupportTicketPage />
                   </PrivateRoute>
                 }
               />
