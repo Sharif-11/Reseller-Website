@@ -57,7 +57,7 @@ const NewSupportTicketPage = () => {
     setError('')
 
     try {
-      const response = await supportTicketApi.createTicket(
+      const { success, message, data } = await supportTicketApi.createTicket(
         {
           subject: formData.subject,
           category: formData.category,
@@ -70,7 +70,7 @@ const NewSupportTicketPage = () => {
         attachments
       )
 
-      if (response.success) {
+      if (success) {
         setFormData({
           subject: '',
           category: 'ACCOUNT',
@@ -81,9 +81,9 @@ const NewSupportTicketPage = () => {
           productId: '',
         })
         setAttachments([])
-        navigate(`/support-tickets/${response.data?.ticketId}`)
+        navigate(`/support-tickets/${data?.ticketId}`)
       } else {
-        setError(response.error || 'টিকিট তৈরি করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।')
+        setError(message || 'টিকিট তৈরি করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।')
       }
     } catch (err) {
       setError('টিকিট তৈরি করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।')
