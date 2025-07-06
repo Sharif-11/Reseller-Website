@@ -132,6 +132,9 @@ class OrderApi {
   public async reorderFailedOrder(orderId: number) {
     return apiClient.post(`orders/seller/re-order/${orderId}`)
   }
+  public async fraudCheckByPhoneNo(phoneNo: string) {
+    return apiClient.get(`orders/fraud-check/${phoneNo}`)
+  }
 }
 
 export const orderApi = new OrderApi()

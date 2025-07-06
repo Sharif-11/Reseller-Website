@@ -23,7 +23,15 @@ class ApiClient {
   private instance: AxiosInstance
   private static _instance: ApiClient
 
-  private constructor(baseURL: string, config?: AxiosRequestConfig) {
+  public constructor({
+    baseURL,
+    token,
+    config = {},
+  }: {
+    baseURL: string
+    token?: string
+    config?: AxiosRequestConfig
+  }) {
     this.instance = axios.create({
       baseURL,
       timeout: 10000,
@@ -33,20 +41,23 @@ class ApiClient {
       ...config,
     })
 
-    this.setupInterceptors()
+    this.setupInterceptors(token)
   }
 
   public static getInstance(baseURL: string, config?: AxiosRequestConfig): ApiClient {
     if (!ApiClient._instance) {
-      ApiClient._instance = new ApiClient(baseURL, config)
+      ApiClient._instance = new ApiClient({
+        baseURL,
+        config,
+      })
     }
     return ApiClient._instance
   }
 
-  private setupInterceptors(): void {
+  private setupInterceptors(accessToken?: string): void {
     this.instance.interceptors.request.use(
       config => {
-        const token = localStorage.getItem('token')
+        const token = accessToken || localStorage.getItem('token')
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }

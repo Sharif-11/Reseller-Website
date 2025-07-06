@@ -7,8 +7,10 @@ import districts from '../../public/zillasInfo.json'
 import { orderApi } from '../Api/order.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { OrderData } from '../types/order.types'
+import { calculateReliability, CourierData, SimplifiedResult } from '../utils/customer.reliability'
 import { CART_ITEMS_KEY, DRAFT_KEY } from '../utils/utils.variables'
 import { ShopCart } from './Cart'
+import CourierReliabilityModal from './CourierReliabilityModal'
 import { CartItem } from './ProductDetail'
 
 // Draft data interface
@@ -28,6 +30,9 @@ const Checkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formErrors, setFormErrors] = useState<string[]>([])
   const { loadCartCount } = useCartFavorite()
+  const [showReliabilityModal, setShowReliabilityModal] = useState(false)
+  const [reliabilityMetrics, setReliabilityMetrics] = useState<SimplifiedResult | null>(null)
+  const [isCheckingReliability, setIsCheckingReliability] = useState(false)
 
   // Cart items and price calculation
   const shopCart = location?.state?.shopCart as ShopCart
@@ -81,48 +86,67 @@ const Checkout = () => {
     },
     validationSchema,
     onSubmit: async values => {
-      setIsSubmitting(true)
-      try {
-        const orderData: OrderData = {
-          shopId: shopCart?.shopId,
-          customerName: values.customerName,
-          customerPhoneNo: values.customerPhone,
-          customerZilla: values.zilla,
-          customerUpazilla: values.upazilla,
-          deliveryAddress: values.deliveryAddress,
-          comments: values.comments,
-          products: shopCart?.items.map(item => ({
-            id: item.productId,
-            imageUrl: item.imageUrl,
-            imageId: item.imageId,
-            quantity: item.quantity,
-            sellingPrice: item.sellingPrice,
-            selectedVariants: item.selectedOptions,
-          })),
-        }
-        console.log('Order Data:', orderData)
-
-        const { success, message } = await orderApi.createSellerOrder(orderData as OrderData)
-        if (success) {
-          clearDraft() // Clear draft on successful submission
-          // fetch cart item from localStorage and exclude the current shopCart items
-          const cartItems: CartItem[] = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
-          const updatedCartItems = cartItems.filter(
-            (item: CartItem) => item.shopId !== shopCart?.shopId
+      // First check reliability
+      if (!reliabilityMetrics) {
+        setIsCheckingReliability(true)
+        try {
+          const exampleData: CourierData[] = [
+            {
+              courier: 'Pathao',
+              delivered: 1,
+              returned: 0,
+              total: 1,
+              ratio: '100.00%',
+            },
+            {
+              courier: 'Paperfly',
+              delivered: 0,
+              returned: 0,
+              total: 0,
+              ratio: '0%',
+            },
+            {
+              courier: 'RedX',
+              delivered: 1,
+              returned: 0,
+              total: 1,
+              ratio: '100.00%',
+            },
+            {
+              courier: 'SteadFast',
+              delivered: 0,
+              returned: 0,
+              total: 0,
+              ratio: '0%',
+            },
+          ]
+          const { success, message, data } = await orderApi.fraudCheckByPhoneNo(
+            values.customerPhone
           )
-          localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCartItems))
-          loadCartCount() // Update cart count in context
-
-          navigate('/orders', { state: { orderSuccess: true } })
-        } else {
-          setFormErrors([message!])
+          if (success) {
+            const metrics = calculateReliability(data as CourierData[])
+            setReliabilityMetrics(metrics)
+            setShowReliabilityModal(true)
+            console.log('Reliability metrics:', metrics)
+            console.log(message)
+          } else {
+            // setFormErrors([message || 'কাস্টমারের তথ্য যাচাই করতে সমস্যা হয়েছে।'])
+            const metrics = calculateReliability(exampleData)
+            setReliabilityMetrics(metrics)
+            setShowReliabilityModal(true)
+          }
+        } catch (error) {
+          console.error('Error checking reliability:', error)
+          // Continue with order submission if reliability check fails
+          submitOrder(values)
+        } finally {
+          setIsCheckingReliability(false)
         }
-      } catch (error) {
-        console.error('Order submission error:', error)
-        setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
-      } finally {
-        setIsSubmitting(false)
+        return
       }
+
+      // If reliability already checked, proceed with order submission
+      submitOrder(values)
     },
   })
 
@@ -133,6 +157,60 @@ const Checkout = () => {
     formik.setFieldValue('upazilla', '')
     setUpazillas(selectedZilla ? districts[selectedZilla] || [] : [])
     saveDraft({ ...formik.values, zilla: selectedZilla, upazilla: '' })
+  }
+  const submitOrder = async (values: any) => {
+    setIsSubmitting(true)
+    try {
+      const orderData: OrderData = {
+        shopId: shopCart?.shopId,
+        customerName: values.customerName,
+        customerPhoneNo: values.customerPhone,
+        customerZilla: values.zilla,
+        customerUpazilla: values.upazilla,
+        deliveryAddress: values.deliveryAddress,
+        comments: values.comments,
+        products: shopCart?.items.map(item => ({
+          id: item.productId,
+          imageUrl: item.imageUrl,
+          imageId: item.imageId,
+          quantity: item.quantity,
+          sellingPrice: item.sellingPrice,
+          selectedVariants: item.selectedOptions,
+        })),
+      }
+
+      const { success, message } = await orderApi.createSellerOrder(orderData as OrderData)
+      if (success) {
+        clearDraft()
+        const cartItems: CartItem[] = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
+        const updatedCartItems = cartItems.filter(
+          (item: CartItem) => item.shopId !== shopCart?.shopId
+        )
+        localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCartItems))
+        loadCartCount()
+        navigate('/orders', { state: { orderSuccess: true } })
+      } else {
+        setFormErrors([message!])
+      }
+    } catch (error) {
+      console.error('Order submission error:', error)
+      setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Handle modal confirmation
+  const handleReliabilityConfirm = () => {
+    setShowReliabilityModal(false)
+    // Trigger form submission again (this time it will skip reliability check)
+    formik.handleSubmit()
+  }
+
+  // Handle modal close
+  const handleReliabilityClose = () => {
+    setShowReliabilityModal(false)
+    setReliabilityMetrics(null)
   }
 
   // Save form data to draft when values change
@@ -440,41 +518,63 @@ const Checkout = () => {
                   </div>
                 )}
                 {/* Submit button */}
-                <div className='pt-3'>
-                  <button
-                    type='submit'
-                    disabled={isSubmitting}
-                    className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center'
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <svg
-                          className='animate-spin -ml-1 mr-2 h-4 w-4 text-white'
-                          xmlns='http://www.w3.org/2000/svg'
-                          fill='none'
-                          viewBox='0 0 24 24'
-                        >
-                          <circle
-                            className='opacity-25'
-                            cx='12'
-                            cy='12'
-                            r='10'
-                            stroke='currentColor'
-                            strokeWidth='4'
-                          ></circle>
-                          <path
-                            className='opacity-75'
-                            fill='currentColor'
-                            d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                          ></path>
-                        </svg>
-                        প্রসেসিং...
-                      </>
-                    ) : (
-                      'অর্ডার কনফার্ম করুন'
-                    )}
-                  </button>
-                </div>
+                <button
+                  type='submit'
+                  disabled={isSubmitting || isCheckingReliability}
+                  className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center'
+                >
+                  {isCheckingReliability ? (
+                    <>
+                      <svg
+                        className='animate-spin -ml-1 mr-2 h-4 w-4 text-white'
+                        xmlns='http://www.w3.org/2000/svg'
+                        fill='none'
+                        viewBox='0 0 24 24'
+                      >
+                        <circle
+                          className='opacity-25'
+                          cx='12'
+                          cy='12'
+                          r='10'
+                          stroke='currentColor'
+                          strokeWidth='4'
+                        ></circle>
+                        <path
+                          className='opacity-75'
+                          fill='currentColor'
+                          d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                        ></path>
+                      </svg>
+                      নির্ভরযোগ্যতা যাচাই...
+                    </>
+                  ) : isSubmitting ? (
+                    <>
+                      <svg
+                        className='animate-spin -ml-1 mr-2 h-4 w-4 text-white'
+                        xmlns='http://www.w3.org/2000/svg'
+                        fill='none'
+                        viewBox='0 0 24 24'
+                      >
+                        <circle
+                          className='opacity-25'
+                          cx='12'
+                          cy='12'
+                          r='10'
+                          stroke='currentColor'
+                          strokeWidth='4'
+                        ></circle>
+                        <path
+                          className='opacity-75'
+                          fill='currentColor'
+                          d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                        ></path>
+                      </svg>
+                      প্রসেসিং...
+                    </>
+                  ) : (
+                    'অর্ডার কনফার্ম করুন'
+                  )}
+                </button>
               </form>
             </div>
           </div>
@@ -582,6 +682,15 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+      {reliabilityMetrics && (
+        <CourierReliabilityModal
+          isOpen={showReliabilityModal}
+          onClose={handleReliabilityClose}
+          reliabilityData={reliabilityMetrics}
+          onConfirm={handleReliabilityConfirm}
+          isLoading={isSubmitting}
+        />
+      )}
     </div>
   )
 }

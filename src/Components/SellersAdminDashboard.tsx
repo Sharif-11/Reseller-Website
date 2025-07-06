@@ -32,7 +32,7 @@ const SellerHomeDashboard = () => {
     fetchAnnouncements()
   }, [])
 
-  const quickLinks = [
+  const quickLinks: { title: string; icon: JSX.Element; url: string; upcoming?: boolean }[] = [
     {
       title: 'সকল প্রোডাক্টস',
       icon: <FaBoxOpen className='text-3xl text-blue-600' />,
