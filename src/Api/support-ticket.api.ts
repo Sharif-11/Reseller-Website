@@ -95,27 +95,27 @@ class SupportTicketApi {
 
   private async uploadAttachments(files: File[]): Promise<ApiResponse<string[]>> {
     try {
-      const uploadPromises = files.map(file =>
-        fileDownloader.uploadFile(file, {
-          fieldName: 'supportAttachment',
+      // Process files sequentially instead of in parallel
+      const urls: string[] = []
+
+      for (const file of files) {
+        const result = await fileDownloader.uploadFile(file, {
+          fieldName: 'image',
           additionalData: { type: 'SUPPORT_TICKET' },
         })
-      )
 
-      const results = await Promise.all(uploadPromises)
-      const failedUpload = results.find(result => !result.success)
+        if (!result.success) {
+          return {
+            success: false,
+            error: result.error || 'Failed to upload file',
+            statusCode: result.statusCode || 500,
+          }
+        }
 
-      if (failedUpload) {
-        return {
-          success: false,
-          error: failedUpload.error || 'One or more files failed to upload',
-          statusCode: failedUpload.statusCode || 500,
+        if (result.data?.publicUrl) {
+          urls.push(result.data.publicUrl)
         }
       }
-
-      const urls = results
-        .filter(result => result.success && result.data)
-        .map(result => result.data!.publicUrl)
 
       return {
         success: true,

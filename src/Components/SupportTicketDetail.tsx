@@ -18,6 +18,41 @@ const formatDateTime = (dateString: string | Date) => {
   })
 }
 
+const AttachmentPreviewModal = ({
+  attachmentUrl,
+  onClose,
+}: {
+  attachmentUrl: string
+  onClose: () => void
+}) => {
+  return (
+    <div className='fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50'>
+      <div className='bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col'>
+        <div className='flex justify-between items-center border-b p-4'>
+          <h3 className='text-lg font-medium'>Image Preview</h3>
+          <button onClick={onClose} className='text-gray-500 hover:text-gray-700'>
+            <svg className='w-6 h-6' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M6 18L18 6M6 6l12 12'
+              />
+            </svg>
+          </button>
+        </div>
+        <div className='flex-1 overflow-auto p-4 flex items-center justify-center'>
+          <img
+            src={attachmentUrl}
+            alt='Attachment preview'
+            className='max-w-full max-h-[70vh] object-contain'
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const SupportTicketDetailPage = () => {
   const { ticketId } = useParams<{ ticketId: string }>()
   const navigate = useNavigate()
@@ -28,6 +63,8 @@ const SupportTicketDetailPage = () => {
   const [replyMessage, setReplyMessage] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
   const [replying, setReplying] = useState(false)
+  const [previewAttachment, setPreviewAttachment] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -39,16 +76,6 @@ const SupportTicketDetailPage = () => {
 
         if (response.success && response.data) {
           setTicket(response.data)
-
-          // Mark messages as read if they're from admin/system
-          const unreadMessages = response.data.messages.filter(
-            (msg: TicketMessage) => msg.senderType !== 'SELLER' && !msg.isRead
-          )
-
-          if (unreadMessages.length > 0) {
-            // You would typically have an API endpoint to mark messages as read
-            // await supportTicketApi.markMessagesAsRead(unreadMessages.map(m => m.messageId))
-          }
         } else {
           setError(response.error || 'Failed to fetch ticket details')
         }
@@ -85,34 +112,58 @@ const SupportTicketDetailPage = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
+
+      // Clear previous errors
+      setError('')
+
+      // Validate number of files
       if (attachments.length + newFiles.length > 5) {
-        setError('You can upload a maximum of 5 files')
+        setError('সর্বোচ্চ ৫টি ছবি আপলোড করতে পারবেন')
         return
       }
 
-      // Check each file size (max 2MB)
+      // Validate file types and sizes
+      const validFiles: File[] = []
       for (const file of newFiles) {
-        if (file.size > 2 * 1024 * 1024) {
-          setError('Each file must be smaller than 2MB')
-          return
+        // Check if file is an image
+        if (!file.type.match('image.*')) {
+          setError('Only image files are allowed (JPEG, JPG, PNG, GIF)')
+          continue
         }
+
+        // Check file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+          setError(`Image "${file.name}" exceeds 2MB size limit`)
+          continue
+        }
+
+        validFiles.push(file)
       }
 
-      setAttachments(prev => [...prev, ...newFiles])
-      setError('')
+      if (validFiles.length > 0) {
+        setAttachments(prev => [...prev, ...validFiles])
+      }
     }
   }
 
   const removeAttachment = (index: number) => {
     setAttachments(prev => prev.filter((_, i) => i !== index))
+    setError('') // Clear error when removing files
   }
 
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!replyMessage.trim() && attachments.length === 0) return
+
+    // Validate form
+    if (!replyMessage.trim() && attachments.length === 0) {
+      setError('Please enter a message or attach an image')
+      return
+    }
 
     try {
       setReplying(true)
+      setUploadProgress(0)
+
       const response = await supportTicketApi.replyToTicket(
         ticketId!,
         replyMessage,
@@ -143,14 +194,31 @@ const SupportTicketDetailPage = () => {
         setReplyMessage('')
         setAttachments([])
         setError('')
+
+        // Show success message if attachments were uploaded
+        if (attachments.length > 0) {
+          navigate(location.pathname, {
+            state: { successMessage: 'Reply sent successfully with attachments!' },
+            replace: true,
+          })
+        }
       } else {
-        setError(response.error || 'Failed to send reply')
+        // Show backend error message if available
+        setError(response.message || 'Failed to send reply. Please try again.')
       }
-    } catch (err) {
-      setError('Failed to send reply. Please try again.')
-      console.error(err)
+    } catch (err: any) {
+      // Handle different types of errors
+      if (err.response?.data?.error) {
+        setError(err.response.data.error)
+      } else if (err.message) {
+        setError(err.message)
+      } else {
+        setError('An unexpected error occurred. Please try again.')
+      }
+      console.error('Error sending reply:', err)
     } finally {
       setReplying(false)
+      setUploadProgress(null)
     }
   }
 
@@ -163,16 +231,29 @@ const SupportTicketDetailPage = () => {
     )
   }
 
-  if (error || !ticket) {
+  if (!ticket) {
     return (
       <div className='container mx-auto px-4 py-8 text-center text-red-600'>
         {error || 'Ticket not found'}
+        <button
+          onClick={() => navigate('/support-tickets')}
+          className='mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700'
+        >
+          Back to tickets
+        </button>
       </div>
     )
   }
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      {previewAttachment && (
+        <AttachmentPreviewModal
+          attachmentUrl={previewAttachment}
+          onClose={() => setPreviewAttachment(null)}
+        />
+      )}
+
       <div className='container mx-auto px-3 sm:px-4 py-4 sm:py-6'>
         {location.state?.successMessage && (
           <div className='mb-4 p-3 bg-green-100 text-green-700 rounded-md text-sm'>
@@ -180,7 +261,6 @@ const SupportTicketDetailPage = () => {
           </div>
         )}
 
-        {/* Mobile-first back button */}
         <div className='mb-4 sm:mb-6'>
           <button
             onClick={() => navigate('/support-tickets')}
@@ -203,7 +283,6 @@ const SupportTicketDetailPage = () => {
         </div>
 
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
-          {/* Ticket Header - Mobile responsive */}
           <div className='p-4 sm:p-6 border-b border-gray-200'>
             <div className='space-y-3 sm:space-y-0 sm:flex sm:justify-between sm:items-start'>
               <div className='flex-1 min-w-0'>
@@ -236,7 +315,6 @@ const SupportTicketDetailPage = () => {
             </div>
           </div>
 
-          {/* Messages - Mobile responsive */}
           <div className='p-4 sm:p-6 space-y-4 sm:space-y-6 max-h-[50vh] sm:max-h-[calc(100vh-300px)] overflow-y-auto'>
             {ticket.messages.map(message => (
               <div
@@ -276,47 +354,25 @@ const SupportTicketDetailPage = () => {
                   {message.attachments.length > 0 && (
                     <div className='mt-3 grid grid-cols-1 gap-2'>
                       {message.attachments.map((url, idx) => (
-                        <a
+                        <button
                           key={idx}
-                          href={url}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='border border-gray-200 rounded p-2 hover:bg-gray-50'
+                          onClick={() => setPreviewAttachment(url)}
+                          className='border border-gray-200 rounded p-2 hover:bg-gray-50 text-left'
                         >
                           <div className='flex items-center'>
-                            {url.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-                              <img
-                                src={url}
-                                alt={`Attachment ${idx + 1}`}
-                                className='h-10 w-10 sm:h-12 sm:w-12 object-cover rounded'
-                              />
-                            ) : (
-                              <div className='h-10 w-10 sm:h-12 sm:w-12 bg-gray-100 rounded flex items-center justify-center'>
-                                <svg
-                                  className='h-5 w-5 sm:h-6 sm:w-6 text-gray-400'
-                                  fill='none'
-                                  stroke='currentColor'
-                                  viewBox='0 0 24 24'
-                                >
-                                  <path
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    strokeWidth={2}
-                                    d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'
-                                  />
-                                </svg>
-                              </div>
-                            )}
+                            <img
+                              src={url}
+                              alt={`Attachment ${idx + 1}`}
+                              className='h-10 w-10 sm:h-12 sm:w-12 object-cover rounded'
+                            />
                             <div className='ml-2 flex-1 min-w-0'>
                               <p className='text-xs sm:text-sm text-gray-500 truncate'>
-                                {url.split('/').pop() || 'File'}
+                                {url.split('/').pop() || 'Image'}
                               </p>
-                              <p className='text-xs text-gray-400'>
-                                {url.match(/\.(jpeg|jpg|gif|png)$/i) ? 'Image' : 'File'}
-                              </p>
+                              <p className='text-xs text-gray-400'>Image</p>
                             </div>
                           </div>
-                        </a>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -326,7 +382,6 @@ const SupportTicketDetailPage = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Reply Form - Mobile responsive */}
           {ticket.status !== 'CLOSED' && (
             <div className='p-4 sm:p-6 border-t border-gray-200'>
               <form onSubmit={handleReplySubmit} className='space-y-4'>
@@ -346,7 +401,7 @@ const SupportTicketDetailPage = () => {
 
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Attachments (max 5 files, 2MB each)
+                    Attachments (max 5 images, 2MB each)
                   </label>
                   <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
                     <button
@@ -366,7 +421,7 @@ const SupportTicketDetailPage = () => {
                           clipRule='evenodd'
                         />
                       </svg>
-                      Select Files
+                      Select Images
                     </button>
                     <input
                       ref={fileInputRef}
@@ -374,9 +429,11 @@ const SupportTicketDetailPage = () => {
                       multiple
                       onChange={handleFileChange}
                       className='hidden'
-                      accept='image/*,.pdf,.doc,.docx,.xls,.xlsx'
+                      accept='image/*'
                     />
-                    <p className='text-sm text-gray-500'>{attachments.length} / 5 files selected</p>
+                    <p className='text-sm text-gray-500'>
+                      {attachments.length} / 5 images selected
+                    </p>
                   </div>
 
                   {attachments.length > 0 && (
@@ -393,7 +450,24 @@ const SupportTicketDetailPage = () => {
                 </div>
 
                 {error && (
-                  <div className='p-3 bg-red-100 text-red-700 rounded-md text-sm'>{error}</div>
+                  <div className='p-3 bg-red-100 text-red-700 rounded-md text-sm'>
+                    <div className='flex items-start'>
+                      <svg
+                        className='h-4 w-4 mr-2 mt-0.5 flex-shrink-0'
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                        />
+                      </svg>
+                      <span>{error}</span>
+                    </div>
+                  </div>
                 )}
 
                 <div className='flex justify-end'>
@@ -404,27 +478,36 @@ const SupportTicketDetailPage = () => {
                   >
                     {replying ? (
                       <>
-                        <svg
-                          className='animate-spin -ml-1 mr-2 h-4 w-4 text-white inline'
-                          xmlns='http://www.w3.org/2000/svg'
-                          fill='none'
-                          viewBox='0 0 24 24'
-                        >
-                          <circle
-                            className='opacity-25'
-                            cx='12'
-                            cy='12'
-                            r='10'
-                            stroke='currentColor'
-                            strokeWidth='4'
-                          />
-                          <path
-                            className='opacity-75'
-                            fill='currentColor'
-                            d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                          />
-                        </svg>
-                        Sending...
+                        {uploadProgress && uploadProgress > 0 && uploadProgress < 100 ? (
+                          <>
+                            <span className='mr-2'>Uploading ({uploadProgress}%)</span>
+                            <div className='inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className='animate-spin -ml-1 mr-2 h-4 w-4 text-white inline'
+                              xmlns='http://www.w3.org/2000/svg'
+                              fill='none'
+                              viewBox='0 0 24 24'
+                            >
+                              <circle
+                                className='opacity-25'
+                                cx='12'
+                                cy='12'
+                                r='10'
+                                stroke='currentColor'
+                                strokeWidth='4'
+                              />
+                              <path
+                                className='opacity-75'
+                                fill='currentColor'
+                                d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                              />
+                            </svg>
+                            Sending...
+                          </>
+                        )}
                       </>
                     ) : (
                       'Send'

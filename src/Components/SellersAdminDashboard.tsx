@@ -73,8 +73,8 @@ const SellerHomeDashboard = () => {
     {
       title: 'সাপোর্ট টিকেট',
       icon: <FaTicketAlt className='text-3xl text-orange-600' />,
-      url: '/support-ticket',
-      upcoming: true,
+      url: '/support-tickets',
+      // upcoming: true,
     },
   ]
 
