@@ -24,7 +24,6 @@ const CustomerLogin = ({ phoneNumber }: LoginProps) => {
       })
       alert(success)
       if (success) {
-        localStorage.setItem('token', data?.token)
         setUser(data?.user)
         navigate('/products')
       } else {

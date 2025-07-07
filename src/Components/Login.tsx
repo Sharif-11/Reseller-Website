@@ -32,7 +32,6 @@ const LoginPage = () => {
 
       if (result.success) {
         if (result.data.user.role === 'Seller') {
-          localStorage.setItem('token', result.data?.token)
           setUser(result.data?.user)
           console.log({ user })
         } else {

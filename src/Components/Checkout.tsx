@@ -32,7 +32,7 @@ const Checkout = () => {
   const { loadCartCount } = useCartFavorite()
   const [showReliabilityModal, setShowReliabilityModal] = useState(false)
   const [reliabilityMetrics, setReliabilityMetrics] = useState<SimplifiedResult | null>(null)
-  const [isCheckingReliability, setIsCheckingReliability] = useState(false)
+  const [isCheckingReliability] = useState(false)
 
   // Cart items and price calculation
   const shopCart = location?.state?.shopCart as ShopCart

@@ -52,18 +52,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [error] = useState<Error | null>(null)
 
   const checkLogin = async () => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setLoading(false)
-      return
-    }
     try {
       setLoading(true)
       const result = await verifyLogin()
 
       if (result?.success && result.data?.role === 'Seller') {
         setUser(result.data || null)
-        result.data?.token && localStorage.setItem('token', result.data?.token || '') // Store token if available
       } else {
         setUser(null)
       }
