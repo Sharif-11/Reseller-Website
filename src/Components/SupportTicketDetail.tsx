@@ -517,6 +517,11 @@ const SupportTicketDetailPage = () => {
               </form>
             </div>
           )}
+          {ticket.status === 'CLOSED' && (
+            <div className='p-4 sm:p-6 border-t border-gray-200 text-center text-gray-500 font-bold'>
+              <p className='text-sm'>This ticket is closed. You cannot reply to it.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
