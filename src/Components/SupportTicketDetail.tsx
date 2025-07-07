@@ -117,8 +117,8 @@ const SupportTicketDetailPage = () => {
       setError('')
 
       // Validate number of files
-      if (attachments.length + newFiles.length > 5) {
-        setError('সর্বোচ্চ ৫টি ছবি আপলোড করতে পারবেন')
+      if (attachments.length + newFiles.length > 1) {
+        setError('সর্বোচ্চ ১টি ছবি আপলোড করতে পারবেন')
         return
       }
 
@@ -131,9 +131,9 @@ const SupportTicketDetailPage = () => {
           continue
         }
 
-        // Check file size (2MB max)
-        if (file.size > 2 * 1024 * 1024) {
-          setError(`Image "${file.name}" exceeds 2MB size limit`)
+        // Check file size (1MB max)
+        if (file.size > 1 * 1024 * 1024) {
+          setError(`Image "${file.name}" exceeds 1MB size limit`)
           continue
         }
 
@@ -401,7 +401,7 @@ const SupportTicketDetailPage = () => {
 
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Attachments (max 5 images, 2MB each)
+                    Attachments (max 1 images, 1 MB each)
                   </label>
                   <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
                     <button
@@ -432,7 +432,7 @@ const SupportTicketDetailPage = () => {
                       accept='image/*'
                     />
                     <p className='text-sm text-gray-500'>
-                      {attachments.length} / 5 images selected
+                      {attachments.length} / 1 images selected
                     </p>
                   </div>
 

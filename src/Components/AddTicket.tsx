@@ -29,15 +29,15 @@ const NewSupportTicketPage = () => {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
-      if (attachments.length + newFiles.length > 5) {
-        setError('আপনি সর্বোচ্চ ৫টি ফাইল আপলোড করতে পারবেন')
+      if (attachments.length + newFiles.length > 2) {
+        setError('আপনি সর্বোচ্চ ২টি ফাইল আপলোড করতে পারবেন')
         return
       }
 
-      // Check each file size (max 2MB)
+      // Check each file size (max 1MB)
       for (const file of newFiles) {
-        if (file.size > 2 * 1024 * 1024) {
-          setError('প্রতিটি ফাইলের আকার ২MB এর কম হতে হবে')
+        if (file.size > 1 * 1024 * 1024) {
+          setError('প্রতিটি ফাইলের আকার ১MB এর কম হতে হবে')
           return
         }
       }
@@ -276,7 +276,7 @@ const NewSupportTicketPage = () => {
 
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-2'>
-                সংযুক্তি (সর্বোচ্চ ৫টি, প্রতিটি ২MB পর্যন্ত)
+                সংযুক্তি (সর্বোচ্চ ২টি, প্রতিটি ১ MB পর্যন্ত)
               </label>
 
               <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
@@ -310,7 +310,7 @@ const NewSupportTicketPage = () => {
                   accept='image/*,.pdf,.doc,.docx,.xls,.xlsx'
                 />
 
-                <p className='text-sm text-gray-500'>{attachments.length} / 5 ফাইল নির্বাচিত</p>
+                <p className='text-sm text-gray-500'>{attachments.length} / 2 ফাইল নির্বাচিত</p>
               </div>
 
               {attachments.length > 0 && (

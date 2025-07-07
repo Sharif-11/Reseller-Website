@@ -7,7 +7,7 @@ import districts from '../../public/zillasInfo.json'
 import { orderApi } from '../Api/order.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { OrderData } from '../types/order.types'
-import { calculateReliability, CourierData, SimplifiedResult } from '../utils/customer.reliability'
+import { SimplifiedResult } from '../utils/customer.reliability'
 import { CART_ITEMS_KEY, DRAFT_KEY } from '../utils/utils.variables'
 import { ShopCart } from './Cart'
 import CourierReliabilityModal from './CourierReliabilityModal'
@@ -86,64 +86,64 @@ const Checkout = () => {
     },
     validationSchema,
     onSubmit: async values => {
-      // First check reliability
-      if (!reliabilityMetrics) {
-        setIsCheckingReliability(true)
-        try {
-          const exampleData: CourierData[] = [
-            {
-              courier: 'Pathao',
-              delivered: 1,
-              returned: 0,
-              total: 1,
-              ratio: '100.00%',
-            },
-            {
-              courier: 'Paperfly',
-              delivered: 0,
-              returned: 0,
-              total: 0,
-              ratio: '0%',
-            },
-            {
-              courier: 'RedX',
-              delivered: 1,
-              returned: 0,
-              total: 1,
-              ratio: '100.00%',
-            },
-            {
-              courier: 'SteadFast',
-              delivered: 0,
-              returned: 0,
-              total: 0,
-              ratio: '0%',
-            },
-          ]
-          const { success, message, data } = await orderApi.fraudCheckByPhoneNo(
-            values.customerPhone
-          )
-          if (success) {
-            const metrics = calculateReliability(data as CourierData[])
-            setReliabilityMetrics(metrics)
-            setShowReliabilityModal(true)
-            console.log('Reliability metrics:', metrics)
-            console.log(message)
-          } else {
-            // setFormErrors([message || 'কাস্টমারের তথ্য যাচাই করতে সমস্যা হয়েছে।'])
-            const metrics = calculateReliability(exampleData)
-            setReliabilityMetrics(metrics)
-            setShowReliabilityModal(true)
-          }
-        } catch (error) {
-          console.error('Error checking reliability:', error)
-          // Continue with order submission if reliability check fails
-          submitOrder(values)
-        } finally {
-          setIsCheckingReliability(false)
-        }
-        return
-      }
+      // // First check reliability
+      // if (!reliabilityMetrics) {
+      //   setIsCheckingReliability(true)
+      //   try {
+      //     const exampleData: CourierData[] = [
+      //       {
+      //         courier: 'Pathao',
+      //         delivered: 1,
+      //         returned: 0,
+      //         total: 1,
+      //         ratio: '100.00%',
+      //       },
+      //       {
+      //         courier: 'Paperfly',
+      //         delivered: 0,
+      //         returned: 0,
+      //         total: 0,
+      //         ratio: '0%',
+      //       },
+      //       {
+      //         courier: 'RedX',
+      //         delivered: 1,
+      //         returned: 0,
+      //         total: 1,
+      //         ratio: '100.00%',
+      //       },
+      //       {
+      //         courier: 'SteadFast',
+      //         delivered: 0,
+      //         returned: 0,
+      //         total: 0,
+      //         ratio: '0%',
+      //       },
+      //     ]
+      //     const { success, message, data } = await orderApi.fraudCheckByPhoneNo(
+      //       values.customerPhone
+      //     )
+      //     if (success) {
+      //       const metrics = calculateReliability(data as CourierData[])
+      //       setReliabilityMetrics(metrics)
+      //       setShowReliabilityModal(true)
+      //       console.log('Reliability metrics:', metrics)
+      //       console.log(message)
+      //     } else {
+      //       // setFormErrors([message || 'কাস্টমারের তথ্য যাচাই করতে সমস্যা হয়েছে।'])
+      //       const metrics = calculateReliability(exampleData)
+      //       setReliabilityMetrics(metrics)
+      //       setShowReliabilityModal(true)
+      //     }
+      //   } catch (error) {
+      //     console.error('Error checking reliability:', error)
+      //     // Continue with order submission if reliability check fails
+      //     submitOrder(values)
+      //   } finally {
+      //     setIsCheckingReliability(false)
+      //   }
+      //   return
+      // }
 
       // If reliability already checked, proceed with order submission
       submitOrder(values)

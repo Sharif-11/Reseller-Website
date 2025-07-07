@@ -35,13 +35,6 @@ class EnhancedReliabilityChecker {
   }
 
   // Success rate thresholds
-  private readonly SUCCESS_THRESHOLDS = {
-    EXCELLENT: 95, // 95%+
-    GOOD: 85, // 85-94%
-    AVERAGE: 70, // 70-84%
-    POOR: 50, // 50-69%
-    VERY_POOR: 0, // Below 50%
-  }
 
   // Risk factors for fraud detection
   private readonly FRAUD_INDICATORS = {
@@ -281,7 +274,7 @@ export const calculateReliability = (courierData: CourierData[]): SimplifiedResu
 }
 
 export const getReliabilityMessage = (result: SimplifiedResult): string => {
-  const { reliabilityScore, totalOrders, riskLevel, confidenceLevel, flags } = result
+  const { reliabilityScore, totalOrders, confidenceLevel, flags } = result
 
   // Handle no order history
   if (totalOrders === 0) {
