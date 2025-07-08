@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { FaHeadset, FaRocket, FaShieldAlt, FaStore } from 'react-icons/fa'
+import { FaRocket, FaShieldAlt, FaStore } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 
 const HomeIntroduction = () => {
@@ -31,11 +31,6 @@ const HomeIntroduction = () => {
           className='max-w-6xl mx-auto text-center'
         >
           {/* Badge */}
-          <motion.div variants={fadeIn} className='mb-3'>
-            <span className='inline-block bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium shadow-sm'>
-              বাংলাদেশের সেরা রিসেলিং প্ল্যাটফর্ম
-            </span>
-          </motion.div>
 
           {/* Main Heading */}
           <motion.h1
@@ -57,13 +52,12 @@ const HomeIntroduction = () => {
           >
             <span className='font-medium text-blue-600'>স্টক ছাড়াই ব্যবসা</span> শুরু করুন, আমরা
             দিবো <span className='font-medium'>সম্পূর্ণ সাপোর্ট</span>।{' '}
-            <span className='font-medium'>প্রতিদিন ১০০+ অর্ডার</span> করছেন আমাদের রিসেলাররা!
           </motion.p>
 
           {/* Features Grid */}
           <motion.div
             variants={staggerContainer}
-            className='grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-16'
+            className='grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12 sm:mb-16'
           >
             <motion.div
               variants={fadeIn}
@@ -103,19 +97,6 @@ const HomeIntroduction = () => {
               <h3 className='font-bold text-lg sm:text-xl mb-2 text-gray-800'>গুণগত মান</h3>
               <p className='text-sm sm:text-base text-gray-600'>১০০% টেস্টেড পণ্য</p>
             </motion.div>
-
-            <motion.div
-              variants={fadeIn}
-              whileHover={{ y: -5, scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              className='bg-white p-5 sm:p-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-blue-50'
-            >
-              <div className='bg-blue-100 w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4'>
-                <FaHeadset className='text-xl sm:text-2xl text-blue-600' />
-              </div>
-              <h3 className='font-bold text-lg sm:text-xl mb-2 text-gray-800'>২৪/৭ সাপোর্ট</h3>
-              <p className='text-sm sm:text-base text-gray-600'>বিশেষজ্ঞ টিমের সহায়তা</p>
-            </motion.div>
           </motion.div>
 
           {/* CTA Section */}
@@ -127,11 +108,10 @@ const HomeIntroduction = () => {
             <div className='absolute -left-8 -bottom-8 w-28 h-28 sm:w-40 sm:h-40 bg-blue-400 rounded-full opacity-20'></div>
             <div className='relative z-10'>
               <h2 className='text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4'>
-                এখনই যুক্ত হোন <span className='text-blue-200'>৫০০+</span> সফল রিসেলারের সাথে!
+                এখনই যুক্ত হোন <span className='text-blue-200'>আমাদের সাথে</span>
               </h2>
               <p className='text-sm sm:text-base text-blue-100 mb-5 sm:mb-6 max-w-2xl mx-auto'>
-                শপ বিডি রিসেলার জবস বাংলাদেশের সবচেয়ে বিশ্বস্ত প্ল্যাটফর্ম। আজই রেজিস্টার করুন এবং
-                পেয়ে যান বিশেষ ওয়েলকাম অফার!
+                শপ বিডি রিসেলার জবস বাংলাদেশের সবচেয়ে বিশ্বস্ত প্ল্যাটফর্ম। আজই রেজিস্টার করুন
               </p>
               <motion.button
                 onClick={() => navigate('/register#register')}

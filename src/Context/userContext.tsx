@@ -97,7 +97,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (location.pathname.startsWith('/customer-register')) {
       setCustomerMode(true)
-      Cookies.set('customerMode', 'true', { expires: 0.25 }) // Set cookie for 6 hours
+      Cookies.set('customerMode', 'true') // Set cookie to remember customer mode
     } else {
       setCustomerMode(Cookies.get('customerMode') === 'true')
     }

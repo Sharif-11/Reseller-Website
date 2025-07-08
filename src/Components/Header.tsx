@@ -163,12 +163,14 @@ const Header = ({
                 >
                   হোম
                 </a>
-                <a
-                  href='/about-us#about-us'
-                  className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
-                >
-                  আমাদের সম্পর্কে
-                </a>
+                {customerMode === true || (
+                  <a
+                    href='/about-us#about-us'
+                    className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
+                  >
+                    আমাদের সম্পর্কে
+                  </a>
+                )}
                 <a
                   href='/products#products'
                   className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
@@ -420,13 +422,15 @@ const Header = ({
             >
               হোম
             </NavLink>
-            <NavLink
-              to='/about-us#about-us'
-              className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
-              onClick={toggleMenu}
-            >
-              আমাদের সম্পর্কে
-            </NavLink>
+            {customerMode === true || (
+              <NavLink
+                to='/about-us#about-us'
+                className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
+                onClick={toggleMenu}
+              >
+                আমাদের সম্পর্কে
+              </NavLink>
+            )}
             <NavLink
               to='/products#products'
               className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
