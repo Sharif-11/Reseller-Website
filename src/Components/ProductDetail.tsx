@@ -549,7 +549,7 @@ const ProductDetail = () => {
                     </span>
                   </div>
                   <div className='flex items-center justify-between'>
-                    <span className='text-gray-600'>সর্বোচ্চ পাইকারি মূল্য:</span>
+                    <span className='text-gray-600'>সর্বোচ্চ বিক্রয় মূল্য:</span>
                     <span className='text-lg text-[#e5307e] font-bold'>
                       ৳{product.suggestedMaxPrice.toLocaleString('bn-BD')}
                     </span>

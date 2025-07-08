@@ -17,7 +17,7 @@ const Header = ({
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const { user, setUser } = useAuth()
+  const { user, setUser, customerMode } = useAuth()
 
   // Sample cart and favorite counts - replace with actual data from your state/context
   const { cartCount, favoriteCount } = useCartFavorite()
@@ -182,18 +182,22 @@ const Header = ({
                   অর্ডারসমূহ
                 </a>
 
-                <a
-                  href='/login#login'
-                  className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
-                >
-                  লগইন
-                </a>
-                <a
-                  href='/register#register'
-                  className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
-                >
-                  রেজিস্ট্রেশন
-                </a>
+                {!customerMode && (
+                  <NavLink
+                    to='/login#login'
+                    className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
+                  >
+                    লগইন
+                  </NavLink>
+                )}
+                {!customerMode && (
+                  <NavLink
+                    to='/register#register'
+                    className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
+                  >
+                    রেজিস্ট্রেশন
+                  </NavLink>
+                )}
 
                 {/* For logged out users in desktop - show cart and favorite at rightmost */}
                 <div className='flex items-center space-x-2 ml-4'>
@@ -438,20 +442,24 @@ const Header = ({
               অর্ডারসমূহ
             </NavLink>
 
-            <NavLink
-              to='/login#login'
-              className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
-              onClick={toggleMenu}
-            >
-              লগইন
-            </NavLink>
-            <NavLink
-              to='/register#register'
-              className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
-              onClick={toggleMenu}
-            >
-              রেজিস্ট্রেশন
-            </NavLink>
+            {!customerMode && (
+              <>
+                <NavLink
+                  to='/login#login'
+                  className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
+                  onClick={toggleMenu}
+                >
+                  লগইন
+                </NavLink>
+                <NavLink
+                  to='/register#register'
+                  className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
+                  onClick={toggleMenu}
+                >
+                  রেজিস্ট্রেশন
+                </NavLink>
+              </>
+            )}
           </div>
         </div>
       )}

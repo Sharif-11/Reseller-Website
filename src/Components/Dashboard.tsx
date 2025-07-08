@@ -29,6 +29,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       navigate('/')
     }
   }
+
   return (
     <div className='min-h-screen bg-gray-50'>
       {/* Header */}

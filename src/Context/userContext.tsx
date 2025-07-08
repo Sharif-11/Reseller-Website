@@ -1,3 +1,4 @@
+import Cookies from 'js-cookie'
 import { createContext, ReactNode, useEffect, useState } from 'react'
 import { verifyLogin } from '../Api/auth.api'
 import Loading from '../Components/Loading'
@@ -34,6 +35,8 @@ interface UserContextType {
   loading: boolean
   error: Error | null
   reloadUser: () => Promise<null | User> // Add reload function to context type
+  customerMode: boolean
+  setCustomerMode: (mode: boolean) => void
 }
 
 // Create the context
@@ -43,6 +46,8 @@ export const UserContext = createContext<UserContextType>({
   loading: true,
   error: null,
   reloadUser: async () => null, // Add default reload function
+  customerMode: false,
+  setCustomerMode: () => {},
 })
 
 // Provider Component
@@ -50,6 +55,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
   const [error] = useState<Error | null>(null)
+  const [customerMode, setCustomerMode] = useState<boolean>(false)
 
   const checkLogin = async () => {
     try {
@@ -88,11 +94,21 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     checkLogin()
   }, [])
+  useEffect(() => {
+    if (location.pathname.startsWith('/customer-register')) {
+      setCustomerMode(true)
+      Cookies.set('customerMode', 'true', { expires: 0.25 }) // Set cookie for 6 hours
+    } else {
+      setCustomerMode(Cookies.get('customerMode') === 'true')
+    }
+  }, [location.pathname])
 
   if (loading) return <Loading />
 
   return (
-    <UserContext.Provider value={{ user, setUser, loading, error, reloadUser }}>
+    <UserContext.Provider
+      value={{ user, setUser, loading, error, reloadUser, customerMode, setCustomerMode }}
+    >
       {children}
     </UserContext.Provider>
   )
