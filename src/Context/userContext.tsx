@@ -95,6 +95,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     checkLogin()
   }, [])
   useEffect(() => {
+    const customerModeCookie = Cookies.get('customerMode')
+    if (customerModeCookie === 'true') {
+      setCustomerMode(true)
+      return
+    }
     if (location.pathname.startsWith('/customer-register')) {
       setCustomerMode(true)
       Cookies.set('customerMode', 'true') // Set cookie to remember customer mode

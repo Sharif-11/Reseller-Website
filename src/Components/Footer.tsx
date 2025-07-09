@@ -1,27 +1,38 @@
 import {
   FaEnvelope,
   FaFacebook,
+  FaInfoCircle,
   FaMapMarkerAlt,
   FaPhoneAlt,
+  FaQuestionCircle,
+  FaShoppingBag,
   FaTelegram,
   FaWhatsapp,
 } from 'react-icons/fa'
+import { useAuth } from '../Hooks/useAuth'
 
 const Footer = () => {
+  const { customerMode } = useAuth()
+
   return (
     <footer className='bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-white'>
       {/* Main Footer Content */}
       <div className='container mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:py-16'>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12'>
+        <div
+          className={`grid grid-cols-1 sm:grid-cols-2 lg:${
+            customerMode ? 'grid-cols-3' : 'grid-cols-4'
+          } gap-6 sm:gap-8 lg:gap-12`}
+        >
           {/* Company Info */}
           <div className='sm:col-span-2 lg:col-span-1'>
             <div className='mb-6 text-center sm:text-left'>
               <h3 className='text-xl sm:text-2xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent'>
-                শপ বিডি রিসেলার জবস
+                {customerMode ? 'শপ বিডি' : 'শপ বিডি রিসেলার জবস'}
               </h3>
               <p className='text-gray-300 text-sm sm:text-base leading-relaxed mb-4 sm:mb-6'>
-                বাংলাদেশের নির্ভরযোগ্য ড্রপশিপিং ও রিসেলিং প্ল্যাটফর্ম। আমরা আপনার ব্যবসার সফলতার
-                জন্য প্রতিশ্রুতিবদ্ধ।
+                {customerMode
+                  ? 'বাংলাদেশের নির্ভরযোগ্য অনলাইন শপিং প্ল্যাটফর্ম। গুণগত পণ্য ও সেবার জন্য আমাদের বিশ্বস্ত করুন।'
+                  : 'বাংলাদেশের নির্ভরযোগ্য ড্রপশিপিং ও রিসেলিং প্ল্যাটফর্ম। আমরা আপনার ব্যবসার সফলতার জন্য প্রতিশ্রুতিবদ্ধ।'}
               </p>
 
               {/* Social Media Links */}
@@ -51,83 +62,117 @@ const Footer = () => {
           {/* Quick Links */}
           <div className='text-center sm:text-left'>
             <h4 className='text-base sm:text-lg font-semibold mb-4 sm:mb-6 relative'>
-              <span className='border-b-2 border-blue-400 pb-2'>দ্রুত লিংক</span>
+              <span className='border-b-2 border-blue-400 pb-2'>
+                {customerMode ? 'গুরুত্বপূর্ণ লিংক' : 'দ্রুত লিংক'}
+              </span>
             </h4>
             <ul className='space-y-2 sm:space-y-4'>
-              <li>
-                <a
-                  href='/about-us#about-us'
-                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
-                >
-                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
-                  আমাদের সম্পর্কে
-                </a>
-              </li>
-              <li>
-                <a
-                  href='products#products'
-                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
-                >
-                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
-                  আমাদের প্রোডাক্টসমূহ
-                </a>
-              </li>
-              <li>
-                <a
-                  href='/#how-it-works'
-                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
-                >
-                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
-                  কিভাবে কাজ করে
-                </a>
-              </li>
-              <li>
-                <a
-                  href='/faq'
-                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
-                >
-                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
-                  সচরাচর প্রশ্ন
-                </a>
-              </li>
+              {customerMode ? (
+                <>
+                  <li>
+                    <a
+                      href='/products'
+                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                    >
+                      <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                      <FaShoppingBag className='mr-2 text-blue-400' size={14} />
+                      সকল পণ্য
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href='/#how-to-order'
+                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                    >
+                      <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                      <FaInfoCircle className='mr-2 text-blue-400' size={14} />
+                      কিভাবে অর্ডার করবেন
+                    </a>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <a
+                      href='/about-us'
+                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                    >
+                      <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                      আমাদের সম্পর্কে
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href='/products'
+                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                    >
+                      <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                      আমাদের প্রোডাক্টসমূহ
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href='/how-it-works'
+                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                    >
+                      <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                      কিভাবে কাজ করে
+                    </a>
+                  </li>
+                </>
+              )}
+              {customerMode || (
+                <li>
+                  <a
+                    href='/faq'
+                    className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                  >
+                    <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                    <FaQuestionCircle className='mr-2 text-blue-400' size={14} />
+                    সচরাচর প্রশ্ন
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 
           {/* Legal Links */}
-          <div className='text-center sm:text-left'>
-            <h4 className='text-base sm:text-lg font-semibold mb-4 sm:mb-6 relative'>
-              <span className='border-b-2 border-blue-400 pb-2'>গুরুত্বপূর্ণ লিংক</span>
-            </h4>
-            <ul className='space-y-2 sm:space-y-4'>
-              <li>
-                <a
-                  href='/privacy-policy'
-                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
-                >
-                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
-                  প্রাইভেসি পলিসি
-                </a>
-              </li>
-              <li>
-                <a
-                  href='/return-refund-policy'
-                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
-                >
-                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
-                  রিটার্ন ও রিফান্ড পলিসি
-                </a>
-              </li>
-              <li>
-                <a
-                  href='/terms-conditions'
-                  className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
-                >
-                  <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
-                  টার্মস ও কন্ডিশন
-                </a>
-              </li>
-            </ul>
-          </div>
+          {customerMode || (
+            <div className='text-center sm:text-left'>
+              <h4 className='text-base sm:text-lg font-semibold mb-4 sm:mb-6 relative'>
+                <span className='border-b-2 border-blue-400 pb-2'>নীতিমালা</span>
+              </h4>
+              <ul className='space-y-2 sm:space-y-4'>
+                <li>
+                  <a
+                    href='/privacy-policy'
+                    className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                  >
+                    <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                    প্রাইভেসি পলিসি
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href='/return-refund-policy'
+                    className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                  >
+                    <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                    রিটার্ন ও রিফান্ড পলিসি
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href='/terms-conditions'
+                    className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
+                  >
+                    <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
+                    টার্মস ও কন্ডিশন
+                  </a>
+                </li>
+              </ul>
+            </div>
+          )}
 
           {/* Contact Info */}
           <div className='sm:col-span-2 lg:col-span-1'>
@@ -185,13 +230,16 @@ const Footer = () => {
           <div className='flex flex-col items-center space-y-3 sm:flex-row sm:justify-between sm:space-y-0'>
             <div className='text-center sm:text-left order-2 sm:order-1'>
               <p className='text-gray-400 text-xs sm:text-sm'>
-                &copy; {new Date().getFullYear()} শপ বিডি রিসেলার জবস। সকল স্বত্ব সংরক্ষিত
+                &copy; {new Date().getFullYear()} {customerMode ? 'শপ বিডি' : 'শপ বিডি রিসেলার জবস'}
+                । সকল স্বত্ব সংরক্ষিত
               </p>
             </div>
             <div className='text-center sm:text-right order-1 sm:order-2'>
               <p className='text-gray-500 text-xs sm:text-sm'>
                 ডিজাইন ও ডেভেলপমেন্ট -{' '}
-                <span className='text-blue-400'>শপ বিডি রিসেলার জবস টিম</span>
+                <span className='text-blue-400'>
+                  {customerMode ? 'শপ বিডি টিম' : 'শপ বিডি রিসেলার জবস টিম'}
+                </span>
               </p>
             </div>
           </div>

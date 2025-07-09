@@ -460,7 +460,7 @@ const Products = () => {
 
         {/* Shops View */}
         {view === 'shops' && (
-          <div>
+          <div id='products'>
             <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8'>
               শপ সিলেক্ট করুন
             </h1>
