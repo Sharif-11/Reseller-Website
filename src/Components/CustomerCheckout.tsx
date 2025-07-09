@@ -2,9 +2,11 @@ import { useFormik } from 'formik'
 import { useEffect, useState } from 'react'
 import { FiChevronLeft, FiEdit2, FiMapPin, FiPhone, FiUser } from 'react-icons/fi'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import * as Yup from 'yup'
 import districts from '../../public/zillasInfo.json'
 import { orderApi } from '../Api/order.api'
+import { walletApi } from '../Api/wallet.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { CustomerOrderData } from '../types/order.types'
 import { CART_ITEMS_KEY, DRAFT_KEY } from '../utils/utils.variables'
@@ -20,6 +22,27 @@ interface DraftData {
   comments: string
 }
 
+interface OrderResponse {
+  orderId: number
+  shopId: string
+  customerName: string
+  customerPhoneNo: string
+  customerZilla: string
+  customerUpazilla: string
+  deliveryAddress: string
+  comments: string
+  deliveryCharge: number
+  orderStatus: string
+  products: {
+    id: string
+    imageUrl: string
+    imageId: string
+    quantity: number
+    sellingPrice: number
+    selectedVariants?: Record<string, string>
+  }[]
+}
+
 const CustomerCheckout = () => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -27,14 +50,26 @@ const CustomerCheckout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formErrors, setFormErrors] = useState<string[]>([])
   const { loadCartCount } = useCartFavorite()
-  const shopCart = location.state?.shopCart as ShopCart
-  const totalItems = shopCart.items.reduce((sum, item) => sum + item.quantity, 0)
-  const [subtotal] = useState(
-    shopCart.items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
-  )
-  const [deliveryCharge, setDeliveryCharge] = useState<number>(0)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
+  const [transactionId, setTransactionId] = useState('')
+  const [customerWalletNumber, setCustomerWalletNumber] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [systemWallets, setSystemWallets] = useState<
+    { walletId: number; walletName: string; walletPhoneNo: string }[]
+  >([])
+  const [selectedSystemWallet, setSelectedSystemWallet] = useState<{
+    walletId: number
+    walletName: string
+    walletPhoneNo: string
+  } | null>(null)
+  const [walletLoading, setWalletLoading] = useState(false)
 
-  // Add this useEffect to watch for zilla changes and update delivery charge
+  const shopCart = location.state?.shopCart as ShopCart
+  const totalItems = shopCart?.items.reduce((sum, item) => sum + item.quantity, 0)
+  const subtotal = shopCart?.items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(0)
 
   const validationSchema = Yup.object({
     customerPhone: Yup.string()
@@ -80,10 +115,10 @@ const CustomerCheckout = () => {
           })),
         }
 
-        const { success, message } = await orderApi.createCustomerOrder(
+        const { success, message, data } = await orderApi.createCustomerOrder(
           orderData as CustomerOrderData
         )
-        if (success) {
+        if (success && data) {
           clearDraft()
           const cartItems: CartItem[] = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
           const updatedCartItems = cartItems.filter(
@@ -91,29 +126,30 @@ const CustomerCheckout = () => {
           )
           localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCartItems))
           loadCartCount()
-          navigate('/orders', { state: { orderSuccess: true } })
+
+          // Show payment modal after order creation
+          fetchSystemWallets()
+          setSelectedOrder(data)
+          setShowPaymentModal(true)
         } else {
-          setFormErrors([message!])
+          setFormErrors([message || 'অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
         }
       } catch (error) {
         console.error('Order submission error:', error)
-        setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
+        setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
       } finally {
         setIsSubmitting(false)
       }
     },
   })
+
   useEffect(() => {
-    console.log(formik.values.zilla, shopCart)
     if (formik.values.zilla && shopCart) {
-      // Assuming shopCart has a shopZilla property that indicates where the shop is located
       const isInsideDeliveryZone =
         formik.values.zilla.toLowerCase() === shopCart.shopLocation!.toLowerCase()
-      console.log('Is inside delivery zone:', isInsideDeliveryZone)
       const deliveryChargeValue = isInsideDeliveryZone
         ? shopCart.deliveryChargeInside ?? 0
         : shopCart.deliveryChargeOutside ?? 0
-      console.log('Delivery charge value:', deliveryChargeValue)
       setDeliveryCharge(deliveryChargeValue)
     }
   }, [formik.values.zilla, shopCart])
@@ -139,6 +175,59 @@ const CustomerCheckout = () => {
     saveDraft({ ...formik.values, zilla: selectedZilla, upazilla: '' })
   }
 
+  const fetchSystemWallets = async () => {
+    try {
+      setWalletLoading(true)
+      const response = await walletApi.getSystemWallets()
+      if (response.success) {
+        setSystemWallets(response.data)
+      } else {
+        toast.error(response.message || 'ওয়ালেট লোড করতে সমস্যা হয়েছে')
+      }
+    } catch (error) {
+      toast.error('ওয়ালেট লোড করতে সমস্যা হয়েছে')
+      console.error('Error fetching system wallets:', error)
+    } finally {
+      setWalletLoading(false)
+    }
+  }
+
+  const handlePayment = async () => {
+    if (!selectedOrder || !selectedSystemWallet) return
+
+    try {
+      setActionLoading(true)
+      setError('')
+
+      const paymentData = {
+        orderId: selectedOrder.orderId,
+        paymentMethod: 'WALLET',
+        customerWalletPhoneNo: customerWalletNumber,
+        systemWalletPhoneNo: selectedSystemWallet.walletPhoneNo,
+        transactionId: transactionId,
+        customerWalletName: selectedSystemWallet.walletName,
+        amount: selectedOrder.deliveryCharge || 0,
+      }
+
+      const response = await orderApi.orderPaymentByCustomer(paymentData)
+
+      if (response.success) {
+        toast.success('পেমেন্ট সফল হয়েছে')
+        setShowPaymentModal(false)
+        setTransactionId('')
+        setSelectedSystemWallet(null)
+        navigate('/orders', { state: { orderSuccess: true } })
+      } else {
+        setError(response.message || 'পেমেন্ট করতে ব্যর্থ হয়েছে')
+      }
+    } catch (error) {
+      setError('একটি ত্রুটি ঘটেছে')
+      console.error('Error processing payment:', error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   useEffect(() => {
     const draft = loadDraft()
     if (draft) {
@@ -158,6 +247,11 @@ const CustomerCheckout = () => {
     return () => clearTimeout(timer)
   }, [formik.values])
 
+  if (!shopCart) {
+    navigate('/cart')
+    return null
+  }
+
   if (shopCart.items.length === 0) {
     return (
       <div className='flex items-center justify-center min-h-screen p-4'>
@@ -175,7 +269,6 @@ const CustomerCheckout = () => {
       </div>
     )
   }
-  !shopCart && navigate('/cart')
 
   return (
     <div className='min-h-screen bg-gray-50 py-4 px-4 sm:px-6'>
@@ -190,6 +283,7 @@ const CustomerCheckout = () => {
 
         <h1 className='text-2xl font-bold text-gray-900 mb-6'>চেকআউট</h1>
 
+        {/* Mobile shop info */}
         <div className='bg-white rounded-lg shadow-md p-4 mb-6 lg:hidden'>
           <div className='flex items-center gap-3 mb-3'>
             <FiMapPin className='text-blue-600' size={18} />
@@ -206,7 +300,10 @@ const CustomerCheckout = () => {
           <div className='flex flex-wrap gap-4 text-sm'>
             {shopCart.deliveryChargeInside && (
               <div className='flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full'>
-                <span className='text-blue-700 font-medium'>এলাকার ভিতরে:</span>
+                <span className='text-blue-700 font-medium'>
+                  {' '}
+                  {shopCart?.shopLocation} এর ভিতরে:{' '}
+                </span>
                 <span className='text-blue-800 font-semibold'>
                   ৳{shopCart.deliveryChargeInside.toLocaleString('bn-BD')}
                 </span>
@@ -215,7 +312,10 @@ const CustomerCheckout = () => {
 
             {shopCart.deliveryChargeOutside && (
               <div className='flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-full'>
-                <span className='text-green-700 font-medium'>এলাকার বাইরে:</span>
+                <span className='text-green-700 font-medium'>
+                  {' '}
+                  {shopCart?.shopLocation} এর বাইরে:
+                </span>
                 <span className='text-green-800 font-semibold'>
                   ৳{shopCart.deliveryChargeOutside.toLocaleString('bn-BD')}
                 </span>
@@ -224,6 +324,7 @@ const CustomerCheckout = () => {
           </div>
         </div>
 
+        {/* Mobile order summary */}
         <div className='lg:hidden bg-white rounded-lg shadow-md p-4 mb-6'>
           <h2 className='text-lg font-medium text-gray-900 mb-3'>আপনার অর্ডার</h2>
           <div className='border-b pb-3 mb-3'>
@@ -282,7 +383,9 @@ const CustomerCheckout = () => {
           </div>
         </div>
 
+        {/* Main grid */}
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+          {/* Customer form */}
           <div className='lg:col-span-2 bg-white rounded-lg shadow-md overflow-hidden'>
             <div className='bg-gradient-to-r from-blue-600 to-blue-700 p-4 text-white'>
               <h2 className='text-lg font-bold'>কাস্টমার তথ্য</h2>
@@ -465,6 +568,7 @@ const CustomerCheckout = () => {
             </div>
           </div>
 
+          {/* Desktop order summary */}
           <div className='hidden lg:block lg:col-span-1'>
             <div className='bg-white rounded-lg shadow-md p-4 sticky top-4'>
               <h2 className='text-lg font-medium text-gray-900 mb-3'>আপনার অর্ডার</h2>
@@ -523,11 +627,6 @@ const CustomerCheckout = () => {
                     </span>
                   </div>
                 )}
-
-                {/* <div className='flex justify-between font-medium text-lg mt-2'>
-                  <span className='text-gray-800'>মোট:</span>
-                  <span className='text-blue-600'>৳{totalAmount.toLocaleString('bn-BD')}</span>
-                </div> */}
               </div>
 
               <div className='mt-4 pt-4 border-t'>
@@ -547,7 +646,7 @@ const CustomerCheckout = () => {
                   <div className='flex flex-wrap gap-2 mt-2'>
                     {shopCart.deliveryChargeInside && (
                       <div className='flex items-center gap-1 bg-blue-50/70 px-2.5 py-1 rounded-md'>
-                        <span className='text-blue-700'>ভিতরে:</span>
+                        <span className='text-blue-700'> {shopCart?.shopLocation} এর ভিতরে: </span>
                         <span className='text-blue-800 font-medium'>
                           ৳{shopCart.deliveryChargeInside.toLocaleString('bn-BD')}
                         </span>
@@ -556,7 +655,7 @@ const CustomerCheckout = () => {
 
                     {shopCart.deliveryChargeOutside && (
                       <div className='flex items-center gap-1 bg-amber-50/70 px-2.5 py-1 rounded-md'>
-                        <span className='text-amber-700'>বাইরে:</span>
+                        <span className='text-amber-700'> {shopCart?.shopLocation} এর বাইরে:</span>
                         <span className='text-amber-800 font-medium'>
                           ৳{shopCart.deliveryChargeOutside.toLocaleString('bn-BD')}
                         </span>
@@ -569,6 +668,130 @@ const CustomerCheckout = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedOrder && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+          <div className='bg-white rounded-lg shadow-xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col'>
+            {/* Header */}
+            <div className='p-4 border-b flex-shrink-0'>
+              <h2 className='text-lg font-medium text-green-600 text-center'>
+                পেমেন্ট সম্পূর্ণ করুন (#{selectedOrder.orderId})
+              </h2>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className='flex-1 overflow-y-auto p-4'>
+              <div className='bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4'>
+                <div className='flex'>
+                  <div className='flex-shrink-0'>
+                    <span className='text-yellow-500 text-base'>!</span>
+                  </div>
+                  <div className='ml-3'>
+                    <p className='text-sm text-yellow-700 leading-relaxed'>
+                      অর্ডার সম্পূর্ণ করতে অবশ্যই পেমেন্ট করতে হবে
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Amount */}
+              <div className='bg-gray-50 p-4 rounded-lg mb-4'>
+                <div className='flex justify-between items-center'>
+                  <span className='text-base font-medium'>মোট পেমেন্ট:</span>
+                  <span className='text-lg font-semibold text-green-600'>
+                    ৳{selectedOrder.deliveryCharge.toLocaleString('bn-BD')}
+                  </span>
+                </div>
+              </div>
+
+              {/* System Wallet Selection */}
+              <div className='mb-4'>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  সিস্টেম ওয়ালেট নির্বাচন করুন *
+                </label>
+                <select
+                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  value={selectedSystemWallet?.walletId || ''}
+                  onChange={e => {
+                    const walletId = parseInt(e.target.value)
+                    const wallet = systemWallets.find(w => w.walletId === walletId)
+                    setSelectedSystemWallet(wallet || null)
+                  }}
+                  required
+                  disabled={walletLoading}
+                >
+                  <option value=''>সিলেক্ট করুন</option>
+                  {systemWallets.map(wallet => (
+                    <option key={wallet.walletId} value={wallet.walletId}>
+                      {wallet.walletName} ({wallet.walletPhoneNo})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Customer Wallet Number */}
+              <div className='mb-4'>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  আপনার ওয়ালেট নম্বর *
+                </label>
+                <input
+                  type='text'
+                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  placeholder='01XXXXXXXXX'
+                  value={customerWalletNumber}
+                  onChange={e => setCustomerWalletNumber(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Transaction ID */}
+              <div className='mb-4'>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  ট্রানজেকশন আইডি *
+                </label>
+                <input
+                  type='text'
+                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  placeholder='ট্রানজেকশন আইডি'
+                  value={transactionId}
+                  onChange={e => setTransactionId(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Payment Instructions */}
+              <div className='bg-blue-50 border-2 border-blue-200 rounded-lg p-3 mb-4'>
+                <h4 className='text-sm font-medium text-blue-800 mb-2'>পেমেন্ট নির্দেশনা:</h4>
+                <ol className='list-decimal list-inside text-xs text-blue-700 space-y-1'>
+                  <li>উপরের নির্বাচিত ওয়ালেটে {selectedOrder.deliveryCharge}৳ সেন্ড মানি করুন</li>
+                  <li>ট্রানজেকশন আইডি সঠিকভাবে লিখুন</li>
+                  <li>পেমেন্ট কনফার্ম করুন বাটনে ক্লিক করুন</li>
+                </ol>
+              </div>
+
+              {error && (
+                <div className='p-3 bg-red-50 border border-red-200 rounded-lg mb-4'>
+                  <p className='text-red-600 text-sm'>{error}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className='p-4 border-t bg-white flex-shrink-0'>
+              <button
+                onClick={handlePayment}
+                disabled={
+                  actionLoading || !selectedSystemWallet || !customerWalletNumber || !transactionId
+                }
+                className='w-full px-4 py-2 text-sm bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors'
+              >
+                {actionLoading ? 'প্রক্রিয়াধীন...' : 'পেমেন্ট কনফার্ম করুন'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
