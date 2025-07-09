@@ -9,6 +9,7 @@ import {
   FaStore,
   FaUser,
 } from 'react-icons/fa'
+import { useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { orderApi } from '../Api/order.api'
 import { walletApi } from '../Api/wallet.api'
@@ -105,6 +106,7 @@ interface PaginationState {
 
 const Orders = () => {
   const { user, reloadUser } = useAuth()
+  const location = useLocation()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<{
@@ -123,7 +125,7 @@ const Orders = () => {
   })
 
   const [activeTab, setActiveTab] = useState<'pending' | 'confirmed' | 'completed' | 'others'>(
-    'pending'
+    location?.state?.tab || 'pending'
   )
   const [selectedSystemWallet, setSelectedSystemWallet] = useState<SystemWallet | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -371,9 +373,6 @@ const Orders = () => {
   }
 
   const renderActionButtons = (order: Order) => {
-   
-   
-
     return (
       <div className='flex gap-2'>
         <button
@@ -450,7 +449,6 @@ const Orders = () => {
       </div>
     )
   }
-
 
   useEffect(() => {
     reloadUser()
