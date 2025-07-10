@@ -135,6 +135,9 @@ class OrderApi {
   public async fraudCheckByPhoneNo(phoneNo: string) {
     return apiClient.get(`orders/fraud-check/${phoneNo}`)
   }
+  public async getTopSellingProducts() {
+    return apiClient.get('orders/top-selling-products')
+  }
 }
 
 export const orderApi = new OrderApi()

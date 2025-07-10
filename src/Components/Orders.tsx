@@ -1164,7 +1164,7 @@ const Orders = () => {
                         navigator.clipboard.writeText(selectedOrder.trackingUrl || '')
                         toast.success('লিঙ্ক কপি করা হয়েছে')
                       }}
-                      className='px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 text-xs sm:text-sm flex items-center gap-1 whitespace-nowrap'
+                      className='px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 text-xs sm:text-sm flex items-center gap-1 whitespace-nowrap ml-2'
                     >
                       <svg
                         xmlns='http://www.w3.org/2000/svg'

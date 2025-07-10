@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fileDownloader } from '../Api/ftp.api'
+import { orderApi } from '../Api/order.api'
 import ShopApi, { Category, Product, Shop } from '../Api/shop.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { FAVORITES_KEY } from '../utils/utils.variables'
@@ -23,6 +24,7 @@ const Products = () => {
   const [categories, setCategories] = useState<Category[]>([])
   const [, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+  const [topSellingProducts, setTopSellingProducts] = useState<Product[]>([])
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [loading, setLoading] = useState(false)
@@ -83,6 +85,15 @@ const Products = () => {
       setShops([])
     } finally {
       setLoading(false)
+    }
+  }
+  const loadTopSellingProducts = async () => {
+    try {
+      const response = await orderApi.getTopSellingProducts()
+      setTopSellingProducts(response.data || [])
+    } catch (error) {
+      console.error('Error loading top selling products:', error)
+      setTopSellingProducts([])
     }
   }
 
@@ -254,6 +265,14 @@ const Products = () => {
   const handleNavigate = (productId: number) => {
     navigate(`/products/${productId}`)
   }
+  useEffect(() => {
+    loadShops()
+    loadFavorites()
+    loadTopSellingProducts() // Add this line
+    return () => {
+      Object.values(autoSlideIntervals).forEach(interval => clearInterval(interval))
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -500,6 +519,80 @@ const Products = () => {
                 </div>
               ))}
             </div>
+            {topSellingProducts.length > 0 && (
+              <div className='mt-12'>
+                <h2 className='text-xl sm:text-2xl font-bold text-gray-900 mb-6'>
+                  জনপ্রিয় পণ্য সমূহ
+                </h2>
+                <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4'>
+                  {topSellingProducts.map(product => {
+                    const isFavorite = favorites.some(p => p.productId === product.productId)
+                    const primaryImage = product.ProductImage?.[0]?.imageUrl
+
+                    return (
+                      <div
+                        key={product.productId}
+                        onClick={() => handleNavigate(product.productId)}
+                        className='bg-white rounded-lg shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden'
+                      >
+                        {/* Product Image */}
+                        <div className='relative aspect-[3/4]'>
+                          {primaryImage ? (
+                            <img
+                              src={primaryImage}
+                              alt={product.name}
+                              className='w-full h-full object-cover'
+                            />
+                          ) : (
+                            <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
+                              <Package className='h-12 w-12 text-gray-400' />
+                            </div>
+                          )}
+
+                          {/* Favorite Button */}
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              toggleFavorite(product)
+                            }}
+                            className={`absolute top-2 right-2 p-2 rounded-full shadow-lg transition-all ${
+                              isFavorite
+                                ? 'bg-red-500 text-white'
+                                : 'bg-white/90 text-gray-700 hover:bg-white'
+                            }`}
+                          >
+                            <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                          </button>
+                        </div>
+
+                        {/* Product Info */}
+                        <div className='p-3'>
+                          <h3 className='font-bold text-gray-900 mb-1 text-sm line-clamp-2'>
+                            {product.name}
+                          </h3>
+                          <div className='text-sm font-bold text-gray-900'>
+                            {formatPrice(product.basePrice || product.price!)}
+                          </div>
+                          <div className='text-xs text-gray-500 mt-1'>
+                            <div className='flex-1'>
+                              <h6 className='text-md sm:text-xl font-[600] text-gray-900 group-hover:text-blue-600 transition-colors'>
+                                {product.shop.shopName}
+                              </h6>
+                              <div className='flex items-center text-gray-600 mt-1 sm:mt-2'>
+                                <MapPin className='h-4 w-4 mr-1' />
+                                <span className='text-xs sm:text-sm'>
+                                  {product.shop.shopLocation}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
