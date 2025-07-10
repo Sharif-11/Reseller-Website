@@ -44,13 +44,13 @@ const Footer = () => {
                   <FaFacebook size={16} className='sm:text-lg' />
                 </a>
                 <a
-                  href='#'
+                  href='https://t.me/+xUKRYo264jU5Njg1'
                   className='w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-300 hover:bg-blue-500 hover:text-white transition-all duration-300 transform hover:scale-110'
                 >
                   <FaTelegram size={16} className='sm:text-lg' />
                 </a>
                 <a
-                  href='#'
+                  href='https://chat.whatsapp.com/Gs5lCd3OBDM69bnv0h8Jc0?mode=ac_t'
                   className='w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-300 hover:bg-green-500 hover:text-white transition-all duration-300 transform hover:scale-110'
                 >
                   <FaWhatsapp size={16} className='sm:text-lg' />

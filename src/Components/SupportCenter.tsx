@@ -33,7 +33,7 @@ const SupportCenter = () => {
       icon: <FaWhatsapp className='text-xl md:text-2xl text-green-600' />,
       details: 'সেলার্স কমিউনিটি',
       action: 'জয়েন করুন',
-      link: 'https://wa.me/yourgroup',
+      link: 'https://chat.whatsapp.com/Gs5lCd3OBDM69bnv0h8Jc0?mode=ac_t',
       bgColor: 'bg-green-50 hover:bg-green-100',
     },
   ]

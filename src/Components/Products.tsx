@@ -522,7 +522,7 @@ const Products = () => {
             {topSellingProducts.length > 0 && (
               <div className='mt-12'>
                 <h2 className='text-xl sm:text-2xl font-bold text-gray-900 mb-6'>
-                  জনপ্রিয় পণ্য সমূহ
+                  টপ সেলিং প্রোডাক্টস
                 </h2>
                 <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4'>
                   {topSellingProducts.map(product => {
