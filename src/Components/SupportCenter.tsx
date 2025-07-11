@@ -17,7 +17,7 @@ const SupportCenter = () => {
       icon: <FaFacebook className='text-xl md:text-2xl text-[#1877F2]' />,
       details: 'আমাদের অফিসিয়াল পেজ',
       action: 'পেজ ভিজিট করুন',
-      link: 'https://facebook.com/yourpage',
+      link: 'https://www.facebook.com/profile.php?id=61578209851119&mibextid=ZbWKwL',
       bgColor: 'bg-[#1877F2]/10 hover:bg-[#1877F2]/20',
     },
     {

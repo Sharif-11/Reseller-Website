@@ -38,7 +38,7 @@ const Footer = () => {
               {/* Social Media Links */}
               <div className='flex justify-center sm:justify-start space-x-3 sm:space-x-4'>
                 <a
-                  href='#'
+                  href='https://www.facebook.com/profile.php?id=61578209851119&mibextid=ZbWKwL'
                   className='w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-300 hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:scale-110'
                 >
                   <FaFacebook size={16} className='sm:text-lg' />
