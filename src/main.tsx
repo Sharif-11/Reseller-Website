@@ -42,6 +42,7 @@ import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import ProductDetail from './Components/ProductDetail.tsx'
+import ProductList from './Components/Products.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
 import SupportTicketDetailPage from './Components/SupportTicketDetail.tsx'
@@ -202,6 +203,7 @@ const UserProviderWrapper = () => {
               </WithFooter>
             }
           />
+          <Route path='/products' element={<ProductList />} />
           <Route
             path='products/:productId'
             element={

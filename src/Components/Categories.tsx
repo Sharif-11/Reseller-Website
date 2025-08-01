@@ -1,6 +1,9 @@
-import { Package } from 'lucide-react'
+import { Heart, MapPin, Package } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import shopApi, { Shop, ShopCategory } from '../Api/shop.api'
+import { useNavigate } from 'react-router'
+import { orderApi } from '../Api/order.api'
+import shopApi, { Product, Shop } from '../Api/shop.api'
+import { FAVORITES_KEY } from '../utils/utils.variables'
 
 interface Category {
   categoryId: number
@@ -26,11 +29,13 @@ interface SubCategory {
 }
 
 const Categories = () => {
+  const navigate = useNavigate()
   const [shops, setShops] = useState<Shop[]>([])
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
-  const [shopCategories, setShopCategories] = useState<ShopCategory[]>([])
   const [loading, setLoading] = useState(false)
+  const [topSellingProducts, setTopSellingProducts] = useState<Product[]>([])
+  const [favorites, setFavorites] = useState<Product[]>([])
 
   // Filter state
   const [minPrice, setMinPrice] = useState('')
@@ -56,7 +61,7 @@ const Categories = () => {
               data: shopCategoriesResponse,
               data: shopCategories,
             } = await shopApi.getShopCategories(selectedShop.shopId)
-            setShopCategories(shopCategories || [])
+            // setShopCategories(shopCategories || [])
 
             if (shopSuccess) {
               const shopCategoriesId = new Set(
@@ -117,13 +122,57 @@ const Categories = () => {
     }
     loadData()
   }, [])
+  useEffect(() => {
+    loadTopSellingProducts()
+    loadFavorites()
+  }, [])
 
   // Load categories when shop is selected
 
   const handleShopSelect = (shop: Shop) => {
     setSelectedShop(prev => (prev?.shopId === shop.shopId ? null : shop))
   }
-
+  const loadTopSellingProducts = async () => {
+    try {
+      const response = await orderApi.getTopSellingProducts()
+      setTopSellingProducts(response.data || [])
+    } catch (error) {
+      console.error('Error loading top selling products:', error)
+      setTopSellingProducts([])
+    }
+  }
+  const loadFavorites = () => {
+    const storedFavorites = localStorage.getItem(FAVORITES_KEY)
+    if (storedFavorites) {
+      setFavorites(JSON.parse(storedFavorites))
+    } else {
+      setFavorites([])
+    }
+  }
+  const toggleFavorite = (product: Product) => {
+    setFavorites(prev => {
+      const isFavorite = prev.some(p => p.productId === product.productId)
+      if (isFavorite) {
+        return prev.filter(p => p.productId !== product.productId)
+      } else {
+        return [...prev, product]
+      }
+    })
+  }
+  const formatPrice = (price: number) => {
+    return `৳${price.toLocaleString()}`
+  }
+  const handleNavigate = (productId: number) => {
+    navigate(`/products/${productId}`)
+  }
+  const navigateToProductLists = (categoryId: number, shopId?: number) => {
+    navigate('/products', {
+      state: {
+        categoryId,
+        shopId: shopId || null,
+      },
+    })
+  }
   // Mock filter data
   const mockShops = [
     { id: '', name: 'All Shops' },
@@ -169,7 +218,7 @@ const Categories = () => {
     <div className='min-h-screen bg-gray-50 p-2 sm:p-4' id='categories'>
       {/* Shop Selection */}
       <div className='mb-6'>
-        <h2 className='text-lg font-bold text-gray-900 mb-3'>Select a Shop</h2>
+        <h2 className='text-lg font-bold text-gray-900 mb-3'>শপ সিলেক্ট করুন</h2>
         <div
           className={`grid ${
             shops.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
@@ -209,12 +258,15 @@ const Categories = () => {
                   <span className='text-xs text-gray-600'>({category.products})</span>
                 </div>
 
-                {category.subCategories?.length > 0 ? (
+                {category?.subCategories && category?.subCategories?.length > 0 ? (
                   <div className='grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2'>
                     {category.subCategories.map(subCategory => (
                       <div
                         key={subCategory.categoryId}
                         className='border border-gray-200 rounded hover:bg-gray-50 transition-colors cursor-pointer'
+                        onClick={() =>
+                          navigateToProductLists(subCategory.categoryId, selectedShop?.shopId)
+                        }
                       >
                         <div className='flex flex-col items-center p-1'>
                           {subCategory.categoryIcon ? (
@@ -325,6 +377,77 @@ const Categories = () => {
                 <p className='text-xs text-gray-500'>Shop: {product.shop}</p>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {/* Top Selling Products */}
+      {topSellingProducts.length > 0 && (
+        <div className='mt-12'>
+          <h2 className='text-xl sm:text-2xl font-bold text-gray-900 mb-6'>টপ সেলিং প্রোডাক্টস</h2>
+          <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4'>
+            {topSellingProducts.map(product => {
+              const isFavorite = favorites.some(p => p.productId === product.productId)
+              const primaryImage = product.ProductImage?.[0]?.imageUrl
+
+              return (
+                <div
+                  key={product.productId}
+                  onClick={() => handleNavigate(product.productId)}
+                  className='bg-white rounded-lg shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden'
+                >
+                  {/* Product Image */}
+                  <div className='relative aspect-[3/4]'>
+                    {primaryImage ? (
+                      <img
+                        src={primaryImage}
+                        alt={product.name}
+                        className='w-full h-full object-cover'
+                      />
+                    ) : (
+                      <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
+                        <Package className='h-12 w-12 text-gray-400' />
+                      </div>
+                    )}
+
+                    {/* Favorite Button */}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation()
+                        toggleFavorite(product)
+                      }}
+                      className={`absolute top-2 right-2 p-2 rounded-full shadow-lg transition-all ${
+                        isFavorite
+                          ? 'bg-red-500 text-white'
+                          : 'bg-white/90 text-gray-700 hover:bg-white'
+                      }`}
+                    >
+                      <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                    </button>
+                  </div>
+
+                  {/* Product Info */}
+                  <div className='p-3'>
+                    <h3 className='font-bold text-gray-900 mb-1 text-sm line-clamp-2'>
+                      {product.name}
+                    </h3>
+                    <div className='text-sm font-bold text-gray-900'>
+                      {formatPrice(product.basePrice || product.price!)}
+                    </div>
+                    <div className='text-xs text-gray-500 mt-1'>
+                      <div className='flex-1'>
+                        <h6 className='text-md sm:text-xl font-[600] text-gray-900 group-hover:text-blue-600 transition-colors'>
+                          {product.shop.shopName}
+                        </h6>
+                        <div className='flex items-center text-gray-600 mt-1 sm:mt-2'>
+                          <MapPin className='h-4 w-4 mr-1' />
+                          <span className='text-xs sm:text-sm'>{product.shop.shopLocation}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

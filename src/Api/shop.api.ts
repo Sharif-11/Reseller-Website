@@ -83,7 +83,7 @@ class ShopApi {
     minPrice?: number
     maxPrice?: number
     categoryId?: number
-    shopId: number
+    shopId?: number
     page?: number
     limit?: number
   }) {
