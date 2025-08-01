@@ -63,6 +63,13 @@ class ShopApi {
   public async getShopCategories(shopId: number) {
     return apiClient.get(`shops/${shopId}/categories`)
   }
+  public async getCategories(parentId: number | null = null) {
+    return apiClient.get('categories/subcategories', {
+      params: {
+        parentId,
+      },
+    })
+  }
   public async getAllProducts({
     search,
     minPrice,

@@ -15,7 +15,6 @@ import LoginPage from './Components/Login.tsx'
 import Orders from './Components/Orders.tsx'
 import PasswordReset from './Components/PasswordReset.tsx'
 import PublicProductDetails from './Components/ProductDetailPublic.tsx'
-import Products from './Components/Products.tsx'
 import Profile from './Components/Profile.tsx'
 import Referral from './Components/Refferal.tsx'
 import Register from './Components/Register.tsx'
@@ -33,6 +32,7 @@ import * as Sentry from '@sentry/react'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import NewSupportTicketPage from './Components/AddTicket.tsx'
 import AddWallet from './Components/AddWallet.tsx'
+import Categories from './Components/Categories.tsx'
 import CustomerCheckout from './Components/CustomerCheckout.tsx'
 import CustomerOrders from './Components/CustomerOrders.tsx'
 import CustomerRegister from './Components/CustomerRegister.tsx'
@@ -195,10 +195,10 @@ const UserProviderWrapper = () => {
           />
           <Route path='product-detail/:productId' element={<PublicProductDetails />} />
           <Route
-            path='products'
+            path='categories'
             element={
               <WithFooter>
-                <Products />
+                <Categories />
               </WithFooter>
             }
           />

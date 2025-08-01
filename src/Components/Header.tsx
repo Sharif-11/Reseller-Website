@@ -172,7 +172,7 @@ const Header = ({
                   </a>
                 )}
                 <a
-                  href='/products#products'
+                  href='/categories#categories'
                   className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
                 >
                   প্রোডাক্টস
@@ -432,7 +432,7 @@ const Header = ({
               </NavLink>
             )}
             <NavLink
-              to='/products#products'
+              to='/categories#categories'
               className='block px-3 py-2 rounded-md text-white font-medium hover:bg-indigo-600 transition'
               onClick={toggleMenu}
             >

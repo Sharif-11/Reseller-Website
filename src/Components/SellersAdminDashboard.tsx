@@ -36,7 +36,7 @@ const SellerHomeDashboard = () => {
     {
       title: 'সকল প্রোডাক্টস',
       icon: <FaBoxOpen className='text-3xl text-blue-600' />,
-      url: '/products',
+      url: '/categories',
     },
     {
       title: 'সেলস গাইডলাইন',

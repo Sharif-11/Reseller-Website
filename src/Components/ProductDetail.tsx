@@ -647,7 +647,7 @@ const ProductDetail = () => {
             )}
 
             {/* Mobile Add to Cart Button */}
-            <div className='lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg p-3 border-t'>
+            <div className='lg:hidden fixed z-[100] bottom-0 left-0 right-0 bg-white shadow-lg p-3 border-t'>
               <button
                 onClick={addToCart}
                 disabled={!!validationError}

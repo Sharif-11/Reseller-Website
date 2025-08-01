@@ -220,7 +220,7 @@ const Cart = () => {
           <h2 className='text-2xl font-bold text-gray-800 mb-2'>আপনার কার্ট খালি</h2>
           <p className='text-gray-600 mb-6'>কার্টে পণ্য যোগ করুন অর্ডার দেওয়ার জন্য</p>
           <Link
-            to='/products'
+            to='/categories'
             className='inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors'
           >
             <FiArrowLeft className='mr-2' />
@@ -258,6 +258,11 @@ const Cart = () => {
               </p>
               <p>৩. ৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</p>
               <p>৪. ৩টির বেশি পণ্য হলে অতিরিক্ত চার্জ প্রযোজ্য হবে।</p>
+              <p>
+                ৫. পণ্য সম্পর্কে কোন অভিযোগ থাকলে ও পার্সেল রিসেন্ট ও এক্সচেঞ্জ করতে চাইলে আনবক্সিং
+                ভিডিও দিতে হবে ও ভিডিওতে প্যাকেটের উপরের কুরিয়ার স্টিকার স্পষ্টভাবে দেখাবেন, তারপর
+                প্যাকেট খুলে সমস্যার কথা বলবেন।
+              </p>
             </div>
 
             <div className='p-4 border-t flex justify-end space-x-3 sticky bottom-0 bg-white text-xs'>

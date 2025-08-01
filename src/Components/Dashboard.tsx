@@ -102,9 +102,9 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 প্রোফাইল
               </NavLink>
 
-              {/* Standalone Products Link */}
+              {/* Standalone Categories Link */}
               <NavLink
-                to='/products'
+                to='/categories'
                 className={({ isActive }) => `
                   flex items-center px-4 py-3 rounded-lg transition-all
                   ${

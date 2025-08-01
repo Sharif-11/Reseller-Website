@@ -71,7 +71,7 @@ const Footer = () => {
                 <>
                   <li>
                     <a
-                      href='/products'
+                      href='/categories#categories'
                       className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
                     >
                       <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
@@ -103,7 +103,7 @@ const Footer = () => {
                   </li>
                   <li>
                     <a
-                      href='/products'
+                      href='/categories#categories'
                       className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex items-center justify-center sm:justify-start group text-sm sm:text-base'
                     >
                       <span className='w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-3 sm:group-hover:w-4 mr-0 group-hover:mr-2'></span>
