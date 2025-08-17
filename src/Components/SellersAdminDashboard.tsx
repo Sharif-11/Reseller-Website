@@ -54,6 +54,11 @@ const SellerHomeDashboard = () => {
       url: '/support',
     },
     {
+      title: 'প্রতারণা যাচাই',
+      icon: <FaHeadset className='text-3xl text-red-600' />,
+      url: '/check-fraud',
+    },
+    {
       title: 'সাধারণ প্রশ্ন',
       icon: <FaQuestionCircle className='text-3xl text-indigo-600' />,
       url: '/faq',

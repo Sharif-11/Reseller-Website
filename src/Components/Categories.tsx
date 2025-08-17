@@ -1,6 +1,7 @@
-import { Heart, MapPin, Package } from 'lucide-react'
+import { Download, Heart, MapPin, Package } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { fileDownloader } from '../Api/ftp.api'
 import { orderApi } from '../Api/order.api'
 import shopApi, { Product, Shop } from '../Api/shop.api'
 import { FAVORITES_KEY } from '../utils/utils.variables'
@@ -38,12 +39,19 @@ const Categories = () => {
   const [favorites, setFavorites] = useState<Product[]>([])
 
   // Filter state
-  const [minPrice, setMinPrice] = useState('')
-  const [maxPrice, setMaxPrice] = useState('')
-  const [selectedFilterCategory, setSelectedFilterCategory] = useState('')
-  const [selectedFilterSubCategory, setSelectedFilterSubCategory] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filteredResults, setFilteredResults] = useState<any[]>([])
+  const [minPrice, setMinPrice] = useState<number | undefined>(undefined)
+  const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined)
+  const [selectedShopId, setSelectedShopId] = useState<number | undefined>(undefined)
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState<number | undefined>(
+    undefined
+  )
+  const [selectedFilterSubCategory, setSelectedFilterSubCategory] = useState<number | undefined>(
+    undefined
+  )
+  const [searchQuery, setSearchQuery] = useState<string | ''>('')
+  const [filteredResults, setFilteredResults] = useState<Product[]>([])
+  const [filterProductMessage, setFilterProductMessage] = useState<string | null>(null)
+
   useEffect(() => {
     const loadAndMergeCategories = async () => {
       try {
@@ -58,7 +66,7 @@ const Categories = () => {
           if (selectedShop) {
             const {
               success: shopSuccess,
-              data: shopCategoriesResponse,
+
               data: shopCategories,
             } = await shopApi.getShopCategories(selectedShop.shopId)
             // setShopCategories(shopCategories || [])
@@ -173,37 +181,41 @@ const Categories = () => {
       },
     })
   }
-  // Mock filter data
-  const mockShops = [
-    { id: '', name: 'All Shops' },
-    ...shops.map(shop => ({ id: String(shop.shopId), name: shop.shopName })),
-  ]
 
-  const mockCategories = [
-    { id: '', name: 'All Categories' },
-    ...categories.map(cat => ({ id: String(cat.categoryId), name: cat.name })),
-  ]
+  const applyFilters = async () => {
+    let categoryId: number | number[] | undefined = undefined
+    if (selectedFilterCategory && selectedFilterSubCategory) {
+      categoryId = selectedFilterSubCategory
+    } else {
+      const category = categories.find(cat => cat.categoryId === selectedFilterCategory)
+      const subCategories = category?.subCategories?.map(sub => sub.categoryId) || []
+      categoryId = subCategories
+    }
+    const filters = {
+      search: searchQuery,
+      minPrice,
+      maxPrice,
+      categoryId,
+      shopId: selectedShopId,
+      page: 1,
+      limit: 5,
+    }
+    console.log('Filters applied:', filters)
 
-  const mockSubCategories = selectedFilterCategory
-    ? [
-        { id: '', name: 'All Subcategories' },
-        ...(categories
-          .find(c => String(c.categoryId) === selectedFilterCategory)
-          ?.subCategories.map(sub => ({ id: String(sub.categoryId), name: sub.name })) || []),
-      ]
-    : [{ id: '', name: 'Select a category first', disabled: true }]
-
-  // Mock search results
-  const mockResults = [
-    { id: 1, name: 'Product 1', price: 1200, shop: 'Shop A' },
-    { id: 2, name: 'Product 2', price: 1500, shop: 'Shop B' },
-    { id: 3, name: 'Product 3', price: 1800, shop: 'Shop C' },
-  ]
-
-  const applyFilters = () => {
-    // In a real app, you would filter actual data here
-    // For now, we'll just use the mock results
-    setFilteredResults(mockResults)
+    const { success, data, message } = await shopApi.getAllProducts(filters)
+    if (success) {
+      setFilteredResults(data || [])
+      if (data.length === 0) {
+        setFilterProductMessage('No products found')
+      } else {
+        setFilterProductMessage(null)
+      }
+      console.log('Filters applied successfully:', data)
+      // Handle successful response
+    } else {
+      console.error('Failed to apply filters:', message)
+      setFilterProductMessage('Failed to apply filters')
+    }
   }
 
   if (loading) {
@@ -212,6 +224,20 @@ const Categories = () => {
         <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500'></div>
       </div>
     )
+  }
+  const downloadAllImages = async (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const imageUrls = product.ProductImage?.map(img => img.imageUrl) || []
+    if (imageUrls.length > 0) {
+      try {
+        await fileDownloader.downloadAllFiles(imageUrls, {
+          baseNamePrefix: `product_${product.name.replace(/\s+/g, '_')}`,
+          delayBetweenDownloads: 500,
+        })
+      } catch (error) {
+        console.error('Error downloading images:', error)
+      }
+    }
   }
 
   return (
@@ -301,84 +327,236 @@ const Categories = () => {
           </div>
         )}
       </div>
-      <div className='bg-white rounded-lg p-3 mb-6 border border-gray-200 mt-4'>
-        <h3 className='text-sm font-medium text-gray-700 mb-2'>Filter Products</h3>
+      <div className='bg-white rounded-lg p-4 mb-6 border border-gray-200 shadow-sm mt-4'>
+        <h3 className='text-sm font-semibold text-gray-800 mb-3'>প্রোডাক্ট ফিল্টার</h3>
 
-        {/* Price Range - Perfectly balanced single line */}
-        <div className='flex items-center mb-1 w-full'>
+        {/* Price Range */}
+        <div className='flex items-center mb-3 w-full'>
           <div className='flex-1 min-w-0'>
             <input
               type='number'
-              placeholder='Start Price'
-              className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none'
+              placeholder='শুরু মূল্য'
+              value={minPrice || ''}
+              onChange={e =>
+                setMinPrice(e.target.value === '' ? undefined : Number(e.target.value))
+              }
+              className='w-full p-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-400'
             />
           </div>
-          <span className='px-2 text-xs text-gray-500 whitespace-nowrap'>to</span>
+          <span className='px-2 text-xs text-gray-600 whitespace-nowrap'>থেকে</span>
           <div className='flex-1 min-w-0'>
             <input
               type='number'
-              placeholder='End Price'
-              className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none'
+              placeholder='শেষ মূল্য'
+              value={maxPrice || ''}
+              onChange={e =>
+                setMaxPrice(e.target.value === '' ? undefined : Number(e.target.value))
+              }
+              className='w-full p-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-400'
             />
           </div>
         </div>
 
-        {/* Other filters */}
-        <select className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none mb-1'>
-          <option value=''>Select shop</option>
-          {mockShops.map(shop => (
-            <option key={shop.id} value={shop.id}>
-              {shop.name}
+        {/* Shop Select */}
+        <select
+          className='w-full p-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 mb-2'
+          onChange={e =>
+            setSelectedShopId(e.target.value === '' ? undefined : Number(e.target.value))
+          }
+        >
+          <option value=''>শপ সিলেক্ট করুন</option>
+          {shops.map(shop => (
+            <option key={shop.shopId} value={shop.shopId}>
+              {shop.shopName}
             </option>
           ))}
         </select>
 
-        <select className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none mb-1'>
-          <option value=''>Select category</option>
-          {mockCategories.map(cat => (
-            <option key={cat.id} value={cat.id}>
+        {/* Category Select */}
+        <select
+          className='w-full p-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 mb-2'
+          onChange={e =>
+            setSelectedFilterCategory(
+              categories.find(cat => cat.categoryId === Number(e.target.value))?.categoryId ||
+                undefined
+            )
+          }
+        >
+          <option value=''>ক্যাটাগরি সিলেক্ট করুন</option>
+          {categories.map(cat => (
+            <option key={cat.categoryId} value={cat.categoryId}>
               {cat.name}
             </option>
           ))}
         </select>
 
-        <select className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none mb-1'>
-          <option value=''>Select subcategory</option>
-          {mockSubCategories.map(sub => (
-            <option key={sub.id} value={sub.id}>
-              {sub.name}
-            </option>
-          ))}
+        {/* Subcategory Select */}
+        <select
+          className='w-full p-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 mb-2'
+          onChange={e =>
+            setSelectedFilterSubCategory(
+              categories
+                .find(cat => cat.categoryId === selectedFilterCategory)
+                ?.subCategories?.find(sub => sub.categoryId === Number(e.target.value))
+                ?.categoryId || undefined
+            )
+          }
+        >
+          <option value=''>সাব-ক্যাটাগরি সিলেক্ট করুন</option>
+          {selectedFilterCategory &&
+            categories
+              .find(cat => cat.categoryId === selectedFilterCategory)
+              ?.subCategories?.map(sub => (
+                <option key={sub.categoryId} value={sub.categoryId}>
+                  {sub.name}
+                </option>
+              ))}
         </select>
 
+        {/* Search by name/description */}
         <input
           type='text'
-          placeholder='Name,Description...'
-          className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none'
+          placeholder='নাম বা বর্ণনা লিখুন...'
+          className='w-full p-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 mb-3'
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
         />
 
-        <button className='mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium'>
-          Apply Filters →
-        </button>
+        {/* Action Buttons */}
+        <div className='flex justify-between items-center'>
+          <button
+            className='flex-1 bg-blue-500 text-white text-xs font-medium py-2 rounded-md hover:bg-blue-600 transition mr-2'
+            onClick={applyFilters}
+          >
+            🔍 প্রোডাক্ট সার্চ করুন
+          </button>
+        </div>
       </div>
 
       {/* Filter Results */}
-      {filteredResults.length > 0 && (
-        <div className='mt-6'>
-          <h2 className='text-lg font-bold text-gray-900 mb-3'>Filter Results</h2>
-          <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3'>
-            {filteredResults.map(product => (
-              <div
-                key={product.id}
-                className='bg-white rounded-lg shadow-sm p-3 border border-gray-200'
-              >
-                <h3 className='font-medium text-gray-900'>{product.name}</h3>
-                <p className='text-sm text-gray-600'>Price: ৳{product.price.toLocaleString()}</p>
-                <p className='text-xs text-gray-500'>Shop: {product.shop}</p>
+      <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4'>
+        {filteredResults.map(product => {
+          const isFavorite = favorites.some(p => p.productId === product.productId)
+          const productImages = product.ProductImage || []
+          // const currentIndex = currentImageIndex[product.productId] || 0
+          const currentIndex = 0
+          // const totalImages = productImages.length
+
+          return (
+            <div
+              key={product.productId}
+              onClick={() => handleNavigate(product.productId)}
+              className='bg-white rounded-lg shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group'
+              // onMouseEnter={() =>
+              //   totalImages > 1 && startAutoSlide(product.productId, totalImages)
+              // }
+              // onMouseLeave={() => stopAutoSlide(product.productId)}
+            >
+              {/* Product Image with Slider */}
+              <div className='relative aspect-[3/4]'>
+                {productImages.length > 0 ? (
+                  <img
+                    src={productImages[currentIndex]?.imageUrl}
+                    alt={product.name}
+                    className='w-full h-full object-cover transition-transform duration-500'
+                  />
+                ) : (
+                  <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
+                    <Package className='h-12 w-12 text-gray-400' />
+                  </div>
+                )}
+
+                {/* Image Navigation Arrows */}
+                {/* {totalImages > 1 && (
+                      <>
+                        <button
+                          onClick={e => prevImage(product.productId, totalImages, e)}
+                          className='absolute left-[2px] top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                        >
+                          <ChevronLeft className='h-4 w-4' />
+                        </button>
+                        <button
+                          onClick={e => nextImage(product.productId, totalImages, e)}
+                          className='absolute right-[2px] top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                        >
+                          <ChevronRight className='h-4 w-4' />
+                        </button>
+                      </>
+                    )} */}
+
+                {/* Image Indicators */}
+                {/* {totalImages > 1 && (
+                  <div className='absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1'>
+                    {productImages.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={e => {
+                          e.stopPropagation()
+                          setCurrentImageIndex(prev => ({
+                            ...prev,
+                            [product.productId]: index,
+                          }))
+                        }}
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          index === currentIndex ? 'bg-white' : 'bg-white/50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )} */}
+
+                {/* Action Buttons */}
+                <div className='absolute top-2 right-2 flex flex-col space-y-2'>
+                  <button
+                    onClick={() => toggleFavorite(product)}
+                    className={`p-1.5 rounded-full shadow-lg transition-all ${
+                      isFavorite
+                        ? 'bg-red-500 text-white'
+                        : 'bg-white/90 text-gray-700 hover:bg-white'
+                    }`}
+                  >
+                    <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+                  </button>
+
+                  {productImages.length > 1 && (
+                    <button
+                      onClick={e => downloadAllImages(product, e)}
+                      className='p-1.5 bg-white/90 text-gray-700 hover:bg-white rounded-full shadow-lg transition-all'
+                      title='Download all images'
+                    >
+                      <Download className='h-3.5 w-3.5' />
+                    </button>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
+
+              {/* Product Info */}
+              <div className='p-3'>
+                <h3 className='font-bold text-gray-900 mb-1 text-sm line-clamp-2'>
+                  {product.name}
+                </h3>
+                <div className='text-sm font-bold text-gray-900'>
+                  {formatPrice(product.basePrice || product.price!)}
+                </div>
+
+                {product.shop && (
+                  <div className='text-xs text-gray-500 mt-1'>
+                    <div className='flex-1'>
+                      <h6 className='text-md font-[600] text-gray-900'>{product.shop.shopName}</h6>
+                      <div className='flex items-center text-gray-600 mt-1'>
+                        <MapPin className='h-4 w-4 mr-1' />
+                        <span className='text-xs'>{product.shop.shopLocation}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {filteredResults.length === 0 && (
+        <div className='text-center text-gray-500 py-4'>{filterProductMessage}</div>
       )}
       {/* Top Selling Products */}
       {topSellingProducts.length > 0 && (

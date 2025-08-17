@@ -201,10 +201,10 @@ const Footer = () => {
                 <div className='text-center sm:text-left'>
                   <p className='text-gray-400 text-xs sm:text-sm'>ইমেইল</p>
                   <a
-                    href='mailto:support@shopbdresellerjobs.shop'
+                    href='mailto:support@shopbdresellerjob.com'
                     className='text-gray-300 hover:text-blue-400 transition-colors duration-200 font-medium break-all text-sm sm:text-base'
                   >
-                    support@shopbdresellerjobs.shop
+                    support@shopbdresellerjob.com
                   </a>
                 </div>
               </li>

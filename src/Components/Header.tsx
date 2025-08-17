@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { logout } from '../Api/auth.api'
-import logo from '../assets/shopbd_logo.png'
+import logo from '../assets/sbr.png'
 import { useCartFavorite } from '../Context/cartContext'
 import { useAuth } from '../Hooks/useAuth'
 import { loadingText } from '../utils/utils.variables'
@@ -120,16 +120,16 @@ const Header = ({
     >
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex items-center justify-between h-16'>
-          {/* Logo and Mobile Menu Button */}
-          <div className='flex items-center text-white gap-3'>
+          {/* Logo and Mobile Sidebar Toggle */}
+          <div className='flex items-center text-white gap-2 sm:gap-3'>
             {user && (
               <button
                 onClick={() => setIsSidebarOpen(prev => !prev)}
-                className='md:hidden p-1 rounded-md hover:bg-indigo-600 transition'
+                className='p-1 rounded-md hover:bg-indigo-600 transition md:hidden'
                 aria-label='Toggle sidebar'
               >
                 <svg
-                  className='h-6 w-6'
+                  className='h-5 w-5 sm:h-6 sm:w-6'
                   xmlns='http://www.w3.org/2000/svg'
                   fill='none'
                   viewBox='0 0 24 24'
@@ -149,85 +149,178 @@ const Header = ({
               to='/'
               className='flex items-center text-white font-bold hover:text-indigo-200 transition duration-300'
             >
-              <img src={logo} alt='Shop BD Logo' className='h-20 w-60 sm:h-20 md:h-20' />
+              <img
+                src={logo}
+                alt='Shop BD Logo'
+                className='h-16 w-36 sm:h-16 sm:w-48 md:h-20 md:w-60'
+              />
             </NavLink>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className='hidden md:flex items-center space-x-2'>
+          {/* Mobile Right Section */}
+          <div className='flex items-center gap-2 md:hidden'>
+            {user ? (
+              <>
+                {/* Mobile Balance for Sellers */}
+                {user?.role === 'Seller' && (
+                  <div className='text-white bg-indigo-600 px-2 py-1 rounded-md text-xs sm:text-sm'>
+                    <span className='hidden sm:inline'>৳</span>
+                    <span className='sm:hidden'>৳</span>
+                    {Number(user?.balance).toFixed(0)}
+                  </div>
+                )}
+
+                {/* Mobile User Avatar */}
+                <button
+                  onClick={toggleDropdown}
+                  className='flex items-center text-white hover:bg-indigo-600 p-1 sm:p-2 rounded-md transition'
+                >
+                  <div className='h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-indigo-500 flex items-center justify-center'>
+                    <svg
+                      className='h-4 w-4 sm:h-5 sm:w-5'
+                      xmlns='http://www.w3.org/2000/svg'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                      stroke='currentColor'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+                      />
+                    </svg>
+                  </div>
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Mobile Cart and Favorites for Guest Users */}
+                <div className='flex items-center gap-1 sm:gap-2'>
+                  <FavoriteIcon />
+                  <CartIcon />
+                </div>
+
+                {/* Mobile Menu Toggle for Guest Users */}
+                <button
+                  onClick={toggleMenu}
+                  className='text-white hover:bg-indigo-600 p-1 sm:p-2 rounded-md focus:outline-none ml-1'
+                  aria-label='Toggle menu'
+                >
+                  {isMenuOpen ? (
+                    <svg
+                      className='h-5 w-5 sm:h-6 sm:w-6'
+                      xmlns='http://www.w3.org/2000/svg'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                      stroke='currentColor'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M6 18L18 6M6 6l12 12'
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className='h-5 w-5 sm:h-6 sm:w-6'
+                      xmlns='http://www.w3.org/2000/svg'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                      stroke='currentColor'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M4 6h16M4 12h16M4 18h16'
+                      />
+                    </svg>
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Desktop Navigation - Hidden on Mobile */}
+          <div className='hidden md:flex items-center space-x-2 lg:space-x-4'>
             {!user ? (
               <>
-                <a
-                  href='/#home'
-                  className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
-                >
-                  হোম
-                </a>
-                {customerMode === true || (
+                {/* Desktop Guest Navigation */}
+                <div className='flex items-center space-x-1 lg:space-x-2'>
                   <a
-                    href='/about-us#about-us'
-                    className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
+                    href='/#home'
+                    className='text-white hover:bg-indigo-600 px-3 py-2 lg:px-4 lg:py-2 rounded-md transition font-medium text-sm lg:text-base'
                   >
-                    আমাদের সম্পর্কে
+                    হোম
                   </a>
-                )}
-                <a
-                  href='/categories#categories'
-                  className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
-                >
-                  প্রোডাক্টস
-                </a>
-                <a
-                  href='/orders#orders'
-                  className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
-                >
-                  অর্ডারসমূহ
-                </a>
-
-                {!customerMode && (
-                  <NavLink
-                    to='/login#login'
-                    className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
+                  {customerMode !== true && (
+                    <a
+                      href='/about-us#about-us'
+                      className='text-white hover:bg-indigo-600 px-3 py-2 lg:px-4 lg:py-2 rounded-md transition font-medium text-sm lg:text-base'
+                    >
+                      আমাদের সম্পর্কে
+                    </a>
+                  )}
+                  <a
+                    href='/categories#categories'
+                    className='text-white hover:bg-indigo-600 px-3 py-2 lg:px-4 lg:py-2 rounded-md transition font-medium text-sm lg:text-base'
                   >
-                    লগইন
-                  </NavLink>
-                )}
-                {!customerMode && (
-                  <NavLink
-                    to='/register#register'
-                    className='text-white hover:bg-indigo-600 px-4 py-2 rounded-md transition font-medium'
+                    প্রোডাক্টস
+                  </a>
+                  <a
+                    href='/orders#orders'
+                    className='text-white hover:bg-indigo-600 px-3 py-2 lg:px-4 lg:py-2 rounded-md transition font-medium text-sm lg:text-base'
                   >
-                    রেজিস্ট্রেশন
-                  </NavLink>
-                )}
+                    অর্ডারসমূহ
+                  </a>
 
-                {/* For logged out users in desktop - show cart and favorite at rightmost */}
-                <div className='flex items-center space-x-2 ml-4'>
+                  {!customerMode && (
+                    <>
+                      <NavLink
+                        to='/login#login'
+                        className='text-white hover:bg-indigo-600 px-3 py-2 lg:px-4 lg:py-2 rounded-md transition font-medium text-sm lg:text-base'
+                      >
+                        লগইন
+                      </NavLink>
+                      <NavLink
+                        to='/register#register'
+                        className='text-white hover:bg-indigo-600 px-3 py-2 lg:px-4 lg:py-2 rounded-md transition font-medium text-sm lg:text-base'
+                      >
+                        রেজিস্ট্রেশন
+                      </NavLink>
+                    </>
+                  )}
+                </div>
+
+                {/* Desktop Cart and Favorites */}
+                <div className='flex items-center space-x-2 ml-3 lg:ml-4'>
                   <FavoriteIcon />
                   <CartIcon />
                 </div>
               </>
             ) : (
               <>
-                {/* For logged in users in desktop - show all three items */}
-                <div className='flex items-center space-x-4'>
-                  {/* Balance Display */}
+                {/* Desktop Logged-in User Section */}
+                <div className='flex items-center space-x-3 lg:space-x-4'>
+                  {/* Desktop Balance Display */}
                   {user?.role === 'Seller' && (
-                    <div className='text-white bg-indigo-600 px-3 py-1 rounded-md'>
+                    <div className='text-white bg-indigo-600 px-3 py-1 lg:px-4 lg:py-2 rounded-md text-sm lg:text-base'>
                       <span className='font-medium'>ব্যালেন্স: </span>
                       <span>৳{Number(user?.balance).toFixed(2)}</span>
                     </div>
                   )}
 
-                  {/* Favorite and Cart Icons */}
+                  {/* Desktop Favorite and Cart Icons */}
                   <div className='flex items-center space-x-2'>
                     <FavoriteIcon />
                     <CartIcon />
                   </div>
                 </div>
 
-                {/* User Dropdown */}
-                <div className='relative ml-4'>
+                {/* Desktop User Dropdown */}
+                <div className='relative ml-3 lg:ml-4'>
                   <button
                     onClick={toggleDropdown}
                     className='flex items-center space-x-2 text-white hover:bg-indigo-600 px-3 py-2 rounded-md transition'
@@ -248,7 +341,9 @@ const Header = ({
                         />
                       </svg>
                     </div>
-                    <span className='font-medium'>{user.name || 'User'}</span>
+                    <span className='font-medium text-sm lg:text-base hidden lg:inline'>
+                      {user.name || 'User'}
+                    </span>
                     <svg
                       className={`h-4 w-4 transition-transform ${
                         isDropdownOpen ? 'transform rotate-180' : ''
@@ -266,148 +361,65 @@ const Header = ({
                       />
                     </svg>
                   </button>
-
-                  {isDropdownOpen && (
-                    <div className='absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-10 overflow-hidden'>
-                      <div className='px-4 py-3 border-b border-gray-100'>
-                        <p className='text-sm font-medium text-gray-900'>{user.name || 'User'}</p>
-                        {user?.email && <p className='text-xs text-gray-500'>{user.email}</p>}
-                      </div>
-                      {user?.role === 'Seller' && (
-                        <div className='px-4 py-2 border-b border-gray-100'>
-                          <p
-                            className={`text-xs font-bold ${
-                              user?.balance >= 0 ? 'text-green-500' : 'text-red-500'
-                            }`}
-                          >
-                            ব্যালেন্স: ৳{Number(user?.balance).toFixed(2)}
-                          </p>
-                        </div>
-                      )}
-                      <button
-                        onClick={handleLogout}
-                        className='block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition'
-                      >
-                        {loading ? loadingText : 'লগআউট'}
-                      </button>
-                    </div>
-                  )}
                 </div>
               </>
             )}
           </div>
 
-          {/* Mobile Menu Button and Icons */}
-          <div className='md:hidden flex items-center'>
-            {/* For logged in users in mobile - show balance instead of cart/favorites */}
-            {user ? (
-              user?.role === 'Seller' && (
-                <div className='text-white bg-indigo-600 px-2 py-1 rounded-md text-sm mr-2'>
-                  {/* <span className='font-medium'>ব্যালেন্স: </span> */}
-                  <span>৳{Number(user?.balance).toFixed(2)}</span>
-                </div>
-              )
-            ) : (
-              // For logged out users in mobile - show cart and favorite
-              <div className='flex items-center space-x-2 mr-2'>
-                <FavoriteIcon />
-                <CartIcon />
+          {/* Mobile User Dropdown - Positioned Absolutely */}
+          {user && isDropdownOpen && (
+            <div className='absolute top-16 right-4 w-60 sm:w-64 bg-white rounded-md shadow-lg z-50 overflow-hidden md:hidden'>
+              <div className='px-4 py-3 border-b border-gray-100'>
+                <p className='text-sm font-medium text-gray-900 truncate'>{user.name || 'User'}</p>
+                {user.email && <p className='text-xs text-gray-500 truncate'>{user.email}</p>}
               </div>
-            )}
-
-            {!user && (
-              <button
-                onClick={toggleMenu}
-                className='text-white hover:bg-indigo-600 p-2 rounded-md focus:outline-none'
-                aria-label='Toggle menu'
-              >
-                {isMenuOpen ? (
-                  <svg
-                    className='h-6 w-6'
-                    xmlns='http://www.w3.org/2000/svg'
-                    fill='none'
-                    viewBox='0 0 24 24'
-                    stroke='currentColor'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M6 18L18 6M6 6l12 12'
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className='h-6 w-6'
-                    xmlns='http://www.w3.org/2000/svg'
-                    fill='none'
-                    viewBox='0 0 24 24'
-                    stroke='currentColor'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M4 6h16M4 12h16M4 18h16'
-                    />
-                  </svg>
-                )}
-              </button>
-            )}
-
-            {/* Mobile User Dropdown */}
-            {user && (
-              <div className='relative'>
-                <button
-                  onClick={toggleDropdown}
-                  className='flex items-center text-white hover:bg-indigo-600 p-2 rounded-md transition'
+              {user?.role === 'Seller' && (
+                <div
+                  className={`px-4 py-2 border-b border-gray-100 ${
+                    user?.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}
                 >
-                  <div className='h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center'>
-                    <svg
-                      className='h-5 w-5'
-                      xmlns='http://www.w3.org/2000/svg'
-                      fill='none'
-                      viewBox='0 0 24 24'
-                      stroke='currentColor'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                      />
-                    </svg>
+                  <div className='flex justify-between text-xs font-medium'>
+                    <span>ব্যালেন্স:</span>
+                    <span>৳{Number(user?.balance).toFixed(2)}</span>
                   </div>
-                </button>
-                {isDropdownOpen && (
-                  <div className='absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg z-10 overflow-hidden'>
-                    <div className='px-4 py-3 border-b border-gray-100'>
-                      <p className='text-sm font-medium text-gray-900'>{user.name || 'User'}</p>
-                      {user.email && <p className='text-xs text-gray-500'>{user.email}</p>}
-                    </div>
-                    {user?.role === 'Seller' && (
-                      <div
-                        className={`px-4 py-2 border-b border-gray-100 font-bold ${
-                          user?.balance >= 0 ? 'text-green-500' : 'text-red-500'
-                        }`}
-                      >
-                        <div className='flex justify-between text-xs'>
-                          <span>ব্যালেন্স:</span>
-                          <span className='font-medium'>৳{Number(user?.balance).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
-                    <button
-                      onClick={handleLogout}
-                      className='block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition'
-                    >
-                      {loading ? loadingText : 'লগআউট'}
-                    </button>
-                  </div>
-                )}
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className='block w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition'
+              >
+                {loading ? loadingText : 'লগআউট'}
+              </button>
+            </div>
+          )}
+
+          {/* Desktop User Dropdown */}
+          {user && isDropdownOpen && (
+            <div className='absolute top-16 right-4 lg:right-8 w-56 lg:w-64 bg-white rounded-md shadow-lg z-50 overflow-hidden hidden md:block'>
+              <div className='px-4 py-3 border-b border-gray-100'>
+                <p className='text-sm font-medium text-gray-900'>{user.name || 'User'}</p>
+                {user?.email && <p className='text-xs text-gray-500'>{user.email}</p>}
               </div>
-            )}
-          </div>
+              {user?.role === 'Seller' && (
+                <div className='px-4 py-2 border-b border-gray-100'>
+                  <p
+                    className={`text-xs font-bold ${
+                      user?.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
+                    ব্যালেন্স: ৳{Number(user?.balance).toFixed(2)}
+                  </p>
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className='block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition'
+              >
+                {loading ? loadingText : 'লগআউট'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

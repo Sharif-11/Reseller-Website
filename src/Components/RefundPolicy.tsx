@@ -304,7 +304,7 @@ const RefundPolicy = () => {
                 </svg>
                 <div>
                   <p className='text-xs text-gray-500'>ইমেইল করুন</p>
-                  <p className='font-medium text-xs'>support@shopbdresellerjobs.shop</p>
+                  <p className='font-medium text-xs'>support@shopbdresellerjob.com</p>
                 </div>
               </a>
             </div>

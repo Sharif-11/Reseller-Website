@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { fileDownloader } from '../Api/ftp.api'
 import ShopApi, { Product } from '../Api/shop.api'
+import { useCartFavorite } from '../Context/cartContext'
 import { FAVORITES_KEY } from '../utils/utils.variables'
 
 interface ProductListProps {
@@ -26,17 +27,16 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
     JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
   )
   const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({})
-  const [autoSlideIntervals, setAutoSlideIntervals] = useState<{ [key: number]: NodeJS.Timeout }>(
-    {}
-  )
+  const [autoSlideIntervals] = useState<{ [key: number]: NodeJS.Timeout }>({})
   const [searchTerm, setSearchTerm] = useState('')
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000])
-  const [showFilters, setShowFilters] = useState(false)
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0])
+  // const [showFilters, setShowFilters] = useState(false)
   const [totalProducts, setTotalProducts] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
+  const { loadFavoriteCount } = useCartFavorite()
   const navigate = useNavigate()
 
-  const loadProducts = async (initial: boolean = true) => {
+  const loadProducts = async () => {
     try {
       const { success, data } = await ShopApi.getAllProducts({
         shopId: shopId ? parseInt(shopId) : undefined,
@@ -56,7 +56,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
         data.forEach((product: Product) => {
           initialIndexes[product.productId] = 0
           if (product.ProductImage && product.ProductImage.length > 1) {
-            startAutoSlide(product.productId, product.ProductImage.length)
+            // startAutoSlide(product.productId, product.ProductImage.length)
           }
         })
         setCurrentImageIndex(initialIndexes)
@@ -79,36 +79,37 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
 
   useEffect(() => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
+    loadFavoriteCount()
   }, [favorites])
 
-  const startAutoSlide = (productId: number, totalImages: number) => {
-    if (autoSlideIntervals[productId]) {
-      clearInterval(autoSlideIntervals[productId])
-    }
+  // const startAutoSlide = (productId: number, totalImages: number) => {
+  //   if (autoSlideIntervals[productId]) {
+  //     clearInterval(autoSlideIntervals[productId])
+  //   }
 
-    const interval = setInterval(() => {
-      setCurrentImageIndex(prev => ({
-        ...prev,
-        [productId]: ((prev[productId] || 0) + 1) % totalImages,
-      }))
-    }, 3000)
+  //   const interval = setInterval(() => {
+  //     setCurrentImageIndex(prev => ({
+  //       ...prev,
+  //       [productId]: ((prev[productId] || 0) + 1) % totalImages,
+  //     }))
+  //   }, 3000)
 
-    setAutoSlideIntervals(prev => ({
-      ...prev,
-      [productId]: interval,
-    }))
-  }
+  //   setAutoSlideIntervals(prev => ({
+  //     ...prev,
+  //     [productId]: interval,
+  //   }))
+  // }
 
-  const stopAutoSlide = (productId: number) => {
-    if (autoSlideIntervals[productId]) {
-      clearInterval(autoSlideIntervals[productId])
-      setAutoSlideIntervals(prev => {
-        const newIntervals = { ...prev }
-        delete newIntervals[productId]
-        return newIntervals
-      })
-    }
-  }
+  // const stopAutoSlide = (productId: number) => {
+  //   if (autoSlideIntervals[productId]) {
+  //     clearInterval(autoSlideIntervals[productId])
+  //     setAutoSlideIntervals(prev => {
+  //       const newIntervals = { ...prev }
+  //       delete newIntervals[productId]
+  //       return newIntervals
+  //     })
+  //   }
+  // }
 
   const nextImage = (productId: number, totalImages: number, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -118,7 +119,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
     }))
     if (autoSlideIntervals[productId]) {
       clearInterval(autoSlideIntervals[productId])
-      startAutoSlide(productId, totalImages)
+      // startAutoSlide(productId, totalImages)
     }
   }
 
@@ -130,7 +131,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
     }))
     if (autoSlideIntervals[productId]) {
       clearInterval(autoSlideIntervals[productId])
-      startAutoSlide(productId, totalImages)
+      // startAutoSlide(productId, totalImages)
     }
   }
 
@@ -144,6 +145,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
         return [...prev, product]
       }
     })
+    loadFavoriteCount()
   }
 
   const downloadAllImages = async (product: Product, e: React.MouseEvent) => {
@@ -272,10 +274,10 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                   key={product.productId}
                   onClick={() => handleNavigate(product.productId)}
                   className='bg-white rounded-lg shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group'
-                  onMouseEnter={() =>
-                    totalImages > 1 && startAutoSlide(product.productId, totalImages)
-                  }
-                  onMouseLeave={() => stopAutoSlide(product.productId)}
+                  // onMouseEnter={() =>
+                  //   totalImages > 1 && startAutoSlide(product.productId, totalImages)
+                  // }
+                  // onMouseLeave={() => stopAutoSlide(product.productId)}
                 >
                   {/* Product Image with Slider */}
                   <div className='relative aspect-[3/4]'>

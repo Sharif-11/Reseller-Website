@@ -37,6 +37,7 @@ import CustomerCheckout from './Components/CustomerCheckout.tsx'
 import CustomerOrders from './Components/CustomerOrders.tsx'
 import CustomerRegister from './Components/CustomerRegister.tsx'
 import Footer from './Components/Footer.tsx'
+import FraudCheckComponent from './Components/FraudChecker.tsx'
 import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
@@ -298,6 +299,14 @@ const UserProviderWrapper = () => {
             element={
               <SellerRoute>
                 <Checkout />
+              </SellerRoute>
+            }
+          />
+          <Route
+            path='check-fraud'
+            element={
+              <SellerRoute>
+                <FraudCheckComponent />
               </SellerRoute>
             }
           />

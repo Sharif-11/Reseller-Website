@@ -73,7 +73,7 @@ const PrivacyPolicy = () => {
           </p>
           <div className='flex items-center mb-1'>
             <Mail className='w-4 h-4 mr-2 text-indigo-600' />
-            <p>support@shopbdresellerjobs.shop</p>
+            <p>support@shopbdresellerjob.com</p>
           </div>
           <div className='flex items-center'>
             <Globe className='w-4 h-4 mr-2 text-indigo-600' />
@@ -141,7 +141,7 @@ const PrivacyPolicy = () => {
                 </div>
                 <div>
                   <h3 className='font-medium text-purple-800'>যোগাযোগ</h3>
-                  <p className='text-purple-600'>support@shopbdresellerjobs.shop</p>
+                  <p className='text-purple-600'>support@shopbdresellerjob.com</p>
                 </div>
               </div>
             </div>
