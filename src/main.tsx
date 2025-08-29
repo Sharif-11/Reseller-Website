@@ -29,6 +29,7 @@ import { useAuth } from './Hooks/useAuth.tsx'
 import './index.css'
 
 import * as Sentry from '@sentry/react'
+import { CookiesProvider } from 'react-cookie'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import NewSupportTicketPage from './Components/AddTicket.tsx'
 import AddWallet from './Components/AddWallet.tsx'
@@ -391,6 +392,7 @@ const UserProviderWrapper = () => {
               </PrivateRoute>
             }
           />
+
           <Route
             path='support-tickets/:ticketId'
             element={
@@ -415,10 +417,12 @@ const UserProviderWrapper = () => {
 }
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <CartFavoriteProvider>
-      <UserProvider>
-        <UserProviderWrapper />
-      </UserProvider>
-    </CartFavoriteProvider>
+    <CookiesProvider>
+      <CartFavoriteProvider>
+        <UserProvider>
+          <UserProviderWrapper />
+        </UserProvider>
+      </CartFavoriteProvider>
+    </CookiesProvider>
   </StrictMode>
 )

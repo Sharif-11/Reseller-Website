@@ -17,6 +17,7 @@ import CourierReliabilityModal from './CourierReliabilityModal'
 import { CartItem } from './ProductDetail'
 
 // Draft data interface
+// Draft data interface
 interface DraftData {
   customerPhone: string
   customerName: string
@@ -24,6 +25,7 @@ interface DraftData {
   upazilla: string
   deliveryAddress: string
   comments: string
+  createdAt: number // Add timestamp
 }
 interface OrderResponse {
   orderId: number
@@ -108,31 +110,71 @@ const Checkout = () => {
     deliveryAddress: Yup.string().max(255, 'ঠিকানা আরও ছোট হতে হবে').required('ঠিকানা আবশ্যক'),
     comments: Yup.string().max(500, 'কমেন্টস আরও ছোট হতে হবে'),
   })
+  const getDraftKey = (phone: string) => `${DRAFT_KEY}_${phone}`
 
   // Load draft data from localStorage
-  const loadDraft = (): DraftData | null => {
-    const draft = localStorage.getItem(DRAFT_KEY)
-    return draft ? JSON.parse(draft) : null
+  // Load draft data from localStorage for specific customer
+  // Load draft data from localStorage for specific customer and clean up old drafts
+  const loadDraft = (phone: string): DraftData | null => {
+    // First, clean up all drafts older than a month
+    const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
+    const draftKeys = Object.keys(localStorage).filter(key => key.startsWith(DRAFT_KEY))
+
+    draftKeys.forEach(key => {
+      try {
+        const draft = JSON.parse(localStorage.getItem(key) || '')
+        if (draft && draft.createdAt && draft.createdAt < oneMonthAgo) {
+          localStorage.removeItem(key)
+        }
+      } catch (error) {
+        // If JSON parsing fails, remove the invalid item
+        localStorage.removeItem(key)
+      }
+    })
+
+    // Now load the requested draft
+    const draft = localStorage.getItem(getDraftKey(phone))
+    if (!draft) return null
+
+    try {
+      const parsedDraft = JSON.parse(draft)
+      // Check if this draft is still valid (not older than a month)
+      if (parsedDraft.createdAt && parsedDraft.createdAt >= oneMonthAgo) {
+        return parsedDraft
+      } else {
+        // Remove expired draft
+        localStorage.removeItem(getDraftKey(phone))
+        return null
+      }
+    } catch (error) {
+      // If JSON parsing fails, remove the invalid item
+      localStorage.removeItem(getDraftKey(phone))
+      return null
+    }
   }
 
-  // Save draft data to localStorage
+  // Save draft data to localStorage for specific customer
+  // Save draft data to localStorage for specific customer
   const saveDraft = (data: DraftData) => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(data))
+    const draftWithTimestamp = {
+      ...data,
+      createdAt: Date.now(), // Add current timestamp
+    }
+    localStorage.setItem(getDraftKey(data.customerPhone), JSON.stringify(draftWithTimestamp))
   }
-
-  // Clear draft data
-  const clearDraft = () => {
-    localStorage.removeItem(DRAFT_KEY)
+  // Clear draft data for specific customer
+  const clearDraft = (phone: string) => {
+    localStorage.removeItem(getDraftKey(phone))
   }
-
   const formik = useFormik({
     initialValues: {
-      customerPhone: '',
+      customerPhone: location.state?.mobileNumber || '',
       customerName: '',
       zilla: '',
       upazilla: '',
       deliveryAddress: '',
       comments: '',
+      createdAt: Date.now(),
     },
     validationSchema,
     onSubmit: async values => {
@@ -146,7 +188,16 @@ const Checkout = () => {
     formik.setFieldValue('zilla', selectedZilla)
     formik.setFieldValue('upazilla', '')
     setUpazillas(selectedZilla ? districts[selectedZilla] || [] : [])
-    saveDraft({ ...formik.values, zilla: selectedZilla, upazilla: '' })
+
+    // Save draft with updated values
+    if (formik.values.customerPhone) {
+      saveDraft({
+        ...formik.values,
+        zilla: selectedZilla,
+        upazilla: '',
+        createdAt: Date.now(), // Update timestamp
+      })
+    }
   }
 
   const submitOrder = async (values: any) => {
@@ -172,7 +223,7 @@ const Checkout = () => {
 
       const { success, message, data } = await orderApi.createSellerOrder(orderData as OrderData)
       if (success && data) {
-        clearDraft()
+        clearDraft(values.customerPhone)
         const cartItems: CartItem[] = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
         const updatedCartItems = cartItems.filter(
           (item: CartItem) => item.shopId !== shopCart?.shopId
@@ -312,9 +363,10 @@ const Checkout = () => {
   }
 
   // Save form data to draft when values change
+  // Save form data to draft when values change
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (Object.values(formik.values).some(value => value)) {
+      if (Object.values(formik.values).some(value => value) && formik.values.customerPhone) {
         saveDraft(formik.values)
       }
     }, 500)
@@ -322,15 +374,52 @@ const Checkout = () => {
   }, [formik.values])
 
   // Load draft data on component mount
+  // Load draft data on component mount
+  // Load draft data on component mount
   useEffect(() => {
-    const draft = loadDraft()
-    if (draft) {
-      formik.setValues(draft)
-      if (draft.zilla) {
-        setUpazillas(districts[draft.zilla as keyof typeof districts] || [])
+    const locationMobileNumber = location.state?.mobileNumber
+    const currentPhone = locationMobileNumber || formik.values.customerPhone
+
+    if (currentPhone) {
+      const draft = loadDraft(currentPhone)
+
+      if (draft) {
+        if (locationMobileNumber && draft.customerPhone !== locationMobileNumber) {
+          // If mobile numbers don't match, update draft with location state mobile number and clear other fields
+          const updatedDraft = {
+            customerPhone: locationMobileNumber,
+            customerName: '',
+            zilla: '',
+            upazilla: '',
+            deliveryAddress: '',
+            comments: '',
+            createdAt: Date.now(),
+          }
+          formik.setValues(updatedDraft)
+          saveDraft(updatedDraft)
+          setUpazillas([])
+        } else {
+          // Use the existing draft if mobile numbers match
+          formik.setValues(draft)
+          if (draft.zilla) {
+            setUpazillas(districts[draft.zilla as keyof typeof districts] || [])
+          }
+        }
+      } else if (locationMobileNumber) {
+        // If no draft but we have location mobile number, initialize with it
+        formik.setFieldValue('customerPhone', locationMobileNumber)
+        saveDraft({
+          customerPhone: locationMobileNumber,
+          customerName: '',
+          zilla: '',
+          upazilla: '',
+          deliveryAddress: '',
+          comments: '',
+          createdAt: Date.now(),
+        })
       }
     }
-  }, [])
+  }, [location.state?.mobileNumber])
 
   // Redirect if no shop cart
   if (!shopCart) {
@@ -359,6 +448,7 @@ const Checkout = () => {
   useEffect(() => {
     reloadUser()
   }, [showPaymentModal])
+  console.log('state', location?.state)
 
   return (
     <div className='min-h-screen bg-gray-50 py-4 px-4 sm:px-6'>
@@ -485,6 +575,7 @@ const Checkout = () => {
             <div className='p-4'>
               <form onSubmit={formik.handleSubmit} className='space-y-4'>
                 {/* Customer phone */}
+                {/* Customer phone */}
                 <div>
                   <label className='text-sm font-medium text-gray-700 mb-1 flex items-center gap-1'>
                     <FiPhone size={14} />
@@ -499,9 +590,12 @@ const Checkout = () => {
                     }`}
                     {...formik.getFieldProps('customerPhone')}
                     placeholder='01XXXXXXXXX'
+                    readOnly // Add this attribute
                   />
                   {formik.touched.customerPhone && formik.errors.customerPhone && (
-                    <p className='text-red-500 text-xs mt-1'>{formik.errors.customerPhone}</p>
+                    <p className='text-red-500 text-xs mt-1'>
+                      {formik.errors.customerPhone?.toString()}
+                    </p>
                   )}
                 </div>
 

@@ -1,55 +1,104 @@
-import { useState } from 'react'
-import { FaHandHoldingUsd } from 'react-icons/fa'
-import { FiCheck, FiCopy, FiShare2 } from 'react-icons/fi'
+import axios from 'axios'
+import { useEffect, useState } from 'react'
+import { FaFacebookF, FaHandHoldingUsd, FaTelegram, FaWhatsapp } from 'react-icons/fa'
+import { FiCheck, FiCopy, FiShare2, FiX } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../Hooks/useAuth'
 
 export const ReferralDetails = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [copied, setCopied] = useState(false)
-  const [showShareOptions, setShowShareOptions] = useState(false)
-  const [activeTab, setActiveTab] = useState('seller') // 'seller' or 'customer'
+  const [copiedItem, setCopiedItem] = useState<
+    'code' | 'sellerLink' | 'customerLink' | 'message' | null
+  >(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareLinkType, setShareLinkType] = useState<'seller' | 'customer'>('seller')
+  const [sellerReferralLink, setSellerReferralLink] = useState<string>('')
+  const [customerReferralLink, setCustomerReferralLink] = useState<string>('')
 
   if (!user?.referralCode) {
     return null
   }
 
-  const sellerReferralLink = `${window.location.origin}/register?ref=${user.referralCode}`
-  const customerReferralLink = `${window.location.origin}/customer-register?customer_ref=${user.referralCode}`
+  const shortenUrl = async (originalUrl: string): Promise<string> => {
+    try {
+      const encodedUrl = encodeURIComponent(originalUrl)
+      const apiUrl = `https://tinyurl.com/api-create.php?url=${encodedUrl}`
 
-  const currentLink = activeTab === 'seller' ? sellerReferralLink : customerReferralLink
-  const linkDescription =
-    activeTab === 'seller' ? 'সেলারদের সাথে শেয়ার করার লিংক' : 'কাস্টমারদের সাথে শেয়ার করার লিংক'
+      const response = await axios.get(apiUrl, {
+        timeout: 5000,
+      })
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(currentLink)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+      if (response.status === 200 && response.data && response.data.startsWith('http')) {
+        return response.data
+      }
+
+      throw new Error('Invalid response from tinyurl API')
+    } catch (error) {
+      console.error('URL shortening failed, returning original URL:', error)
+      return originalUrl
+    }
   }
 
-  const shareReferral = async () => {
+  const copyToClipboard = async (
+    text: string,
+    type: 'code' | 'sellerLink' | 'customerLink' | 'message'
+  ) => {
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'আমার রেফারেল লিংক',
-          text: `আমার রেফারেল কোড ${user.referralCode} ব্যবহার করে রেজিস্টার করুন`,
-          url: currentLink,
-        })
-      } else {
-        setShowShareOptions(!showShareOptions)
-      }
+      await navigator.clipboard.writeText(text)
+      setCopiedItem(type)
+      setTimeout(() => setCopiedItem(null), 2000)
     } catch (err) {
-      console.error('শেয়ার করতে সমস্যা:', err)
+      console.error('Copy failed:', err)
+    }
+  }
+
+  const openShareModal = (type: 'seller' | 'customer') => {
+    setShareLinkType(type)
+    setShowShareModal(true)
+  }
+
+  const closeShareModal = () => {
+    setShowShareModal(false)
+  }
+
+  const shareVia = (platform: 'whatsapp' | 'facebook' | 'telegram') => {
+    const currentLink = shareLinkType === 'seller' ? sellerReferralLink : customerReferralLink
+    const shareText = `আমার রেফারেল কোড ${user.referralCode} ব্যবহার করে রেজিস্টার করুন`
+    const shareUrl = currentLink
+
+    const urls = {
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(`${shareText}: ${shareUrl}`)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+        shareUrl
+      )}&quote=${encodeURIComponent(shareText)}`,
+      telegram: `https://t.me/share/url?url=${encodeURIComponent(
+        shareUrl
+      )}&text=${encodeURIComponent(shareText)}`,
+    }
+
+    if (urls[platform]) {
+      window.open(urls[platform], '_blank', 'noopener,noreferrer')
+      setShowShareModal(false)
     }
   }
 
   const navigateToPassiveIncome = () => {
     navigate('/passive-income')
   }
+  useEffect(() => {
+    const sellerLink = `${window.location.origin}/register?ref=${user.referralCode}`
+    const customerLink = `${window.location.origin}/customer-register?customer_ref=${user.referralCode}`
+    const shortUrl = async () => {
+      const [link1, link2] = await Promise.all([shortenUrl(sellerLink), shortenUrl(customerLink)])
+      setSellerReferralLink(link1)
+      setCustomerReferralLink(link2)
+    }
+    shortUrl()
+  }, [user])
 
   return (
-    <div className=' p-2'>
+    <div className='p-2 relative'>
       <div className='max-w-2xl mx-auto'>
         {/* Header */}
         <div className='bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-lg p-4 text-white shadow-sm mb-2'>
@@ -59,118 +108,223 @@ export const ReferralDetails = () => {
               <h1 className='text-lg font-bold'>রেফারেল প্রোগ্রাম</h1>
             </div>
           </div>
-          <p className='text-indigo-100 mt-1 text-xs'>আপনার কোড শেয়ার করে আয় করুন</p>
+          <p className='text-indigo-100 mt-1 text-xs'>আপনার কোড শেয়ার করে আয় করুন</p>
         </div>
 
         {/* Content */}
         <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-          {/* Referral Code */}
+          {/* Referral Code Section */}
           <div className='p-3 border-b'>
-            <div className='flex justify-between items-center mb-1'>
-              <h2 className='text-xs font-medium text-gray-600'>আপনার রেফারেল কোড</h2>
+            <div className='flex justify-between items-center mb-2'>
+              <h2 className='text-sm font-medium text-gray-700'>আপনার রেফারেল কোড</h2>
             </div>
-            <div className='flex items-center justify-between bg-indigo-50 p-2 rounded'>
-              <p className='text-sm font-bold text-indigo-800 truncate mr-2'>{user.referralCode}</p>
+            <div className='flex items-center justify-between bg-indigo-50 p-3 rounded-lg'>
+              <div className='flex-1'>
+                <p className='text-lg font-bold text-indigo-800 tracking-wider'>
+                  {user.referralCode}
+                </p>
+                <p className='text-xs text-indigo-600 mt-1'>শুধুমাত্র কোড শেয়ার করুন</p>
+              </div>
               <button
-                onClick={copyToClipboard}
-                className='text-xs bg-indigo-600 text-white px-2 py-1 rounded flex items-center gap-1'
+                onClick={() => user.referralCode && copyToClipboard(user.referralCode, 'code')}
+                className='text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg flex items-center gap-1 transition-colors'
               >
-                {copied ? <FiCheck /> : <FiCopy />}
-                {copied ? 'কপি হয়েছে' : 'কপি করুন'}
+                {copiedItem === 'code' ? <FiCheck className='text-green-200' /> : <FiCopy />}
+                {copiedItem === 'code' ? 'কপি হয়েছে!' : 'কোড কপি করুন'}
               </button>
             </div>
           </div>
 
-          {/* Tab Selection */}
-          <div className='flex border-b'>
-            <button
-              onClick={() => setActiveTab('seller')}
-              className={`flex-1 py-2 text-xs font-medium ${
-                activeTab === 'seller'
-                  ? 'text-indigo-600 border-b-2 border-indigo-600'
-                  : 'text-gray-500'
-              }`}
-            >
-              সেলার লিংক
-            </button>
-            <button
-              onClick={() => setActiveTab('customer')}
-              className={`flex-1 py-2 text-xs font-medium ${
-                activeTab === 'customer'
-                  ? 'text-indigo-600 border-b-2 border-indigo-600'
-                  : 'text-gray-500'
-              }`}
-            >
-              কাস্টমার লিংক
-            </button>
-          </div>
-
-          {/* Referral Link */}
+          {/* Seller Referral Link Section */}
           <div className='p-3 border-b'>
-            <h2 className='text-xs font-medium text-gray-600 mb-1'>{linkDescription}</h2>
-            <div className='flex flex-col xs:flex-row gap-1'>
-              <input
-                type='text'
-                value={currentLink}
-                readOnly
-                className='flex-1 text-xs px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-700 truncate'
-              />
-              <button
-                onClick={shareReferral}
-                className='text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded flex items-center justify-center gap-1'
-              >
-                <FiShare2 /> শেয়ার
-              </button>
-            </div>
-          </div>
-
-          {/* Share Options */}
-          {showShareOptions && (
-            <div className='p-2 bg-gray-50 border-b'>
-              <div className='grid grid-cols-2 gap-1'>
-                <a
-                  href={`whatsapp://send?text=${encodeURIComponent(
-                    `আমার রেফারেল কোড ${user.referralCode} ব্যবহার করে রেজিস্টার করুন: ${currentLink}`
-                  )}`}
-                  className='text-xs bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded text-center'
+            <h2 className='text-sm font-medium text-gray-700 mb-2'>
+              সেলারদের সাথে শেয়ার করার লিংক
+            </h2>
+            <div className='bg-gray-50 p-3 rounded-lg mb-3'>
+              <p className='text-xs text-gray-600 break-all mb-2'>{sellerReferralLink}</p>
+              <div className='flex gap-2'>
+                <button
+                  onClick={() => copyToClipboard(sellerReferralLink, 'sellerLink')}
+                  className='flex-1 text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg flex items-center justify-center gap-1 transition-colors'
                 >
-                  WhatsApp
-                </a>
-                <a
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                    currentLink
-                  )}`}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-center'
+                  {copiedItem === 'sellerLink' ? (
+                    <FiCheck className='text-green-200' />
+                  ) : (
+                    <FiCopy />
+                  )}
+                  {copiedItem === 'sellerLink' ? 'লিংক কপি হয়েছে!' : 'লিংক কপি করুন'}
+                </button>
+                <button
+                  onClick={() => openShareModal('seller')}
+                  className='flex-1 text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg flex items-center justify-center gap-1 transition-colors'
                 >
-                  Facebook
-                </a>
+                  <FiShare2 /> শেয়ার করুন
+                </button>
               </div>
             </div>
-          )}
+            <div className='bg-yellow-50 border border-yellow-200 p-2 rounded-lg'>
+              <p className='text-xs text-yellow-800 text-center'>
+                🔗 সেলারদের সাথে রেফারেল লিংক শেয়ার করে আয় করুন
+              </p>
+            </div>
+          </div>
 
-          {/* Note about different links */}
-          <div className='p-3 bg-yellow-50 border-b'>
-            <p className='text-md text-gray-600 text-center'>
-              {activeTab === 'seller'
-                ? 'এই লিংকটি সেলারদের সাথে শেয়ার করুন '
-                : 'এই লিংকটি কাস্টমারদের সাথে শেয়ার করুন'}
-            </p>
+          {/* Customer Referral Link Section */}
+          <div className='p-3'>
+            <h2 className='text-sm font-medium text-gray-700 mb-2'>
+              কাস্টমারদের সাথে শেয়ার করার লিংক
+            </h2>
+            <div className='bg-gray-50 p-3 rounded-lg mb-3'>
+              <p className='text-xs text-gray-600 break-all mb-2'>{customerReferralLink}</p>
+              <div className='flex gap-2'>
+                <button
+                  onClick={() => copyToClipboard(customerReferralLink, 'customerLink')}
+                  className='flex-1 text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg flex items-center justify-center gap-1 transition-colors'
+                >
+                  {copiedItem === 'customerLink' ? (
+                    <FiCheck className='text-green-200' />
+                  ) : (
+                    <FiCopy />
+                  )}
+                  {copiedItem === 'customerLink' ? 'লিংক কপি হয়েছে!' : 'লিংক কপি করুন'}
+                </button>
+                <button
+                  onClick={() => openShareModal('customer')}
+                  className='flex-1 text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg flex items-center justify-center gap-1 transition-colors'
+                >
+                  <FiShare2 /> শেয়ার করুন
+                </button>
+              </div>
+            </div>
+            <div className='bg-green-50 border border-green-200 p-2 rounded-lg'>
+              <p className='text-xs text-green-800 text-center'>
+                💰 কাস্টমারদের সাথে শেয়ার করে ৭০% কমিশন পান!
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Footer Note */}
-        <div className='mt-2 p-2 bg-white rounded-lg shadow-sm'>
+        <div className='mt-2 p-3 bg-white rounded-lg shadow-sm'>
           <p className='text-xs text-gray-600 text-center'>
             রেফারেল প্রোগ্রাম সম্পর্কে বিস্তারিত জানতে{' '}
-            <button onClick={navigateToPassiveIncome} className='text-indigo-600 font-medium'>
+            <button
+              onClick={navigateToPassiveIncome}
+              className='text-indigo-600 font-medium hover:text-indigo-700 underline'
+            >
               প্যাসিভ ইনকাম প্যানেল
             </button>{' '}
             ভিজিট করুন
           </p>
         </div>
       </div>
+
+      {/* Enhanced Share Modal */}
+      {showShareModal && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50'>
+          <div className='bg-white rounded-t-xl w-full max-w-md mx-2 mb-0 animate-slide-up'>
+            {/* Modal Header */}
+            <div className='flex items-center justify-between p-4 border-b'>
+              <h3 className='text-lg font-semibold text-gray-900'>শেয়ার করুন</h3>
+              <button
+                onClick={closeShareModal}
+                className='p-1 hover:bg-gray-100 rounded-full transition-colors'
+              >
+                <FiX className='text-xl text-gray-500' />
+              </button>
+            </div>
+
+            {/* Share Options */}
+            <div className='p-4'>
+              <p className='text-sm text-gray-600 mb-4 text-center'>
+                আপনার রেফারেল লিংকটি শেয়ার করার জন্য একটি প্ল্যাটফর্ম বেছে নিন
+              </p>
+
+              <div className='grid grid-cols-1 gap-3'>
+                <button
+                  onClick={() => shareVia('whatsapp')}
+                  className='flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl transition-colors'
+                >
+                  <div className='w-10 h-10 bg-green-500 rounded-full flex items-center justify-center'>
+                    <FaWhatsapp className='text-white text-lg' />
+                  </div>
+                  <div className='text-left flex-1'>
+                    <p className='font-medium text-gray-900'>WhatsApp</p>
+                    <p className='text-sm text-gray-600'>হোয়াটসঅ্যাপের মাধ্যমে শেয়ার করুন</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => shareVia('facebook')}
+                  className='flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors'
+                >
+                  <div className='w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center'>
+                    <FaFacebookF className='text-white text-lg' />
+                  </div>
+                  <div className='text-left flex-1'>
+                    <p className='font-medium text-gray-900'>Facebook</p>
+                    <p className='text-sm text-gray-600'>ফেসবুকে শেয়ার করুন</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => shareVia('telegram')}
+                  className='flex items-center gap-3 p-4 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-colors'
+                >
+                  <div className='w-10 h-10 bg-sky-500 rounded-full flex items-center justify-center'>
+                    <FaTelegram className='text-white text-lg' />
+                  </div>
+                  <div className='text-left flex-1'>
+                    <p className='font-medium text-gray-900'>Telegram</p>
+                    <p className='text-sm text-gray-600'>টেলিগ্রামে শেয়ার করুন</p>
+                  </div>
+                </button>
+              </div>
+
+              {/* Quick Copy Section */}
+              <div className='mt-4 pt-4 border-t'>
+                <p className='text-sm text-gray-600 mb-2'>অথবা দ্রুত কপি করুন:</p>
+                <button
+                  onClick={() => {
+                    const currentLink =
+                      shareLinkType === 'seller' ? sellerReferralLink : customerReferralLink
+                    copyToClipboard(
+                      `আমার রেফারেল কোড ${user.referralCode} ব্যবহার করে রেজিস্টার করুন: ${currentLink}`,
+                      'message'
+                    )
+                    closeShareModal()
+                  }}
+                  className='w-full p-3 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg text-center transition-colors'
+                >
+                  <div className='flex items-center justify-center gap-2'>
+                    {copiedItem === 'message' ? <FiCheck className='text-green-600' /> : <FiCopy />}
+                    <span className='text-sm font-medium'>
+                      {copiedItem === 'message' ? 'মেসেজ কপি হয়েছে!' : 'সম্পূর্ণ মেসেজ কপি করুন'}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add animation styles */}
+      <style>{`
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+      `}</style>
     </div>
   )
 }

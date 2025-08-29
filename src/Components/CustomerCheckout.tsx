@@ -13,6 +13,7 @@ import { CART_ITEMS_KEY, DRAFT_KEY } from '../utils/utils.variables'
 import { ShopCart } from './Cart'
 import { CartItem } from './ProductDetail'
 
+// Draft data interface with timestamp
 interface DraftData {
   customerPhone: string
   customerName: string
@@ -20,6 +21,7 @@ interface DraftData {
   upazilla: string
   deliveryAddress: string
   comments: string
+  createdAt: number // Add timestamp
 }
 
 interface OrderResponse {
@@ -54,7 +56,10 @@ const CustomerCheckout = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
   const [transactionId, setTransactionId] = useState('')
   const [customerWalletNumber, setCustomerWalletNumber] = useState('')
-  const [actionLoading, setActionLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState<{
+    type: 'payment' | 'confirm' | '' | null
+    id: string | null | number | ''
+  }>({ type: '', id: '' })
   const [error, setError] = useState('')
   const [systemWallets, setSystemWallets] = useState<
     { walletId: number; walletName: string; walletPhoneNo: string }[]
@@ -65,11 +70,11 @@ const CustomerCheckout = () => {
     walletPhoneNo: string
   } | null>(null)
   const [walletLoading, setWalletLoading] = useState(false)
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(0)
 
   const shopCart = location.state?.shopCart as ShopCart
   const totalItems = shopCart?.items.reduce((sum, item) => sum + item.quantity, 0)
   const subtotal = shopCart?.items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
-  const [deliveryCharge, setDeliveryCharge] = useState<number>(0)
 
   const validationSchema = Yup.object({
     customerPhone: Yup.string()
@@ -84,62 +89,75 @@ const CustomerCheckout = () => {
     comments: Yup.string().max(500, 'কমেন্টস আরও ছোট হতে হবে'),
   })
 
+  // Get draft key for specific customer
+  const getDraftKey = (phone: string) => `${DRAFT_KEY}_${phone}`
+
+  // Load draft data from localStorage for specific customer and clean up old drafts
+  const loadDraft = (phone: string): DraftData | null => {
+    // First, clean up all drafts older than a month
+    const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
+    const draftKeys = Object.keys(localStorage).filter(key => key.startsWith(DRAFT_KEY))
+
+    draftKeys.forEach(key => {
+      try {
+        const draft = JSON.parse(localStorage.getItem(key) || '')
+        if (draft && draft.createdAt && draft.createdAt < oneMonthAgo) {
+          localStorage.removeItem(key)
+        }
+      } catch (error) {
+        // If JSON parsing fails, remove the invalid item
+        localStorage.removeItem(key)
+      }
+    })
+
+    // Now load the requested draft
+    const draft = localStorage.getItem(getDraftKey(phone))
+    if (!draft) return null
+
+    try {
+      const parsedDraft = JSON.parse(draft)
+      // Check if this draft is still valid (not older than a month)
+      if (parsedDraft.createdAt && parsedDraft.createdAt >= oneMonthAgo) {
+        return parsedDraft
+      } else {
+        // Remove expired draft
+        localStorage.removeItem(getDraftKey(phone))
+        return null
+      }
+    } catch (error) {
+      // If JSON parsing fails, remove the invalid item
+      localStorage.removeItem(getDraftKey(phone))
+      return null
+    }
+  }
+
+  // Save draft data to localStorage for specific customer
+  const saveDraft = (data: DraftData) => {
+    const draftWithTimestamp = {
+      ...data,
+      createdAt: Date.now(), // Add current timestamp
+    }
+    localStorage.setItem(getDraftKey(data.customerPhone), JSON.stringify(draftWithTimestamp))
+  }
+
+  // Clear draft data for specific customer
+  const clearDraft = (phone: string) => {
+    localStorage.removeItem(getDraftKey(phone))
+  }
+
   const formik = useFormik({
     initialValues: {
-      customerPhone: '',
+      customerPhone: location.state?.mobileNumber || '',
       customerName: '',
       zilla: '',
       upazilla: '',
       deliveryAddress: '',
       comments: '',
+      createdAt: Date.now(),
     },
     validationSchema,
     onSubmit: async values => {
-      setIsSubmitting(true)
-      try {
-        const orderData: CustomerOrderData = {
-          shopId: shopCart.shopId,
-          customerName: values.customerName,
-          customerPhoneNo: values.customerPhone,
-          customerZilla: values.zilla,
-          customerUpazilla: values.upazilla,
-          deliveryAddress: values.deliveryAddress,
-          comments: values.comments,
-          products: shopCart.items.map(item => ({
-            id: item.productId,
-            imageUrl: item.imageUrl,
-            imageId: item.imageId,
-            quantity: item.quantity,
-            sellingPrice: item.sellingPrice,
-            selectedVariants: item.selectedOptions,
-          })),
-        }
-
-        const { success, message, data } = await orderApi.createCustomerOrder(
-          orderData as CustomerOrderData
-        )
-        if (success && data) {
-          clearDraft()
-          const cartItems: CartItem[] = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
-          const updatedCartItems = cartItems.filter(
-            (item: CartItem) => item.shopId !== shopCart.shopId
-          )
-          localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCartItems))
-          loadCartCount()
-
-          // Show payment modal after order creation
-          fetchSystemWallets()
-          setSelectedOrder(data)
-          setShowPaymentModal(true)
-        } else {
-          setFormErrors([message || 'অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
-        }
-      } catch (error) {
-        console.error('Order submission error:', error)
-        setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
-      } finally {
-        setIsSubmitting(false)
-      }
+      submitOrder(values)
     },
   })
 
@@ -154,25 +172,69 @@ const CustomerCheckout = () => {
     }
   }, [formik.values.zilla, shopCart])
 
-  const loadDraft = (): DraftData | null => {
-    const draft = localStorage.getItem(DRAFT_KEY)
-    return draft ? JSON.parse(draft) : null
-  }
-
-  const saveDraft = (data: DraftData) => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(data))
-  }
-
-  const clearDraft = () => {
-    localStorage.removeItem(DRAFT_KEY)
-  }
-
   const handleZillaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedZilla = e.target.value as keyof typeof districts
     formik.setFieldValue('zilla', selectedZilla)
     formik.setFieldValue('upazilla', '')
     setUpazillas(selectedZilla ? districts[selectedZilla] || [] : [])
-    saveDraft({ ...formik.values, zilla: selectedZilla, upazilla: '' })
+
+    // Save draft with updated values
+    if (formik.values.customerPhone) {
+      saveDraft({
+        ...formik.values,
+        zilla: selectedZilla,
+        upazilla: '',
+        createdAt: Date.now(), // Update timestamp
+      })
+    }
+  }
+
+  const submitOrder = async (values: any) => {
+    setIsSubmitting(true)
+    try {
+      const orderData: CustomerOrderData = {
+        shopId: shopCart.shopId,
+        customerName: values.customerName,
+        customerPhoneNo: values.customerPhone,
+        customerZilla: values.zilla,
+        customerUpazilla: values.upazilla,
+        deliveryAddress: values.deliveryAddress,
+        comments: values.comments,
+        products: shopCart.items.map(item => ({
+          id: item.productId,
+          imageUrl: item.imageUrl,
+          imageId: item.imageId,
+          quantity: item.quantity,
+          sellingPrice: item.sellingPrice,
+          selectedVariants: item.selectedOptions,
+        })),
+      }
+
+      const { success, message, data } = await orderApi.createCustomerOrder(
+        orderData as CustomerOrderData
+      )
+      if (success && data) {
+        clearDraft(values.customerPhone)
+        const cartItems: CartItem[] = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
+        const updatedCartItems = cartItems.filter(
+          (item: CartItem) => item.shopId !== shopCart.shopId
+        )
+        localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCartItems))
+        loadCartCount()
+
+        // Show payment modal after order creation
+        fetchSystemWallets()
+        setSelectedOrder(data)
+        setShowPaymentModal(true)
+      } else {
+        setFormErrors([message || 'অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
+      }
+    } catch (error) {
+      console.error('Order submission error:', error)
+      setFormErrors(['অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const fetchSystemWallets = async () => {
@@ -196,7 +258,7 @@ const CustomerCheckout = () => {
     if (!selectedOrder || !selectedSystemWallet) return
 
     try {
-      setActionLoading(true)
+      setActionLoading({ type: 'payment', id: selectedOrder.orderId })
       setError('')
 
       const paymentData = {
@@ -215,6 +277,7 @@ const CustomerCheckout = () => {
         toast.success('পেমেন্ট সফল হয়েছে')
         setShowPaymentModal(false)
         setTransactionId('')
+        setCustomerWalletNumber('')
         setSelectedSystemWallet(null)
         navigate('/orders', { state: { orderSuccess: true } })
       } else {
@@ -224,23 +287,60 @@ const CustomerCheckout = () => {
       setError('একটি ত্রুটি ঘটেছে')
       console.error('Error processing payment:', error)
     } finally {
-      setActionLoading(false)
+      setActionLoading({ type: null, id: null })
     }
   }
 
+  // Load draft data on component mount
   useEffect(() => {
-    const draft = loadDraft()
-    if (draft) {
-      formik.setValues(draft)
-      if (draft.zilla) {
-        setUpazillas(districts[draft.zilla as keyof typeof districts] || [])
+    const locationMobileNumber = location.state?.mobileNumber
+    const currentPhone = locationMobileNumber || formik.values.customerPhone
+
+    if (currentPhone) {
+      const draft = loadDraft(currentPhone)
+
+      if (draft) {
+        if (locationMobileNumber && draft.customerPhone !== locationMobileNumber) {
+          // If mobile numbers don't match, update draft with location state mobile number and clear other fields
+          const updatedDraft = {
+            customerPhone: locationMobileNumber,
+            customerName: '',
+            zilla: '',
+            upazilla: '',
+            deliveryAddress: '',
+            comments: '',
+            createdAt: Date.now(),
+          }
+          formik.setValues(updatedDraft)
+          saveDraft(updatedDraft)
+          setUpazillas([])
+        } else {
+          // Use the existing draft if mobile numbers match
+          formik.setValues(draft)
+          if (draft.zilla) {
+            setUpazillas(districts[draft.zilla as keyof typeof districts] || [])
+          }
+        }
+      } else if (locationMobileNumber) {
+        // If no draft but we have location mobile number, initialize with it
+        formik.setFieldValue('customerPhone', locationMobileNumber)
+        saveDraft({
+          customerPhone: locationMobileNumber,
+          customerName: '',
+          zilla: '',
+          upazilla: '',
+          deliveryAddress: '',
+          comments: '',
+          createdAt: Date.now(),
+        })
       }
     }
-  }, [])
+  }, [location.state?.mobileNumber])
 
+  // Save form data to draft when values change
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (Object.values(formik.values).some(value => value)) {
+      if (Object.values(formik.values).some(value => value) && formik.values.customerPhone) {
         saveDraft(formik.values)
       }
     }, 500)
@@ -396,6 +496,7 @@ const CustomerCheckout = () => {
 
             <div className='p-4'>
               <form onSubmit={formik.handleSubmit} className='space-y-4'>
+                {/* Customer phone */}
                 <div>
                   <label className='text-sm font-medium text-gray-700 mb-1 flex items-center gap-1'>
                     <FiPhone size={14} />
@@ -410,9 +511,12 @@ const CustomerCheckout = () => {
                     }`}
                     {...formik.getFieldProps('customerPhone')}
                     placeholder='01XXXXXXXXX'
+                    readOnly={!!location.state?.mobileNumber}
                   />
                   {formik.touched.customerPhone && formik.errors.customerPhone && (
-                    <p className='text-red-500 text-xs mt-1'>{formik.errors.customerPhone}</p>
+                    <p className='text-red-500 text-xs mt-1'>
+                      {formik.errors.customerPhone as string}
+                    </p>
                   )}
                 </div>
 
@@ -505,6 +609,9 @@ const CustomerCheckout = () => {
                   {formik.touched.deliveryAddress && formik.errors.deliveryAddress && (
                     <p className='text-red-500 text-xs mt-1'>{formik.errors.deliveryAddress}</p>
                   )}
+                  <p className='text-gray-500 text-xs mt-1'>
+                    শুধুমাত্র ঠিকানা লিখুন, কাস্টমার এর নাম বা মোবাইল নং দেয়া যাবে না।
+                  </p>
                 </div>
 
                 <div>
@@ -689,7 +796,7 @@ const CustomerCheckout = () => {
                   </div>
                   <div className='ml-3'>
                     <p className='text-sm text-yellow-700 leading-relaxed'>
-                      অর্ডার সম্পূর্ণ করতে অবশ্যই পেমেন্ট করতে হবে
+                      সতর্কতা: ভুল পেমেন্ট তথ্য দিলে অর্ডার রিজেক্ট করা হবে।
                     </p>
                   </div>
                 </div>
@@ -782,11 +889,14 @@ const CustomerCheckout = () => {
               <button
                 onClick={handlePayment}
                 disabled={
-                  actionLoading || !selectedSystemWallet || !customerWalletNumber || !transactionId
+                  actionLoading.type === 'payment' ||
+                  !selectedSystemWallet ||
+                  !customerWalletNumber ||
+                  !transactionId
                 }
                 className='w-full px-4 py-2 text-sm bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors'
               >
-                {actionLoading ? 'প্রক্রিয়াধীন...' : 'পেমেন্ট কনফার্ম করুন'}
+                {actionLoading.type === 'payment' ? 'প্রক্রিয়াধীন...' : 'পেমেন্ট কনফার্ম করুন'}
               </button>
             </div>
           </div>

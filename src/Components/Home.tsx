@@ -15,10 +15,10 @@ const Home = () => {
 
     window.open(messengerGroupUrl, '_blank')
   }
-
+  // alert(location.pathname)
   let iconVisible = user
     ? location.pathname === '/home' || location.pathname === '/support'
-    : !(location.pathname.startsWith('/products') || location.pathname.startsWith('/categories'))
+    : location.pathname === '/'
 
   return (
     <div className='relative'>

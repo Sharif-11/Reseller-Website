@@ -206,7 +206,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
             <div className='flex-1 min-w-0'>
               <input
                 type='number'
-                placeholder='Min price'
+                placeholder='শুরু মূল্য'
                 value={priceRange[0] || ''}
                 onChange={e => setPriceRange([Number(e.target.value), priceRange[1]])}
                 className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none'
@@ -216,7 +216,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
             <div className='flex-1 min-w-0'>
               <input
                 type='number'
-                placeholder='Max price'
+                placeholder='শেষ মূল্য'
                 value={priceRange[1] || ''}
                 onChange={e => setPriceRange([priceRange[0], Number(e.target.value)])}
                 className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none'
@@ -227,7 +227,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
           {/* Search Filter */}
           <input
             type='text'
-            placeholder='Search products by name, description...'
+            placeholder='প্রোডাক্টের নাম দিয়ে সার্চ করুন'
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none mb-2'
@@ -239,7 +239,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
               onClick={clearFilters}
               className='text-xs text-blue-600 hover:text-blue-800 font-medium'
             >
-              Clear filters
+              ফিল্টার ক্লিয়ার করুন
             </button>
           )}
         </div>
@@ -252,12 +252,12 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
       {products.length === 0 ? (
         <div className='text-center py-12 bg-white rounded-lg'>
           <Package className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-          <p className='text-gray-500'>No products found matching your criteria</p>
+          <p className='text-gray-500'>কোন প্রোডাক্ট পাওয়া যায়নি</p>
           <button
             onClick={clearFilters}
             className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'
           >
-            Clear Filters
+            ফিল্টার ক্লিয়ার করুন
           </button>
         </div>
       ) : (
@@ -345,7 +345,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                         <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-current' : ''}`} />
                       </button>
 
-                      {productImages.length > 1 && (
+                      {productImages.length > 0 && (
                         <button
                           onClick={e => downloadAllImages(product, e)}
                           className='p-1.5 bg-white/90 text-gray-700 hover:bg-white rounded-full shadow-lg transition-all'
@@ -386,7 +386,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
           </div>
 
           {/* Pagination */}
-          {totalProducts > 12 && (
+          {/* {totalProducts > 12 && (
             <div className='flex justify-center mt-8'>
               <div className='flex items-center gap-2'>
                 <button
@@ -408,7 +408,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                 </button>
               </div>
             </div>
-          )}
+          )} */}
         </>
       )}
     </div>

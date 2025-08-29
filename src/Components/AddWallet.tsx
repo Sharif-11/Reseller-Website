@@ -262,7 +262,7 @@ const AddWallet = () => {
     <div className='container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-3xl'>
       <div className='flex justify-between items-center mb-4 sm:mb-6'>
         <h1 className='text-xl sm:text-2xl font-bold'>আমার ওয়ালেট</h1>
-        {wallets.length < 2 && (
+        {wallets?.length < 2 && (
           <button
             onClick={() => setIsFormOpen(true)}
             className='flex items-center gap-1 sm:gap-2 bg-blue-500 text-white px-3 sm:px-4 py-1 sm:py-2 rounded hover:bg-blue-600 transition-colors text-sm sm:text-base'
@@ -463,25 +463,25 @@ const AddWallet = () => {
       )}
 
       {/* Wallet limit message */}
-      {/* {wallets.length >= 2 && (
+      {/* {wallets?.length >= 2 && (
         <div className='mb-4 p-3 bg-blue-50 text-blue-700 rounded text-sm sm:text-base'>
           আপনি সর্বোচ্চ ২টি ওয়ালেট যোগ করতে পারবেন
         </div>
       )} */}
 
       {/* Wallets List */}
-      {isFetching && wallets.length === 0 ? (
+      {isFetching && wallets?.length === 0 ? (
         <div className='flex justify-center items-center h-40 sm:h-64'>
           <div className='animate-spin rounded-full h-6 sm:h-8 w-6 sm:w-8 border-b-2 border-blue-500'></div>
         </div>
-      ) : wallets.length === 0 ? (
+      ) : wallets?.length === 0 ? (
         <div className='bg-white rounded-lg shadow-md p-6 sm:p-8 text-center'>
           <p className='text-gray-500 text-sm sm:text-base'>কোন ওয়ালেট যোগ করা হয়নি</p>
         </div>
       ) : (
         <div className='bg-white rounded-lg shadow-md overflow-hidden'>
           <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4'>
-            {wallets.map((wallet, idx) => (
+            {wallets?.map((wallet, idx) => (
               <div key={idx} className='border border-gray-200 rounded-lg p-3 sm:p-4'>
                 <div className='flex items-center justify-between mb-1 sm:mb-2'>
                   <span className='font-medium text-sm sm:text-base'>
@@ -499,7 +499,7 @@ const AddWallet = () => {
         </div>
       )}
 
-      {wallets.length > 0 && (
+      {wallets?.length > 0 && (
         <div className='mt-4 sm:mt-6 text-sm sm:text-base text-red-600'>
           ওয়ালেট ডিলিট করতে চাইলে সাপোর্ট এ যোগাযোগ করুন।
         </div>

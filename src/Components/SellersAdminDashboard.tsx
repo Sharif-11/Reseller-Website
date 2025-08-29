@@ -6,15 +6,18 @@ import {
   FaCoins,
   FaExclamationTriangle,
   FaHeadset,
+  FaMapMarkerAlt,
   FaMoneyBillWave,
   FaQuestionCircle,
+  FaShieldAlt,
   FaTicketAlt,
 } from 'react-icons/fa'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { getAllAnnouncements } from '../Api/announcements.api'
 import { useAuth } from '../Hooks/useAuth'
 
 const SellerHomeDashboard = () => {
+  const navigate = useNavigate()
   // Sample balance data (negative for demo)
   const [announcements, setAnnouncements] = useState<string[]>([])
   const { user } = useAuth()
@@ -53,11 +56,7 @@ const SellerHomeDashboard = () => {
       icon: <FaHeadset className='text-3xl text-red-600' />,
       url: '/support',
     },
-    {
-      title: 'প্রতারণা যাচাই',
-      icon: <FaHeadset className='text-3xl text-red-600' />,
-      url: '/check-fraud',
-    },
+
     {
       title: 'সাধারণ প্রশ্ন',
       icon: <FaQuestionCircle className='text-3xl text-indigo-600' />,
@@ -74,6 +73,17 @@ const SellerHomeDashboard = () => {
       icon: <FaBoxOpen className='text-3xl text-blue-600' />,
       url: '/seller-dashboard',
       // upcoming: true,
+    },
+    {
+      title: 'ফ্রড চেকার',
+      icon: <FaShieldAlt className='text-3xl text-teal-600' />,
+      url: '/check-fraud',
+    },
+    {
+      title: 'পার্সেল ট্র্যাকিং',
+      icon: <FaMapMarkerAlt className='text-3xl text-pink-600' />,
+      url: '/track-parcel',
+      upcoming: true,
     },
     {
       title: 'সাপোর্ট টিকেট',
@@ -135,12 +145,13 @@ const SellerHomeDashboard = () => {
             </div>
             <div className='ml-3 flex-1'>
               <div className='flex justify-between items-center'>
-                <p className='text-sm text-yellow-700 font-medium'>
-                  প্রতারণা থেকে সতর্ক থাকুন! কোনো পেমেন্টের আগে ক্রেতার তথ্য যাচাই করুন
+                <p className='text-xs text-yellow-700 font-medium'>
+                  অর্ডার প্লেস করার আগে জালিয়াতি এড়াতে অনুগ্রহ করে গ্রাহকের অর্ডার ইতিহাস যাচাই
+                  করুন।
                 </p>
                 <button
-                  onClick={() => window.open('https://elitemart.com.bd/fraud-check', '_blank')}
-                  className='px-3 py-1 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors'
+                  onClick={() => navigate('/check-fraud')}
+                  className='px-3 py-1 bg-yellow-600 text-white text-xs rounded-md hover:bg-yellow-700 transition-colors'
                 >
                   ফ্রড চেক করুন
                 </button>
