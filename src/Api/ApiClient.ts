@@ -15,6 +15,12 @@ export type ApiResponse<T = any> = {
   data?: T
   error?: any
   response?: any
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
 }
 
 export type UploadProgressHandler = (progressEvent: AxiosProgressEvent) => void

@@ -135,8 +135,8 @@ class OrderApi {
   public async fraudCheckByPhoneNo(phoneNo: string) {
     return apiClient.get(`orders/fraud-check/${phoneNo}`)
   }
-  public async getTopSellingProducts() {
-    return apiClient.get('orders/top-selling-products')
+  public async getTopSellingProducts(page: number = 1, limit: number = 10) {
+    return apiClient.get(`orders/top-selling-products?page=${page}&limit=${limit}`)
   }
 }
 

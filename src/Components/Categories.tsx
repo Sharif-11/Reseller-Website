@@ -43,7 +43,7 @@ interface ProductWithImages extends Omit<Product, 'ProductImage'> {
   price?: number
 }
 
-interface ProductCarouselProps {
+interface ProductGridProps {
   products: ProductWithImages[]
   favorites: ProductWithImages[]
   toggleFavorite: (product: ProductWithImages, e: React.MouseEvent) => void
@@ -52,6 +52,10 @@ interface ProductCarouselProps {
   handleNavigate: (productId: number) => void
   downloadAllImages: (product: ProductWithImages, e: React.MouseEvent) => void
   formatPrice: (price: number) => string
+  loadMore?: () => void
+  hasMore?: boolean
+  loadingMore?: boolean
+  loading?: boolean
 }
 
 // Size Chart Modal Component
@@ -109,8 +113,24 @@ const SizeChartModal = ({
   )
 }
 
-// Carousel component
-const ProductCarousel = ({
+// Skeleton Loading Component
+const ProductSkeleton = () => {
+  return (
+    <div className='bg-white rounded-lg shadow-sm border overflow-hidden animate-pulse'>
+      <div className='relative aspect-[3/4] bg-gray-200'></div>
+      <div className='p-2'>
+        <div className='h-4 bg-gray-200 rounded mb-2'></div>
+        <div className='h-3 bg-gray-200 rounded w-1/2 mb-2'></div>
+        <div className='flex items-center mt-1'>
+          <div className='h-3 bg-gray-200 rounded w-1/3'></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Product Grid component
+const ProductGrid = ({
   products,
   favorites,
   toggleFavorite,
@@ -119,201 +139,163 @@ const ProductCarousel = ({
   handleNavigate,
   downloadAllImages,
   formatPrice,
-}: ProductCarouselProps) => {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [itemsPerView, setItemsPerView] = useState(5)
-
-  useEffect(() => {
-    const handleResize = () => {
-      setItemsPerView(
-        Math.min(
-          5,
-          window.innerWidth < 640
-            ? 2
-            : window.innerWidth < 768
-            ? 3
-            : window.innerWidth < 1024
-            ? 4
-            : 5
-        )
-      )
-    }
-
-    handleResize()
-    window.addEventListener('resize', handleResize)
-    return () => window.addEventListener('resize', handleResize)
-  }, [])
-
-  const next = () => {
-    setCurrentIndex(prevIndex => (prevIndex + itemsPerView >= products.length ? 0 : prevIndex + 1))
-  }
-
-  const prev = () => {
-    setCurrentIndex(prevIndex =>
-      prevIndex === 0 ? Math.max(0, products.length - itemsPerView) : prevIndex - 1
+  loadMore,
+  hasMore,
+  loadingMore,
+  loading = false,
+}: ProductGridProps) => {
+  if (loading) {
+    return (
+      <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2'>
+        {Array.from({ length: 10 }).map((_, index) => (
+          <ProductSkeleton key={index} />
+        ))}
+      </div>
     )
   }
 
   return (
-    <div className='relative'>
-      <div className='overflow-hidden'>
-        <div
-          className='flex transition-transform duration-300 ease-in-out'
-          style={{ transform: `translateX(-${currentIndex * (100 / itemsPerView)}%)` }}
-        >
-          {products.map(product => {
-            const isFavorite = favorites.some(p => p.productId === product.productId)
-            const productImages = product.ProductImage || []
-            const currentImgIndex = currentImageIndex[product.productId] || 0
-            const totalImages = productImages.length
+    <div>
+      <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2'>
+        {products.map(product => {
+          const isFavorite = favorites.some(p => p.productId === product.productId)
+          const productImages = product.ProductImage || []
+          const currentImgIndex = currentImageIndex[product.productId] || 0
+          const totalImages = productImages.length
 
-            return (
+          return (
+            <div
+              key={product.productId}
+              className='bg-white rounded-lg shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group mb-1'
+            >
               <div
-                key={product.productId}
-                className='flex-shrink-0 p-1'
-                style={{ width: `${100 / itemsPerView}%` }}
+                onClick={() => handleNavigate(product.productId)}
+                className='relative aspect-[3/4]'
               >
-                <div
-                  onClick={() => handleNavigate(product.productId)}
-                  className='bg-white rounded-lg shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group mb-1'
-                >
-                  <div className='relative aspect-[3/4]'>
-                    {productImages.length > 0 ? (
-                      <img
-                        src={productImages[currentImgIndex]?.imageUrl}
-                        alt={product.name}
-                        className='w-full h-full object-cover transition-transform duration-500'
-                      />
-                    ) : (
-                      <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
-                        <Package className='h-6 w-6 text-gray-400' />
-                      </div>
-                    )}
+                {productImages.length > 0 ? (
+                  <img
+                    src={productImages[currentImgIndex]?.imageUrl}
+                    alt={product.name}
+                    className='w-full h-full object-cover transition-transform duration-500'
+                  />
+                ) : (
+                  <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
+                    <Package className='h-6 w-6 text-gray-400' />
+                  </div>
+                )}
 
-                    {totalImages > 1 && (
-                      <>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation()
-                            setCurrentImageIndex(prev => ({
-                              ...prev,
-                              [product.productId]:
-                                ((prev[product.productId] || 0) - 1 + totalImages) % totalImages,
-                            }))
-                          }}
-                          className='absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
-                        >
-                          <ChevronLeft className='h-4 w-4' />
-                        </button>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation()
-                            setCurrentImageIndex(prev => ({
-                              ...prev,
-                              [product.productId]:
-                                ((prev[product.productId] || 0) + 1) % totalImages,
-                            }))
-                          }}
-                          className='absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
-                        >
-                          <ChevronRight className='h-4 w-4' />
-                        </button>
-                      </>
-                    )}
+                {totalImages > 1 && (
+                  <>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation()
+                        setCurrentImageIndex(prev => ({
+                          ...prev,
+                          [product.productId]:
+                            ((prev[product.productId] || 0) - 1 + totalImages) % totalImages,
+                        }))
+                      }}
+                      className='absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                    >
+                      <ChevronLeft className='h-4 w-4' />
+                    </button>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation()
+                        setCurrentImageIndex(prev => ({
+                          ...prev,
+                          [product.productId]: ((prev[product.productId] || 0) + 1) % totalImages,
+                        }))
+                      }}
+                      className='absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                    >
+                      <ChevronRight className='h-4 w-4' />
+                    </button>
+                  </>
+                )}
 
-                    {totalImages > 1 && (
-                      <div className='absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-0.5'>
-                        {productImages.map((_, index) => (
-                          <button
-                            key={index}
-                            onClick={e => {
-                              e.stopPropagation()
-                              setCurrentImageIndex(prev => ({
-                                ...prev,
-                                [product.productId]: index,
-                              }))
-                            }}
-                            className={`w-1 h-1 rounded-full transition-colors ${
-                              index === currentImgIndex ? 'bg-white' : 'bg-white/50'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    <div className='absolute top-1 right-1 flex flex-col space-y-0.5'>
+                {totalImages > 1 && (
+                  <div className='absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1'>
+                    {productImages.map((_, index) => (
                       <button
+                        key={index}
                         onClick={e => {
                           e.stopPropagation()
-                          toggleFavorite(product, e)
+                          setCurrentImageIndex(prev => ({
+                            ...prev,
+                            [product.productId]: index,
+                          }))
                         }}
-                        className={`p-1 rounded-full shadow-lg transition-all ${
-                          isFavorite
-                            ? 'bg-red-500 text-white'
-                            : 'bg-white/90 text-gray-700 hover:bg-white'
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          index === currentImgIndex ? 'bg-white' : 'bg-white/50'
                         }`}
-                      >
-                        <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-                      </button>
-
-                      {productImages.length > 0 && (
-                        <button
-                          onClick={e => downloadAllImages(product, e)}
-                          className='p-1 bg-white/90 text-gray-700 hover:bg-white rounded-full shadow-lg transition-all'
-                          title='Download all images'
-                        >
-                          <Download className='h-4 w-4' />
-                        </button>
-                      )}
-                    </div>
+                      />
+                    ))}
                   </div>
+                )}
 
-                  <div className='p-1.5'>
-                    <h3 className='font-bold text-gray-900 mb-0.5 text-xs line-clamp-2'>
-                      {product.name}
-                    </h3>
-                    <div className='text-xs font-bold text-gray-900'>
-                      {formatPrice(product.basePrice || product.price!)}
-                    </div>
+                <div className='absolute top-1 right-1 flex flex-col space-y-1'>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      toggleFavorite(product, e)
+                    }}
+                    className={`p-1.5 rounded-full shadow-lg transition-all ${
+                      isFavorite
+                        ? 'bg-red-500 text-white'
+                        : 'bg-white/90 text-gray-700 hover:bg-white'
+                    }`}
+                  >
+                    <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                  </button>
 
-                    {product.shop && (
-                      <div className='text-xs text-gray-500 mt-0.5'>
-                        <div className='flex-1'>
-                          <h6 className='text-xs font-[600] text-gray-900'>
-                            {product.shop.shopName}
-                          </h6>
-                          <div className='flex items-center text-gray-600 mt-0.5'>
-                            <MapPin className='h-2.5 w-2.5 mr-0.5' />
-                            <span className='text-xs'>{product.shop.shopLocation}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  {productImages.length > 0 && (
+                    <button
+                      onClick={e => downloadAllImages(product, e)}
+                      className='p-1.5 bg-white/90 text-gray-700 hover:bg-white rounded-full shadow-lg transition-all'
+                      title='Download all images'
+                    >
+                      <Download className='h-4 w-4' />
+                    </button>
+                  )}
                 </div>
               </div>
-            )
-          })}
-        </div>
+
+              <div onClick={() => handleNavigate(product.productId)} className='p-2'>
+                <h3 className='font-bold text-gray-900 mb-1 text-sm line-clamp-2'>
+                  {product.name}
+                </h3>
+                <div className='text-sm font-bold text-gray-900'>
+                  {formatPrice(product.basePrice || product.price!)}
+                </div>
+
+                {product.shop && (
+                  <div className='text-xs text-gray-500 mt-1'>
+                    <div className='flex-1'>
+                      <h6 className='text-xs font-[600] text-gray-900'>{product.shop.shopName}</h6>
+                      <div className='flex items-center text-gray-600 mt-0.5'>
+                        <MapPin className='h-3 w-3 mr-0.5' />
+                        <span className='text-xs'>{product.shop.shopLocation}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
-      {products.length > itemsPerView && (
-        <>
+      {hasMore && (
+        <div className='flex justify-center mt-4'>
           <button
-            onClick={prev}
-            className='absolute left-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 z-10'
-            style={{ left: '-0.5rem' }}
+            onClick={loadMore}
+            disabled={loadingMore}
+            className='px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            <ChevronLeft className='h-5 w-5' />
+            {loadingMore ? 'লোড হচ্ছে...' : 'আরও দেখুন'}
           </button>
-          <button
-            onClick={next}
-            className='absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 z-10'
-            style={{ right: '-0.5rem' }}
-          >
-            <ChevronRight className='h-5 w-5' />
-          </button>
-        </>
+        </div>
       )}
     </div>
   )
@@ -352,6 +334,21 @@ const Categories = () => {
   const [filterProductMessage, setFilterProductMessage] = useState<string | null>(null)
   const [latestProducts, setLatestProducts] = useState<ProductWithImages[]>([])
   const [loadingLatestProducts, setLoadingLatestProducts] = useState(false)
+
+  // Pagination state
+  const [filterPage, setFilterPage] = useState(1)
+  const [latestPage, setLatestPage] = useState(1)
+  const [topSellingPage, setTopSellingPage] = useState(1)
+  const [hasMoreFiltered, setHasMoreFiltered] = useState(false)
+  const [hasMoreLatest, setHasMoreLatest] = useState(false)
+  const [hasMoreTopSelling, setHasMoreTopSelling] = useState(false)
+  const [loadingMoreFiltered, setLoadingMoreFiltered] = useState(false)
+  const [loadingMoreLatest, setLoadingMoreLatest] = useState(false)
+  const [loadingMoreTopSelling, setLoadingMoreTopSelling] = useState(false)
+
+  // Loading states
+  const [applyingFilters, setApplyingFilters] = useState(false)
+  const [downloadingSizeChart, setDownloadingSizeChart] = useState(false)
 
   useEffect(() => {
     const loadAndMergeCategories = async () => {
@@ -434,8 +431,15 @@ const Categories = () => {
     const loadLatestProducts = async () => {
       try {
         setLoadingLatestProducts(true)
-        const response = await productApi.getLatestProducts()
-        setLatestProducts(response.data || [])
+        const { success, message, data, pagination } = await (
+          await productApi.getLatestProducts(1, 6)
+        ).response
+        if (success) {
+          setLatestProducts(data || [])
+          setHasMoreLatest(pagination!.page < pagination!.totalPages)
+        } else {
+          console.error('Failed to load latest products:', message)
+        }
       } catch (error) {
         console.error('Error loading latest products:', error)
         setLatestProducts([])
@@ -451,14 +455,35 @@ const Categories = () => {
     setSelectedShop(prev => (prev?.shopId === shop.shopId ? null : shop))
   }
 
-  const loadTopSellingProducts = async () => {
+  const loadTopSellingProducts = async (page = 1, append = false) => {
     try {
-      const response = await orderApi.getTopSellingProducts()
-      setTopSellingProducts(response.data || [])
+      if (page === 1) {
+        setTopSellingPage(1)
+      }
+
+      const loadingState = page === 1 ? null : setLoadingMoreTopSelling
+      if (loadingState) loadingState(true)
+
+      const response = await orderApi.getTopSellingProducts(page, 10)
+
+      if (append) {
+        setTopSellingProducts(prev => [...prev, ...(response.data.products || [])])
+      } else {
+        setTopSellingProducts(response.data.products || [])
+      }
+
+      setHasMoreTopSelling(response.data.hasMore || false)
+      setTopSellingPage(page)
     } catch (error) {
       console.error('Error loading top selling products:', error)
-      setTopSellingProducts([])
+      if (!append) setTopSellingProducts([])
+    } finally {
+      setLoadingMoreTopSelling(false)
     }
+  }
+
+  const loadMoreTopSelling = () => {
+    loadTopSellingProducts(topSellingPage + 1, true)
   }
 
   const loadFavorites = () => {
@@ -501,7 +526,7 @@ const Categories = () => {
     })
   }
 
-  const applyFilters = async () => {
+  const applyFilters = async (page = 1, append = true) => {
     let categoryId: number | number[] | undefined = undefined
     if (selectedFilterCategory && selectedFilterSubCategory) {
       categoryId = selectedFilterSubCategory
@@ -517,22 +542,50 @@ const Categories = () => {
       maxPrice,
       categoryId,
       shopId: selectedShopId,
-      page: 1,
-      limit: 5,
+      page,
+      limit: 4,
     }
 
-    const { success, data, message } = await shopApi.getAllProducts(filters)
-    if (success) {
-      setFilteredResults(data || [])
-      if (data.length === 0) {
-        setFilterProductMessage('No products found')
+    try {
+      if (page === 1) {
+        setApplyingFilters(true)
       } else {
-        setFilterProductMessage(null)
+        setLoadingMoreFiltered(true)
       }
-    } else {
-      console.error('Failed to apply filters:', message)
-      setFilterProductMessage('Failed to apply filters')
+
+      const response = (await productApi.getAllProducts(filters)).response
+
+      const { success, data, message, pagination } = response
+      if (success) {
+        if (append) {
+          setFilteredResults(prev => [...prev, ...(data || [])])
+        } else {
+          setFilteredResults(data || [])
+        }
+
+        setHasMoreFiltered(pagination.page < pagination.totalPages)
+        setFilterPage(page)
+
+        if (data.products && data.products.length === 0) {
+          setFilterProductMessage('No products found')
+        } else {
+          setFilterProductMessage(null)
+        }
+      } else {
+        console.error('Failed to apply filters:', message)
+        setFilterProductMessage('Failed to apply filters')
+      }
+    } catch (error) {
+      console.error('Error applying filters:', error)
+      setFilterProductMessage('Error applying filters')
+    } finally {
+      setApplyingFilters(false)
+      setLoadingMoreFiltered(false)
     }
+  }
+
+  const loadMoreFiltered = () => {
+    applyFilters(filterPage + 1, true)
   }
 
   const resetFilters = () => {
@@ -544,6 +597,8 @@ const Categories = () => {
     setSearchQuery('')
     setFilteredResults([])
     setFilterProductMessage(null)
+    setFilterPage(1)
+    setHasMoreFiltered(false)
   }
 
   const downloadAllImages = async (product: ProductWithImages, e: React.MouseEvent) => {
@@ -563,6 +618,7 @@ const Categories = () => {
 
   const downloadSizeChart = async (sizeChartUrl: string) => {
     if (sizeChartUrl) {
+      setDownloadingSizeChart(true)
       try {
         await fileDownloader.downloadAllFiles([sizeChartUrl], {
           baseNamePrefix: 'size_chart',
@@ -570,6 +626,8 @@ const Categories = () => {
         })
       } catch (error) {
         console.error('Error downloading size chart:', error)
+      } finally {
+        setDownloadingSizeChart(false)
       }
     }
   }
@@ -591,6 +649,21 @@ const Categories = () => {
   const handleSizeChartDownload = () => {
     if (sizeChartModal.sizeChart) {
       downloadSizeChart(sizeChartModal.sizeChart)
+    }
+  }
+
+  const loadMoreLatest = async () => {
+    try {
+      setLoadingMoreLatest(true)
+      const response = await (await productApi.getLatestProducts(latestPage + 1, 6)).response
+      setLatestProducts(prev => [...prev, ...(response.data || [])])
+      // alert(response?.pagination?.page! < response?.pagination?.totalPages!)
+      setHasMoreLatest(response?.pagination?.page! < response?.pagination?.totalPages!)
+      setLatestPage(prev => prev + 1)
+    } catch (error) {
+      console.error('Error loading more latest products:', error)
+    } finally {
+      setLoadingMoreLatest(false)
     }
   }
 
@@ -700,10 +773,11 @@ const Categories = () => {
 
         <div className='flex justify-between items-center'>
           <button
-            className='flex-1 bg-blue-500 text-white text-xs font-medium py-1.5 rounded hover:bg-blue-600 transition mr-1'
-            onClick={applyFilters}
+            className='flex-1 bg-blue-500 text-white text-xs font-medium py-1.5 rounded hover:bg-blue-600 transition mr-1 disabled:opacity-50'
+            onClick={() => applyFilters(1, false)}
+            disabled={applyingFilters}
           >
-            🔍 প্রোডাক্ট সার্চ করুন
+            {applyingFilters ? 'সার্চ হচ্ছে...' : '🔍 প্রোডাক্ট সার্চ করুন'}
           </button>
           <button
             className='flex-1 bg-gray-200 text-gray-700 text-xs font-medium py-1.5 rounded hover:bg-gray-300 transition'
@@ -714,12 +788,14 @@ const Categories = () => {
         </div>
       </div>
 
-      {filteredResults.length > 0 && (
+      {(applyingFilters || filteredResults.length > 0) && (
         <div className='mb-4'>
           <h2 className='text-lg sm:text-xl font-bold text-gray-900 mb-2'>
-            ফিল্টার্ড প্রোডাক্টস ({filteredResults.length})
+            {applyingFilters
+              ? 'প্রোডাক্টস খুঁজছি...'
+              : `ফিল্টার্ড প্রোডাক্টস (${filteredResults.length})`}
           </h2>
-          <ProductCarousel
+          <ProductGrid
             products={filteredResults}
             favorites={favorites}
             toggleFavorite={toggleFavorite}
@@ -728,44 +804,46 @@ const Categories = () => {
             handleNavigate={handleNavigate}
             downloadAllImages={downloadAllImages}
             formatPrice={formatPrice}
+            loadMore={loadMoreFiltered}
+            hasMore={hasMoreFiltered}
+            loadingMore={loadingMoreFiltered}
+            loading={applyingFilters}
           />
         </div>
       )}
 
-      {filteredResults.length === 0 && filterProductMessage && (
+      {filteredResults.length === 0 && filterProductMessage && !applyingFilters && (
         <div className='text-center text-gray-500 py-2'>{filterProductMessage}</div>
       )}
 
-      {latestProducts.length > 0 && (
-        <div className='mb-4'>
-          <h2 className='text-lg sm:text-xl font-bold text-gray-900 mb-2'>
-            নতুন প্রোডাক্টস ({latestProducts.length})
-          </h2>
-          {loadingLatestProducts ? (
-            <div className='flex justify-center items-center h-32'>
-              <div className='animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500'></div>
-            </div>
-          ) : (
-            <ProductCarousel
-              products={latestProducts}
-              favorites={favorites}
-              toggleFavorite={toggleFavorite}
-              currentImageIndex={currentImageIndex}
-              setCurrentImageIndex={setCurrentImageIndex}
-              handleNavigate={handleNavigate}
-              downloadAllImages={downloadAllImages}
-              formatPrice={formatPrice}
-            />
-          )}
-        </div>
-      )}
+      <div className='mb-4'>
+        <h2 className='text-lg sm:text-xl font-bold text-gray-900 mb-2'>
+          {loadingLatestProducts
+            ? 'নতুন প্রোডাক্টস লোড হচ্ছে...'
+            : `নতুন প্রোডাক্টস (${latestProducts.length})`}
+        </h2>
+        <ProductGrid
+          products={latestProducts}
+          favorites={favorites}
+          toggleFavorite={toggleFavorite}
+          currentImageIndex={currentImageIndex}
+          setCurrentImageIndex={setCurrentImageIndex}
+          handleNavigate={handleNavigate}
+          downloadAllImages={downloadAllImages}
+          formatPrice={formatPrice}
+          loadMore={loadMoreLatest}
+          hasMore={hasMoreLatest}
+          loadingMore={loadingMoreLatest}
+          loading={loadingLatestProducts}
+        />
+      </div>
 
       {topSellingProducts.length > 0 && (
         <div className='mb-4'>
           <h2 className='text-lg sm:text-xl font-bold text-gray-900 mb-2'>
             টপ সেলিং প্রোডাক্টস ({topSellingProducts.length})
           </h2>
-          <ProductCarousel
+          <ProductGrid
             products={topSellingProducts}
             favorites={favorites}
             toggleFavorite={toggleFavorite}
@@ -774,6 +852,9 @@ const Categories = () => {
             handleNavigate={handleNavigate}
             downloadAllImages={downloadAllImages}
             formatPrice={formatPrice}
+            loadMore={loadMoreTopSelling}
+            hasMore={hasMoreTopSelling}
+            loadingMore={loadingMoreTopSelling}
           />
         </div>
       )}
@@ -820,8 +901,14 @@ const Categories = () => {
                         className='py-1 px-2 bg-blue-100 rounded hover:bg-blue-200 transition-colors flex items-center'
                         title='Download Size Chart'
                       >
-                        <Download className='h-3 w-3 mr-0.5 text-blue-600' />
-                        <span className='text-[10px] text-blue-600'>সাইজ চার্ট</span>
+                        {downloadingSizeChart ? (
+                          <span className='text-[10px] text-blue-600'>ডাউনলোড হচ্ছে...</span>
+                        ) : (
+                          <>
+                            <Download className='h-3 w-3 mr-0.5 text-blue-600' />
+                            <span className='text-[10px] text-blue-600'>সাইজ চার্ট</span>
+                          </>
+                        )}
                       </button>
                     )}
                   </div>

@@ -10,7 +10,8 @@ import {
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { fileDownloader } from '../Api/ftp.api'
-import ShopApi, { Product } from '../Api/shop.api'
+import { productApi } from '../Api/product.api'
+import { Product } from '../Api/shop.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { FAVORITES_KEY } from '../utils/utils.variables'
 
@@ -38,7 +39,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
 
   const loadProducts = async () => {
     try {
-      const { success, data } = await ShopApi.getAllProducts({
+      const { success, data } = await productApi.getAllProducts({
         shopId: shopId ? parseInt(shopId) : undefined,
         categoryId: categoryId ? parseInt(categoryId) : undefined,
         search: searchTerm || undefined,

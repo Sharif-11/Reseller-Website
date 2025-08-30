@@ -70,43 +70,5 @@ class ShopApi {
       },
     })
   }
-  public async getAllProducts({
-    search,
-    minPrice,
-    maxPrice,
-    categoryId,
-    shopId,
-    page = 1,
-    limit = 10,
-  }: {
-    search?: string
-    minPrice?: number
-    maxPrice?: number
-    categoryId?: number | number[]
-    shopId?: number
-    page?: number
-    limit?: number
-  }) {
-    const params: {
-      search?: string
-      minPrice?: number
-      maxPrice?: number
-      categoryId?: number | number[]
-      shopId?: number
-      page?: number
-      limit?: number
-    } = {
-      search,
-      categoryId,
-      shopId,
-      page,
-      limit,
-    }
-    if (minPrice) params.minPrice = minPrice
-    if (maxPrice && maxPrice > 0) params.maxPrice = maxPrice
-    return apiClient.get('products/user', {
-      params,
-    })
-  }
 }
 export default new ShopApi()

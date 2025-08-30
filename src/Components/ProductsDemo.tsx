@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fileDownloader } from '../Api/ftp.api'
 import { orderApi } from '../Api/order.api'
+import { productApi } from '../Api/product.api'
 import ShopApi, { Category, Product, Shop } from '../Api/shop.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { FAVORITES_KEY } from '../utils/utils.variables'
@@ -123,7 +124,7 @@ const Products = () => {
       if (!selectedShop || !selectedCategory) {
         return
       }
-      const response = await ShopApi.getAllProducts({
+      const response = await productApi.getAllProducts({
         search: searchTerm || undefined,
         minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
         maxPrice: priceRange[1] < 10000 ? priceRange[1] : undefined,
