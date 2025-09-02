@@ -266,7 +266,7 @@ const ProductGrid = ({
                   {product.name}
                 </h3>
                 <div className='text-sm font-bold text-gray-900'>
-                  {formatPrice(product.basePrice || product.price!)}
+                  {formatPrice((product.price||product.basePrice ||product.suggestedMaxPrice )!)}
                 </div>
 
                 {product.shop && (

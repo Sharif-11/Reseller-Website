@@ -4,6 +4,7 @@ import { FiKey, FiLogIn, FiUserPlus } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
 import * as Yup from 'yup'
 import { login } from '../Api/auth.api'
+import { localStorageAvailable } from '../Axios/baseUrl'
 import { useAuth } from '../Hooks/useAuth'
 import Footer from './Footer'
 
@@ -33,6 +34,9 @@ const LoginPage = () => {
       if (result.success) {
         if (result.data.user.role === 'Seller') {
           setUser(result.data?.user)
+          if (localStorageAvailable) {
+            localStorage.setItem('token', result.data?.token)
+          }
           console.log({ user })
         } else {
           setError('আপনার একাউন্ট সেলার হিসেবে নিবন্ধিত নয়।')

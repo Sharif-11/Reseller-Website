@@ -43,10 +43,8 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
         shopId: shopId ? parseInt(shopId) : undefined,
         categoryId: categoryId ? parseInt(categoryId) : undefined,
         search: searchTerm || undefined,
-        minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
-        maxPrice: priceRange[1] < 10000 ? priceRange[1] : undefined,
-        page: currentPage,
-        limit: 12,
+        minPrice: !isNaN(priceRange[0]) ? priceRange[0] : undefined,
+        maxPrice: !isNaN(priceRange[1]) ? priceRange[1] : undefined,
       })
 
       if (success) {
@@ -364,7 +362,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                       {product.name}
                     </h3>
                     <div className='text-sm font-bold text-gray-900'>
-                      {formatPrice(product.basePrice || product.price!)}
+                      {formatPrice((product.basePrice || product.price)!)}
                     </div>
 
                     {showShopInfo && product.shop && (

@@ -16,8 +16,8 @@ class ProductApi {
     maxPrice,
     categoryId,
     shopId,
-    page = 1,
-    limit = 10,
+    page,
+    limit,
   }: {
     search?: string
     minPrice?: number
@@ -39,11 +39,13 @@ class ProductApi {
       search,
       categoryId,
       shopId,
-      page,
-      limit,
     }
     if (minPrice) params.minPrice = minPrice
     if (maxPrice && maxPrice > 0) params.maxPrice = maxPrice
+    if (page) params.page = page
+    if (limit) params.limit = limit
+    if (search && search.trim() !== '') params.search = search
+
     return apiClient.get('products/user', {
       params,
     })

@@ -6,7 +6,7 @@ import type {
   AxiosResponse,
 } from 'axios'
 import axios from 'axios'
-import { baseURL } from '../Axios/baseUrl'
+import { baseURL, localStorageAvailable } from '../Axios/baseUrl'
 
 export type ApiResponse<T = any> = {
   success: boolean
@@ -38,6 +38,14 @@ class ApiClient {
         Accept: 'application/json',
       },
       ...config,
+    })
+    this.instance.interceptors.request.use(config => {
+      // we need to pass Bearer token
+      const token = localStorage.getItem('token')
+      if (token && localStorageAvailable) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      return config
     })
   }
 

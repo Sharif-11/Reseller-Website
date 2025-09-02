@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { baseURL } from './baseUrl'
+import { baseURL, localStorageAvailable } from './baseUrl'
 
 const axiosInstance = axios.create({
   baseURL: baseURL, // Replace with your API's base URL
@@ -14,6 +14,10 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   config => {
     // 1. Add Authorization Header if token exists (for JWT in localStorage)
+    const token = localStorage.getItem('token')
+    if (token && localStorageAvailable) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
 
     // 2. Ensure cookies are sent with requests
     config.withCredentials = true // This is crucial for cookies
