@@ -103,6 +103,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     if (location.pathname.startsWith('/customer-register')) {
       setCustomerMode(true)
       Cookies.set('customerMode', 'true') // Set cookie to remember customer mode
+    }
+    // recognize this pattern /products/:productId/order
+    else if (location.pathname.startsWith('/products/') && location.pathname.endsWith('/order')) {
+      setCustomerMode(true)
+      Cookies.set('customerMode', 'true') // Set cookie to remember customer mode
     } else {
       setCustomerMode(Cookies.get('customerMode') === 'true')
     }

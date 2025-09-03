@@ -54,6 +54,7 @@ import {
 } from './Components/SupportTicketList.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
 import { CartFavoriteProvider } from './Context/cartContext.tsx'
+import OrderProduct from './Components/OrderProduct.tsx'
 
 Sentry.init({
   dsn: 'https://283a749ae1d929c3da86a952b8290e15@o4509187069378560.ingest.de.sentry.io/4509187074359376',
@@ -211,6 +212,14 @@ const UserProviderWrapper = () => {
             element={
               <WithFooter>
                 <ProductDetail />
+              </WithFooter>
+            }
+          />
+          <Route
+            path='products/:productId/order'
+            element={
+              <WithFooter>
+                <OrderProduct />
               </WithFooter>
             }
           />

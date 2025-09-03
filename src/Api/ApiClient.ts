@@ -183,7 +183,7 @@ class ApiClient {
       return {
         success: false,
         statusCode: 503,
-        message: 'No response received from server',
+        message: 'সার্ভার থেকে কোনো ডাটা পাওয়া যায়নি',
         error: error.request,
       }
     } else {

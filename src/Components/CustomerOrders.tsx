@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FaComment, FaEye, FaMapMarkerAlt, FaMoneyBillWave, FaStore, FaUser } from 'react-icons/fa'
+import { useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { orderApi } from '../Api/order.api'
 import { walletApi } from '../Api/wallet.api'
@@ -93,13 +94,15 @@ interface PaginationState {
 
 const CustomerOrders = () => {
   const [orders, setOrders] = useState<Order[]>([])
+  const location = useLocation()
+  const { phoneNo } = location.state || { phoneNo: '' }
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<{
     type: 'cancel' | 'payment' | null
     id: number | null
   }>({ type: null, id: null })
   const [searchQuery] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState(phoneNo)
   const [showPhoneInput, setShowPhoneInput] = useState(true)
   const [systemWallets, setSystemWallets] = useState<SystemWallet[]>([])
   const [, setWalletLoading] = useState(false)

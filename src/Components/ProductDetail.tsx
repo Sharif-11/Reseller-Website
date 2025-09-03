@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { FaHeart, FaRegHeart, FaSpinner } from 'react-icons/fa'
-import { FiChevronLeft, FiCopy, FiDownload, FiShoppingCart, FiYoutube } from 'react-icons/fi'
+import {
+  FiCheck,
+  FiChevronLeft,
+  FiCopy,
+  FiDownload,
+  FiShare2,
+  FiShoppingCart,
+  FiYoutube,
+} from 'react-icons/fi'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { productApi } from '../Api/product.api'
@@ -25,11 +33,14 @@ export type CartItem = {
 
 import axiosInstance from '../Axios/axiosInstance'
 import { useCartFavorite } from '../Context/cartContext'
+import { useAuth } from '../Hooks/useAuth'
+import { shortenUrl } from '../utils/shortenUrl'
 import { CART_ITEMS_KEY, FAVORITES_KEY } from '../utils/utils.variables'
 
 const ProductDetail = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { productId } = useParams<{ productId: string }>()
   const [product, setProduct] = useState<Product | null>(location.state?.product || null)
   const [loading, setLoading] = useState(!location.state?.product)
@@ -55,6 +66,9 @@ const ProductDetail = () => {
   const [copied, setCopied] = useState(false)
   const [priceError, setPriceError] = useState('')
   const [userType, setUserType] = useState<'customer' | 'seller'>('customer')
+  const [shareLink, setShareLink] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
+  const [linkGenerationError, setLinkGenerationError] = useState<string | null>(null)
 
   // Initialize product data
   useEffect(() => {
@@ -93,6 +107,11 @@ const ProductDetail = () => {
   // Load favorites from localStorage
 
   // Handle price validation
+  useEffect(() => {
+    if (sellingPrice) {
+      generateShareLink()
+    }
+  }, [sellingPrice])
 
   useEffect(() => {
     if (!product) return
@@ -355,9 +374,39 @@ const ProductDetail = () => {
       }
       return acc
     }, {}) || {}
+  const generateShareLink = async () => {
+    if (!product) return
+
+    const price = parseFloat(sellingPrice) || product.suggestedMaxPrice
+    if (price < product.basePrice) {
+      setLinkGenerationError(`মূল্য কমপক্ষে ${product.basePrice} টাকা হতে হবে`)
+      return
+    }
+
+    // Get referral code from localStorage or user data
+
+    const referralCode = user?.referralCode
+
+    if (!referralCode) {
+      setLinkGenerationError('রেফারেল কোড পাওয়া যায়নি')
+      return
+    }
+
+    const baseUrl = window.location.origin
+    const link = `${baseUrl}/products/${productId}/order?sellerPrice=${price}&referralCode=${referralCode}`
+    setShareLink(link)
+  }
+
+  const copyShareLink = async () => {
+    if (!shareLink) return
+    const shortUrl = await shortenUrl(shareLink)
+    navigator.clipboard.writeText(shortUrl)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
 
   return (
-    <div className='bg-gray-50 min-h-screen pb-20'>
+    <div className='bg-gray-50 min-h-screen pb-36'>
       {/* Mobile Header */}
       <header className='lg:hidden sticky top-0 bg-white shadow-sm z-10'>
         <div className='container mx-auto px-4 py-3 flex items-center'>
@@ -638,13 +687,47 @@ const ProductDetail = () => {
                 )}
               </div>
             </div>
+            {user?.isVerified && userType === 'seller' && (
+              <div className='bg-white rounded-lg shadow-sm p-3 md:p-4 '>
+                <div className='flex items-center mb-2'>
+                  <FiShare2 className='text-blue-600 mr-2' />
+                  <h2 className=' font-semibold text-xs'>
+                    {`কাস্টমারের কাছে প্রোডাক্টটি ${Math.max(
+                      parseFloat(sellingPrice) || product.basePrice,
+                      product.basePrice
+                    )} টাকায় বিক্রি করতে এই লিঙ্কটি তাদের সাথে শেয়ার করুন।`}
+                  </h2>
+                </div>
 
-            {/* Image Selection Warning */}
-            {validationError && (
-              <div className='text-red-500 text-sm bg-white p-3 rounded-lg shadow-sm'>
-                {validationError}
+                <div className='space-y-2'>
+                  {shareLink ? (
+                    <div className='flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded-lg'>
+                      <p className='text-xs text-gray-600 truncate mr-2'>{shareLink}</p>
+                      <button
+                        onClick={copyShareLink}
+                        className='flex-shrink-0 flex items-center text-blue-600 hover:text-blue-800 text-xs p-1 hover:bg-blue-50 rounded transition-colors'
+                      >
+                        {linkCopied ? (
+                          <>
+                            <FiCheck className='mr-1' />
+                            <span>কপি হয়েছে!</span>
+                          </>
+                        ) : (
+                          <>
+                            <FiCopy className='mr-1' />
+                            <span>কপি করুন</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    // link generation error ui
+                    <p className='text-red-500 text-xs'>{linkGenerationError}</p>
+                  )}
+                </div>
               </div>
             )}
+            {/* Image Selection Warning */}
 
             {/* Mobile Add to Cart Button */}
             <div className='lg:hidden fixed z-[100] bottom-0 left-0 right-0 bg-white shadow-lg p-3 border-t'>
@@ -660,6 +743,11 @@ const ProductDetail = () => {
                 <FiShoppingCart />
                 কার্টে যোগ করুন
               </button>
+              {validationError && (
+                <div className='text-red-500 text-sm bg-white p-3 rounded-lg shadow-sm text-center'>
+                  {validationError}
+                </div>
+              )}
             </div>
 
             {/* Desktop Add to Cart Button */}
@@ -676,6 +764,11 @@ const ProductDetail = () => {
                 <FiShoppingCart />
                 কার্টে যোগ করুন
               </button>
+              {validationError && (
+                <div className='text-red-500 text-sm bg-white p-3 rounded-lg shadow-sm text-center'>
+                  {validationError}
+                </div>
+              )}
             </div>
           </div>
         </div>

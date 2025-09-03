@@ -1,9 +1,9 @@
-import axios from 'axios'
 import { useEffect, useState } from 'react'
 import { FaFacebookF, FaHandHoldingUsd, FaTelegram, FaWhatsapp } from 'react-icons/fa'
 import { FiCheck, FiCopy, FiShare2, FiX } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../Hooks/useAuth'
+import { shortenUrl } from '../utils/shortenUrl'
 
 export const ReferralDetails = () => {
   const { user } = useAuth()
@@ -18,26 +18,6 @@ export const ReferralDetails = () => {
 
   if (!user?.referralCode) {
     return null
-  }
-
-  const shortenUrl = async (originalUrl: string): Promise<string> => {
-    try {
-      const encodedUrl = encodeURIComponent(originalUrl)
-      const apiUrl = `https://tinyurl.com/api-create.php?url=${encodedUrl}`
-
-      const response = await axios.get(apiUrl, {
-        timeout: 5000,
-      })
-
-      if (response.status === 200 && response.data && response.data.startsWith('http')) {
-        return response.data
-      }
-
-      throw new Error('Invalid response from tinyurl API')
-    } catch (error) {
-      console.error('URL shortening failed, returning original URL:', error)
-      return originalUrl
-    }
   }
 
   const copyToClipboard = async (
@@ -90,7 +70,8 @@ export const ReferralDetails = () => {
     const sellerLink = `${window.location.origin}/register?ref=${user.referralCode}`
     const customerLink = `${window.location.origin}/customer-register?customer_ref=${user.referralCode}`
     const shortUrl = async () => {
-      const [link1, link2] = await Promise.all([shortenUrl(sellerLink), shortenUrl(customerLink)])
+      const link1 = sellerLink
+      const link2 = await shortenUrl(customerLink)
       setSellerReferralLink(link1)
       setCustomerReferralLink(link2)
     }
