@@ -342,7 +342,6 @@ const SingleProductOrder = () => {
   // Handle order submission
   const handleOrderSubmit = async (values: any) => {
     if (!product) return
-    const sellingPrice = parseFloat(sellerPrice || '') || 0
 
     // Validate product selections
     if (!selectedImage) {

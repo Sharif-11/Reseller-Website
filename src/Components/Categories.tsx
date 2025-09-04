@@ -266,7 +266,7 @@ const ProductGrid = ({
                   {product.name}
                 </h3>
                 <div className='text-sm font-bold text-gray-900'>
-                  {formatPrice((product.price||product.basePrice ||product.suggestedMaxPrice )!)}
+                  {formatPrice((product.price || product.basePrice || product.suggestedMaxPrice)!)}
                 </div>
 
                 {product.shop && (
@@ -464,15 +464,16 @@ const Categories = () => {
       const loadingState = page === 1 ? null : setLoadingMoreTopSelling
       if (loadingState) loadingState(true)
 
-      const response = await orderApi.getTopSellingProducts(page, 10)
+      const { data } = await orderApi.getTopSellingProducts(page, 10)
+      console.log(data, 'top selling')
 
       if (append) {
-        setTopSellingProducts(prev => [...prev, ...(response.data.products || [])])
+        setTopSellingProducts(prev => [...prev, ...(data.data || [])])
       } else {
-        setTopSellingProducts(response.data.products || [])
+        setTopSellingProducts(data.data || [])
       }
 
-      setHasMoreTopSelling(response.data.hasMore || false)
+      setHasMoreTopSelling(data.page < data.totalPages || false)
       setTopSellingPage(page)
     } catch (error) {
       console.error('Error loading top selling products:', error)
@@ -818,9 +819,7 @@ const Categories = () => {
 
       <div className='mb-4'>
         <h2 className='text-lg sm:text-xl font-bold text-gray-900 mb-2'>
-          {loadingLatestProducts
-            ? 'নতুন প্রোডাক্টস লোড হচ্ছে...'
-            : `নতুন প্রোডাক্টস (${latestProducts.length})`}
+          {loadingLatestProducts ? 'নতুন প্রোডাক্টস লোড হচ্ছে...' : `নতুন প্রোডাক্টস`}
         </h2>
         <ProductGrid
           products={latestProducts}
@@ -840,9 +839,7 @@ const Categories = () => {
 
       {topSellingProducts.length > 0 && (
         <div className='mb-4'>
-          <h2 className='text-lg sm:text-xl font-bold text-gray-900 mb-2'>
-            টপ সেলিং প্রোডাক্টস ({topSellingProducts.length})
-          </h2>
+          <h2 className='text-lg sm:text-xl font-bold text-gray-900 mb-2'>টপ সেলিং প্রোডাক্টস</h2>
           <ProductGrid
             products={topSellingProducts}
             favorites={favorites}
