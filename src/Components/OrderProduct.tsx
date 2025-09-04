@@ -343,10 +343,6 @@ const SingleProductOrder = () => {
   const handleOrderSubmit = async (values: any) => {
     if (!product) return
     const sellingPrice = parseFloat(sellerPrice || '') || 0
-    if (sellingPrice < product.basePrice) {
-      setValidationError('সেলিং প্রাইস বেস প্রাইস এর সমান বা বেশি হতে হবে')
-      return
-    }
 
     // Validate product selections
     if (!selectedImage) {

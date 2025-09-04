@@ -82,7 +82,7 @@ const CustomerCheckout = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
   const [transactionId, setTransactionId] = useState('')
   const [customerWalletNumber, setCustomerWalletNumber] = useState('')
-  const [actionLoading, setActionLoading] = useState<{
+  const [, setActionLoading] = useState<{
     type: 'payment' | 'confirm' | '' | null
     id: string | null | number | ''
   }>({ type: '', id: '' })
@@ -95,7 +95,7 @@ const CustomerCheckout = () => {
     walletName: string
     walletPhoneNo: string
   } | null>(null)
-  const [walletLoading, setWalletLoading] = useState(false)
+  const [, setWalletLoading] = useState(false)
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0)
 
   // Customer verification states
