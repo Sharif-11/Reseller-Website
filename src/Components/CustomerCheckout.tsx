@@ -5,7 +5,10 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import * as Yup from 'yup'
 import districts from '../../public/zillasInfo.json'
+import { authApi } from '../Api/auth.api'
 import { orderApi } from '../Api/order.api'
+import { sendOtp, verifyOtp } from '../Api/otp.api'
+import { userApi } from '../Api/user.api'
 import { walletApi } from '../Api/wallet.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { CustomerOrderData } from '../types/order.types'
@@ -45,6 +48,29 @@ interface OrderResponse {
   }[]
 }
 
+interface Customer {
+  customerId: string
+  customerName: string | null
+  customerPhoneNo: string
+  role: string
+  balance: string
+  sellerId: string
+  sellerCode: string
+  sellerName: string
+  sellerPhone: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface OtpResponse {
+  sendOTP: boolean
+  alreadySent: boolean
+  isBlocked: boolean
+  isVerified: boolean
+  message: string
+  waitTime?: number
+}
+
 const CustomerCheckout = () => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -71,6 +97,17 @@ const CustomerCheckout = () => {
   } | null>(null)
   const [walletLoading, setWalletLoading] = useState(false)
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0)
+
+  // Customer verification states
+  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [checkingCustomer, setCheckingCustomer] = useState(false)
+  const [sendingOtp, setSendingOtp] = useState(false)
+  const [verifyingOtp, setVerifyingOtp] = useState(false)
+  const [verifyingOtpError, setVerifyingOtpError] = useState<string | null>(null)
+  const [otpSent, setOtpSent] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [otpCooldown, setOtpCooldown] = useState<number>(0)
+  const [otpCooldownInterval, setOtpCooldownInterval] = useState<NodeJS.Timeout | null>(null)
 
   const shopCart = location.state?.shopCart as ShopCart
   const totalItems = shopCart?.items.reduce((sum, item) => sum + item.quantity, 0)
@@ -145,6 +182,30 @@ const CustomerCheckout = () => {
     localStorage.removeItem(getDraftKey(phone))
   }
 
+  // Start OTP cooldown timer
+  const startOtpCooldown = (seconds: number) => {
+    setOtpCooldown(seconds)
+    const interval = setInterval(() => {
+      setOtpCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    setOtpCooldownInterval(interval)
+  }
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (otpCooldownInterval) {
+        clearInterval(otpCooldownInterval)
+      }
+    }
+  }, [otpCooldownInterval])
+
   const formik = useFormik({
     initialValues: {
       customerPhone: location.state?.mobileNumber || '',
@@ -172,6 +233,39 @@ const CustomerCheckout = () => {
     }
   }, [formik.values.zilla, shopCart])
 
+  // Check if customer exists when phone number changes
+  useEffect(() => {
+    const checkCustomer = async () => {
+      if (formik.values.customerPhone.length === 11) {
+        setCheckingCustomer(true)
+        try {
+          const { data } = await userApi.getCustomerByPhoneNumber(formik.values.customerPhone)
+          if (data) {
+            setCustomer(data)
+            formik.setFieldValue('customerName', data.customerName || '')
+            // Hide OTP section if customer exists
+            setOtpSent(false)
+          } else {
+            setCustomer(null)
+          }
+        } catch (error) {
+          setCustomer(null)
+          console.error('Error checking customer:', error)
+        } finally {
+          setCheckingCustomer(false)
+        }
+      } else {
+        // Reset OTP state if phone number is incomplete
+        setOtpSent(false)
+        setOtp('')
+        setVerifyingOtpError(null)
+      }
+    }
+
+    const timer = setTimeout(checkCustomer, 500)
+    return () => clearTimeout(timer)
+  }, [formik.values.customerPhone])
+
   const handleZillaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedZilla = e.target.value as keyof typeof districts
     formik.setFieldValue('zilla', selectedZilla)
@@ -189,7 +283,115 @@ const CustomerCheckout = () => {
     }
   }
 
+  // Send OTP to customer phone
+  const handleSendOtp = async () => {
+    setSendingOtp(true)
+    setVerifyingOtpError(null)
+    try {
+      const { success, data, message } = (await sendOtp(formik.values.customerPhone)) as {
+        success: boolean
+        data?: OtpResponse
+        message?: string
+      }
+
+      if (success && data) {
+        if (data.isVerified) {
+          // Phone number already verified, create customer directly
+          await createCustomer()
+        } else if (data.alreadySent) {
+          // OTP already sent, show cooldown
+          setOtpSent(true)
+          if (data.waitTime) {
+            startOtpCooldown(data.waitTime)
+          }
+        } else if (data.sendOTP) {
+          // OTP sent successfully
+          setOtpSent(true)
+          toast.success('OTP sent successfully')
+          if (data.waitTime) {
+            startOtpCooldown(data.waitTime)
+          }
+        } else if (data.isBlocked) {
+          // Phone number blocked
+          toast.error('This phone number is blocked from receiving OTPs')
+        }
+      } else {
+        toast.error(message || 'Failed to send OTP')
+      }
+    } catch (error: any) {
+      console.error('Error sending OTP:', error)
+      toast.error(error.response?.data?.message || 'Failed to send OTP')
+    } finally {
+      setSendingOtp(false)
+    }
+  }
+
+  // Create customer after OTP verification or if already verified
+  const createCustomer = async () => {
+    try {
+      const { success, data } = await authApi.createCustomer({
+        customerPhoneNo: formik.values.customerPhone,
+        sellerCode: '123', // Fixed referral code as requested
+      })
+
+      if (success && data) {
+        setCustomer(data)
+        // Hide OTP section after successful customer creation
+        setOtpSent(false)
+        toast.success('Customer account created successfully')
+      } else {
+        toast.error('Failed to create customer account')
+      }
+    } catch (error: any) {
+      console.error('Error creating customer:', error)
+      toast.error(error.response?.data?.message || 'Failed to create customer account')
+    }
+  }
+
+  // Verify OTP and create customer
+  const verifyOtpAndCreateCustomer = async () => {
+    if (otp.length !== 6) {
+      setVerifyingOtpError('OTP must be 6 digits')
+      return
+    }
+
+    setVerifyingOtp(true)
+    setVerifyingOtpError(null)
+    try {
+      const { success, data, message } = (await verifyOtp(formik.values.customerPhone, otp)) as {
+        success: boolean
+        data?: {
+          otpVerified: boolean
+          message: string
+        }
+        message?: string
+      }
+
+      if (success && data) {
+        if (data.otpVerified) {
+          // OTP verified successfully, create customer
+          await createCustomer()
+        } else {
+          setVerifyingOtpError(data.message || 'OTP verification failed')
+        }
+      } else {
+        setVerifyingOtpError(message || 'OTP verification failed')
+      }
+    } catch (error: any) {
+      console.error('Error verifying OTP:', error)
+      setVerifyingOtpError(error.response?.data?.message || 'OTP verification failed')
+    } finally {
+      setVerifyingOtp(false)
+    }
+  }
+
   const submitOrder = async (values: any) => {
+    // Check if customer is verified
+    if (!customer) {
+      toast.error('Please verify your phone number before placing an order')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const orderData: CustomerOrderData = {
@@ -222,10 +424,16 @@ const CustomerCheckout = () => {
         localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(updatedCartItems))
         loadCartCount()
 
-        // Show payment modal after order creation
-        fetchSystemWallets()
-        setSelectedOrder(data)
-        setShowPaymentModal(true)
+        // Check if customer has enough balance for delivery charge
+        if (customer && parseFloat(customer.balance) >= data.deliveryCharge) {
+          // Customer has enough balance, navigate to success page
+          navigate('/orders', { state: { orderSuccess: true } })
+        } else {
+          // Show payment modal for delivery charge
+          fetchSystemWallets()
+          setSelectedOrder(data)
+          setShowPaymentModal(true)
+        }
       } else {
         setFormErrors([message || 'অর্ডার সাবমিট করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'])
       }
@@ -502,21 +710,79 @@ const CustomerCheckout = () => {
                     <FiPhone size={14} />
                     কাস্টমারের মোবাইল নং*
                   </label>
-                  <input
-                    type='text'
-                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                      formik.touched.customerPhone && formik.errors.customerPhone
-                        ? 'border-red-500'
-                        : 'border-gray-300'
-                    }`}
-                    {...formik.getFieldProps('customerPhone')}
-                    placeholder='01XXXXXXXXX'
-                    readOnly={!!location.state?.mobileNumber}
-                  />
+                  <div className='flex gap-2 items-center'>
+                    <input
+                      type='text'
+                      className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                        formik.touched.customerPhone && formik.errors.customerPhone
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
+                      {...formik.getFieldProps('customerPhone')}
+                      placeholder='01XXXXXXXXX'
+                      readOnly={!!location.state?.mobileNumber}
+                    />
+                    {checkingCustomer && (
+                      <div className='animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500'></div>
+                    )}
+                  </div>
                   {formik.touched.customerPhone && formik.errors.customerPhone && (
                     <p className='text-red-500 text-xs mt-1'>
                       {formik.errors.customerPhone as string}
                     </p>
+                  )}
+
+                  {/* OTP Section for new customers - Only show if OTP sent and no customer exists */}
+                  {otpSent && !customer && (
+                    <div className='mt-3 p-3 bg-blue-50 rounded-lg'>
+                      <p className='text-sm text-blue-800 mb-2'>
+                        আপনার ফোনে 6 ডিজিটের ওটিপি পাঠানো হয়েছে
+                      </p>
+                      <div className='flex gap-2'>
+                        <input
+                          type='text'
+                          value={otp}
+                          onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          placeholder='Enter OTP'
+                          className='flex-1 px-3 py-2 border border-gray-300 rounded text-sm'
+                          maxLength={6}
+                        />
+                        <button
+                          type='button'
+                          onClick={verifyOtpAndCreateCustomer}
+                          disabled={verifyingOtp || otp.length !== 6}
+                          className='px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm'
+                        >
+                          {verifyingOtp ? 'Verifying...' : 'Verify'}
+                        </button>
+                      </div>
+                      {verifyingOtpError && (
+                        <p className='text-red-500 text-xs mt-1'>{verifyingOtpError}</p>
+                      )}
+                      <p className='text-xs text-gray-600 mt-2'>
+                        OTP না পেলে {otpCooldown > 0 ? `${otpCooldown} সেকেন্ড পরে` : 'আবার'}{' '}
+                        রিকোয়েস্ট করুন
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Customer verification status */}
+                  {customer && (
+                    <div className='mt-2 p-2 bg-green-50 border border-green-200 rounded'>
+                      <p className='text-sm text-green-700'>✓ ফোন নম্বর ভেরিফাইড</p>
+                    </div>
+                  )}
+
+                  {/* Send OTP button for new customers */}
+                  {!customer && formik.values.customerPhone.length === 11 && !otpSent && (
+                    <button
+                      type='button'
+                      onClick={handleSendOtp}
+                      disabled={sendingOtp}
+                      className='mt-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50'
+                    >
+                      {sendingOtp ? 'Sending...' : 'Send OTP'}
+                    </button>
                   )}
                 </div>
 
@@ -639,7 +905,7 @@ const CustomerCheckout = () => {
                 <div className='pt-3'>
                   <button
                     type='submit'
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !customer}
                     className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center'
                   >
                     {isSubmitting ? (
@@ -670,6 +936,11 @@ const CustomerCheckout = () => {
                       'অর্ডার কনফার্ম করুন'
                     )}
                   </button>
+                  {!customer && formik.values.customerPhone.length === 11 && (
+                    <p className='text-red-500 text-sm mt-2 text-center'>
+                      অর্ডার সম্পূর্ণ করতে ফোন নম্বর ভেরিফাই করুন
+                    </p>
+                  )}
                 </div>
               </form>
             </div>
@@ -778,47 +1049,78 @@ const CustomerCheckout = () => {
 
       {/* Payment Modal */}
       {showPaymentModal && selectedOrder && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-          <div className='bg-white rounded-lg shadow-xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col'>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto mt-16'>
+          <div className='bg-white sm:rounded-lg shadow-xl w-full max-w-md min-h-screen sm:min-h-0 sm:max-h-[90vh] overflow-hidden flex flex-col sm:my-4'>
             {/* Header */}
-            <div className='p-4 border-b flex-shrink-0'>
-              <h2 className='text-lg font-medium text-green-600 text-center'>
-                পেমেন্ট সম্পূর্ণ করুন (#{selectedOrder.orderId})
-              </h2>
+            <div className='p-4 border-b flex-shrink-0 bg-green-50'>
+              <div className='flex items-center justify-between'>
+                <h2 className='text-lg font-medium text-green-600'>পেমেন্ট সম্পূর্ণ করুন</h2>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className='p-1 hover:bg-green-100 rounded-full transition-colors'
+                >
+                  <svg
+                    className='w-5 h-5 text-gray-500'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M6 18L18 6M6 6l12 12'
+                    />
+                  </svg>
+                </button>
+              </div>
+              <p className='text-sm text-gray-600 mt-1'>অর্ডার #{selectedOrder.orderId}</p>
             </div>
 
             {/* Scrollable Content */}
-            <div className='flex-1 overflow-y-auto p-4'>
-              <div className='bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4'>
+            <div className='flex-1 overflow-y-auto p-4 space-y-4'>
+              {/* Warning Alert */}
+              <div className='bg-yellow-50 border-l-4 border-yellow-400 p-3'>
                 <div className='flex'>
                   <div className='flex-shrink-0'>
-                    <span className='text-yellow-500 text-base'>!</span>
+                    <svg
+                      className='w-5 h-5 text-yellow-400'
+                      fill='currentColor'
+                      viewBox='0 0 20 20'
+                    >
+                      <path
+                        fillRule='evenodd'
+                        d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z'
+                        clipRule='evenodd'
+                      />
+                    </svg>
                   </div>
                   <div className='ml-3'>
-                    <p className='text-sm text-yellow-700 leading-relaxed'>
-                      সতর্কতা: ভুল পেমেন্ট তথ্য দিলে অর্ডার রিজেক্ট করা হবে।
+                    <p className='text-sm text-yellow-700 font-medium'>সতর্কতা</p>
+                    <p className='text-sm text-yellow-600'>
+                      ভুল পেমেন্ট তথ্য দিলে অর্ডার রিজেক্ট করা হবে।
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Payment Amount */}
-              <div className='bg-gray-50 p-4 rounded-lg mb-4'>
+              <div className='bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border'>
                 <div className='flex justify-between items-center'>
-                  <span className='text-base font-medium'>মোট পেমেন্ট:</span>
-                  <span className='text-lg font-semibold text-green-600'>
+                  <span className='text-base font-medium text-gray-700'>পেমেন্ট পরিমাণ:</span>
+                  <span className='text-xl font-bold text-green-600'>
                     ৳{selectedOrder.deliveryCharge.toLocaleString('bn-BD')}
                   </span>
                 </div>
               </div>
 
               {/* System Wallet Selection */}
-              <div className='mb-4'>
+              <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  সিস্টেম ওয়ালেট নির্বাচন করুন *
+                  পেমেন্ট মাধ্যম নির্বাচন করুন *
                 </label>
                 <select
-                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  className='w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white'
                   value={selectedSystemWallet?.walletId || ''}
                   onChange={e => {
                     const walletId = parseInt(e.target.value)
@@ -826,77 +1128,147 @@ const CustomerCheckout = () => {
                     setSelectedSystemWallet(wallet || null)
                   }}
                   required
-                  disabled={walletLoading}
                 >
-                  <option value=''>সিলেক্ট করুন</option>
+                  <option value=''>একটি ওয়ালেট নির্বাচন করুন</option>
                   {systemWallets.map(wallet => (
                     <option key={wallet.walletId} value={wallet.walletId}>
-                      {wallet.walletName} ({wallet.walletPhoneNo})
+                      {wallet.walletName} - {wallet.walletPhoneNo}
                     </option>
                   ))}
                 </select>
               </div>
 
+              {/* Selected Wallet Info */}
+              {selectedSystemWallet && (
+                <div className='bg-blue-50 border border-blue-200 rounded-lg p-3'>
+                  <h4 className='text-sm font-medium text-blue-800 mb-1'>নির্বাচিত ওয়ালেট:</h4>
+                  <p className='text-blue-700 font-medium'>{selectedSystemWallet.walletName}</p>
+                  <p className='text-blue-600 text-sm'>{selectedSystemWallet.walletPhoneNo}</p>
+                </div>
+              )}
+
               {/* Customer Wallet Number */}
-              <div className='mb-4'>
+              <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
                   আপনার ওয়ালেট নম্বর *
                 </label>
                 <input
-                  type='text'
-                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                  placeholder='01XXXXXXXXX'
+                  type='tel'
+                  className='w-full px-3 py-3 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                  placeholder='যে নম্বর থেকে পেমেন্ট করেছেন সেটি লিখুন'
                   value={customerWalletNumber}
-                  onChange={e => setCustomerWalletNumber(e.target.value)}
+                  onChange={e =>
+                    setCustomerWalletNumber(e.target.value.replace(/\D/g, '').slice(0, 11))
+                  }
+                  maxLength={11}
                   required
                 />
               </div>
 
               {/* Transaction ID */}
-              <div className='mb-4'>
+              <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
                   ট্রানজেকশন আইডি *
                 </label>
                 <input
                   type='text'
-                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                  placeholder='ট্রানজেকশন আইডি'
+                  className='w-full px-3 py-3 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                  placeholder='ট্রানজেকশন আইডি লিখুন'
                   value={transactionId}
-                  onChange={e => setTransactionId(e.target.value)}
+                  onChange={e => setTransactionId(e.target.value.trim())}
                   required
                 />
               </div>
 
               {/* Payment Instructions */}
-              <div className='bg-blue-50 border-2 border-blue-200 rounded-lg p-3 mb-4'>
-                <h4 className='text-sm font-medium text-blue-800 mb-2'>পেমেন্ট নির্দেশনা:</h4>
-                <ol className='list-decimal list-inside text-xs text-blue-700 space-y-1'>
-                  <li>উপরের নির্বাচিত ওয়ালেটে {selectedOrder.deliveryCharge}৳ সেন্ড মানি করুন</li>
-                  <li>ট্রানজেকশন আইডি সঠিকভাবে লিখুন</li>
-                  <li>পেমেন্ট কনফার্ম করুন বাটনে ক্লিক করুন</li>
-                </ol>
+              <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+                <h4 className='text-base font-medium text-blue-800 mb-3 flex items-center'>
+                  <svg className='w-5 h-5 mr-2' fill='currentColor' viewBox='0 0 20 20'>
+                    <path
+                      fillRule='evenodd'
+                      d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
+                      clipRule='evenodd'
+                    />
+                  </svg>
+                  পেমেন্ট নির্দেশনা
+                </h4>
+                <div className='space-y-2 text-sm text-blue-700'>
+                  <div className='flex items-start'>
+                    <span className='flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5'>
+                      1
+                    </span>
+                    <p>
+                      উপরের নির্বাচিত ওয়ালেট নম্বরে{' '}
+                      <strong>৳{selectedOrder.deliveryCharge}</strong> টাকা সেন্ড মানি করুন
+                    </p>
+                  </div>
+                  <div className='flex items-start'>
+                    <span className='flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5'>
+                      2
+                    </span>
+                    <p>পেমেন্ট সম্পূর্ণ হওয়ার পর ট্রানজেকশন আইডি সংগ্রহ করুন</p>
+                  </div>
+                  <div className='flex items-start'>
+                    <span className='flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5'>
+                      3
+                    </span>
+                    <p>সকল তথ্য সঠিকভাবে পূরণ করে নিচের বাটনে ক্লিক করুন</p>
+                  </div>
+                </div>
               </div>
 
+              {/* Error Message */}
               {error && (
-                <div className='p-3 bg-red-50 border border-red-200 rounded-lg mb-4'>
-                  <p className='text-red-600 text-sm'>{error}</p>
+                <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
+                  <div className='flex'>
+                    <svg
+                      className='w-5 h-5 text-red-400 flex-shrink-0'
+                      fill='currentColor'
+                      viewBox='0 0 20 20'
+                    >
+                      <path
+                        fillRule='evenodd'
+                        d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
+                        clipRule='evenodd'
+                      />
+                    </svg>
+                    <div className='ml-3'>
+                      <p className='text-sm font-medium text-red-800'>পেমেন্ট ত্রুটি</p>
+                      <p className='text-sm text-red-700'>{error}</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Footer Actions */}
-            <div className='p-4 border-t bg-white flex-shrink-0'>
+            <div className='p-4 border-t bg-gray-50 flex-shrink-0 space-y-3'>
               <button
                 onClick={handlePayment}
                 disabled={
-                  actionLoading.type === 'payment' ||
                   !selectedSystemWallet ||
                   !customerWalletNumber ||
-                  !transactionId
+                  !transactionId ||
+                  customerWalletNumber.length !== 11
                 }
-                className='w-full px-4 py-2 text-sm bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors'
+                className='w-full px-4 py-3 text-base bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center'
               >
-                {actionLoading.type === 'payment' ? 'প্রক্রিয়াধীন...' : 'পেমেন্ট কনফার্ম করুন'}
+                <svg className='w-5 h-5 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M5 13l4 4L19 7'
+                  />
+                </svg>
+                পেমেন্ট কনফার্ম করুন
+              </button>
+
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className='w-full px-4 py-2 text-base border border-gray-300 text-gray-700 bg-white rounded-lg font-medium hover:bg-gray-50 transition-colors'
+              >
+                বাতিল
               </button>
             </div>
           </div>

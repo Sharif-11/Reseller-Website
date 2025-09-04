@@ -896,43 +896,75 @@ const Checkout = () => {
 
       {/* Payment Modal */}
       {showPaymentModal && selectedOrder && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-          <div className='bg-white rounded-lg shadow-xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col'>
-            {/* Header */}
-            <div className='p-4 border-b flex-shrink-0'>
-              <h2 className='text-lg font-medium text-green-600 text-center'>
-                {selectedOrder.sellerVerified ? 'অর্ডার কনফার্মেশন' : 'অর্ডার পেমেন্ট'}( #
-                {selectedOrder.orderId} )
-              </h2>
-            </div>
+        <div className='fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto mt-8'>
+          <div className='min-h-screen py-4 px-4 mt-4 flex items-start justify-center'>
+            <div className='bg-white rounded-lg shadow-xl w-full max-w-md my-4 flex flex-col'>
+              {/* Header */}
+              <div className='p-4 border-b flex-shrink-0 bg-gradient-to-r from-green-50 to-blue-50'>
+                <div className='flex items-center justify-between'>
+                  <div>
+                    <h2 className='text-lg font-medium text-green-600'>
+                      {selectedOrder.sellerVerified ? 'অর্ডার কনফার্মেশন' : 'অর্ডার পেমেন্ট'}
+                    </h2>
+                    <p className='text-sm text-gray-600'>অর্ডার #{selectedOrder.orderId}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowPaymentModal(false)
+                      resetPaymentForm()
+                    }}
+                    className='p-2 hover:bg-white/50 rounded-full transition-colors'
+                  >
+                    <svg
+                      className='w-5 h-5 text-gray-500'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M6 18L18 6M6 6l12 12'
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
 
-            {/* Scrollable Content */}
-            <div className='flex-1 overflow-y-auto'>
+              {/* Scrollable Content */}
               <div className='p-4 space-y-4'>
                 {/* Verified Seller Notice */}
                 {selectedOrder.sellerVerified ? (
-                  <div className='bg-blue-50 border-l-4 border-blue-400 p-3'>
-                    <div className='flex'>
-                      <div className='flex-shrink-0'>
-                        <span className='text-blue-500 text-base'>!</span>
-                      </div>
+                  <div className='bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg'>
+                    <div className='flex items-start'>
                       <div className='ml-3'>
-                        <p className='text-sm text-blue-700 leading-relaxed'>
+                        <p className='text-sm text-blue-700 mt-1'>
                           আপনি একজন ভেরিফাইড বিক্রেতা, পেমেন্ট ছাড়াই অর্ডার কনফার্ম করতে পারেন
                         </p>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className='bg-yellow-50 border-l-4 border-yellow-400 p-3'>
-                    <div className='flex'>
+                  <div className='bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg'>
+                    <div className='flex items-start'>
                       <div className='flex-shrink-0'>
-                        <span className='text-yellow-500 text-base'>!</span>
+                        <svg
+                          className='w-5 h-5 text-yellow-400'
+                          fill='currentColor'
+                          viewBox='0 0 20 20'
+                        >
+                          <path
+                            fillRule='evenodd'
+                            d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z'
+                            clipRule='evenodd'
+                          />
+                        </svg>
                       </div>
                       <div className='ml-3'>
-                        <p className='text-sm text-yellow-700 leading-relaxed'>
-                          সতর্কতা: ভুল পেমেন্ট তথ্য দিলে অর্ডার রিজেক্ট করা হবে এবং আপনাকে ব্লক করা
-                          হবে।
+                        <h4 className='text-sm font-medium text-yellow-800'>সতর্কতা</h4>
+                        <p className='text-sm text-yellow-700 mt-1'>
+                          ভুল পেমেন্ট তথ্য দিলে অর্ডার রিজেক্ট করা হবে এবং আপনাকে ব্লক করা হবে।
                         </p>
                       </div>
                     </div>
@@ -940,13 +972,18 @@ const Checkout = () => {
                 )}
 
                 {/* Delivery Charge */}
-                <div className='bg-gray-50 p-4 rounded-lg'>
+                <div className='bg-gradient-to-r from-gray-50 to-green-50 p-4 rounded-lg border'>
                   <div className='flex justify-between items-center'>
                     <div className='flex items-center gap-2'>
                       <span className='text-base font-medium'>ডেলিভারি চার্জ:</span>
-                      <span className='text-gray-500 text-sm'>?</span>
+                      <div className='group relative'>
+                        <span className='text-gray-400 cursor-help text-sm'>ℹ</span>
+                        <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
+                          অর্ডার ডেলিভারির জন্য প্রয়োজনীয় চার্জ
+                        </div>
+                      </div>
                     </div>
-                    <span className='text-base font-semibold text-green-600'>
+                    <span className='text-xl font-bold text-green-600'>
                       {selectedOrder.deliveryCharge}৳
                     </span>
                   </div>
@@ -954,73 +991,131 @@ const Checkout = () => {
 
                 {/* Quick Confirm for Verified Sellers */}
                 {selectedOrder.sellerVerified && (
-                  <>
+                  <div className='space-y-3'>
                     <button
                       onClick={() => handleConfirmOrder(selectedOrder.orderId)}
                       disabled={
                         actionLoading.type === 'confirm' &&
                         actionLoading.id === selectedOrder.orderId
                       }
-                      className='w-full px-4 py-2 text-sm bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors'
+                      className='w-full px-4 py-3 text-base bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center'
                     >
                       {actionLoading.type === 'confirm' &&
-                      actionLoading.id === selectedOrder.orderId
-                        ? 'প্রক্রিয়াধীন...'
-                        : 'কনফার্ম করুন (পেমেন্ট ছাড়া)'}
+                      actionLoading.id === selectedOrder.orderId ? (
+                        <>
+                          <div className='animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2'></div>
+                          প্রক্রিয়াধীন...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className='w-5 h-5 mr-2'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth={2}
+                              d='M5 13l4 4L19 7'
+                            />
+                          </svg>
+                          কনফার্ম করুন (পেমেন্ট ছাড়া)
+                        </>
+                      )}
                     </button>
                     <div className='relative flex items-center'>
                       <div className='flex-grow border-t border-gray-300'></div>
-                      <span className='flex-shrink mx-4 text-gray-500 text-sm'>অথবা</span>
+                      <span className='flex-shrink mx-4 text-gray-500 text-sm bg-white px-2'>
+                        অথবা
+                      </span>
                       <div className='flex-grow border-t border-gray-300'></div>
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {/* Payment Methods */}
                 <div className='space-y-3'>
-                  <h3 className='font-medium text-base'>পেমেন্ট মেথড</h3>
-                  <div className='space-y-2'>
-                    <label className='flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50'>
+                  <h3 className='font-medium text-base text-gray-800'>
+                    পেমেন্ট মেথড নির্বাচন করুন
+                  </h3>
+                  <div className='space-y-3'>
+                    {/* Balance Payment */}
+                    <label
+                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        paymentMethod === 'BALANCE'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      } ${user?.balance! < +selectedOrder.deliveryCharge ? 'opacity-60' : ''}`}
+                    >
                       <input
                         type='radio'
-                        className='form-radio flex-shrink-0'
+                        className='text-green-600 focus:ring-green-500 flex-shrink-0'
                         name='paymentMethod'
                         value='BALANCE'
                         checked={paymentMethod === 'BALANCE'}
                         onChange={() => setPaymentMethod('BALANCE')}
-                        disabled={user?.balance! < +selectedOrder.deliveryCharge} // In a real app, you'd check user balance
+                        disabled={user?.balance! < +selectedOrder.deliveryCharge}
                       />
                       <div className='ml-3 flex-1'>
-                        <span className='text-sm'>ব্যালেন্স থেকে</span>
+                        <div className='flex items-center justify-between'>
+                          <span className='text-sm font-medium'>ব্যালেন্স থেকে পেমেন্ট</span>
+                          <span className='text-xs text-gray-500'>
+                            ব্যালেন্স: {user?.balance || 0}৳
+                          </span>
+                        </div>
                         {user?.balance! < +selectedOrder.deliveryCharge && (
-                          <div className='text-red-500 text-xs mt-1'>অপর্যাপ্ত ব্যালেন্স</div>
+                          <div className='text-red-500 text-xs mt-1 flex items-center'>
+                            <svg className='w-3 h-3 mr-1' fill='currentColor' viewBox='0 0 20 20'>
+                              <path
+                                fillRule='evenodd'
+                                d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z'
+                                clipRule='evenodd'
+                              />
+                            </svg>
+                            অপর্যাপ্ত ব্যালেন্স
+                          </div>
                         )}
                       </div>
                     </label>
 
-                    <label className='flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50'>
+                    {/* Wallet Payment */}
+                    <label
+                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        paymentMethod === 'WALLET'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
                       <input
                         type='radio'
-                        className='form-radio flex-shrink-0'
+                        className='text-green-600 focus:ring-green-500 flex-shrink-0'
                         name='paymentMethod'
                         value='WALLET'
                         checked={paymentMethod === 'WALLET'}
                         onChange={() => setPaymentMethod('WALLET')}
                       />
-                      <span className='ml-3 text-sm'>ওয়ালেট পেমেন্ট</span>
+                      <div className='ml-3'>
+                        <span className='text-sm font-medium'>মোবাইল ওয়ালেট পেমেন্ট</span>
+                        <p className='text-xs text-gray-500 mt-1'>bKash, Nagad</p>
+                      </div>
                     </label>
                   </div>
                 </div>
 
                 {/* Wallet Payment Details */}
                 {paymentMethod === 'WALLET' && (
-                  <div className='space-y-4 border-t pt-4'>
+                  <div className='space-y-4 border-t pt-4 bg-blue-50/30 p-4 rounded-lg'>
+                    <h4 className='font-medium text-sm text-gray-800'>পেমেন্ট বিস্তারিত</h4>
+
+                    {/* System Wallet Selection */}
                     <div>
                       <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        সিস্টেম ওয়ালেট
+                        সিস্টেম ওয়ালেট নির্বাচন করুন *
                       </label>
                       <select
-                        className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        className='w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white'
                         value={selectedSystemWallet?.walletId || ''}
                         onChange={e => {
                           const walletId = parseInt(e.target.value)
@@ -1030,40 +1125,53 @@ const Checkout = () => {
                         required
                         disabled={walletLoading}
                       >
-                        <option value=''>সিলেক্ট করুন</option>
+                        <option value=''>একটি ওয়ালেট নির্বাচন করুন</option>
                         {systemWallets.map(wallet => (
                           <option key={wallet.walletId} value={wallet.walletId}>
-                            {wallet.walletName} ({wallet.walletPhoneNo})
+                            {wallet.walletName} - {wallet.walletPhoneNo}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    <div className='p-3 border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg'>
-                      <p className='text-sm text-blue-700 text-center font-medium'>
-                        নির্বাচিত ওয়ালেটে{' '}
-                        <span className='font-bold'>{selectedOrder.deliveryCharge}৳</span> সেন্ড
-                        মানি করুন
-                      </p>
-                    </div>
+                    {/* Payment Instruction */}
+                    {selectedSystemWallet && (
+                      <div className='p-4 border-2 border-dashed border-green-300 bg-green-50 rounded-lg'>
+                        <div className='text-center'>
+                          <p className='text-sm text-green-800 font-medium mb-1'>
+                            {selectedSystemWallet.walletName} এ সেন্ড মানি করুন
+                          </p>
+                          <p className='text-lg font-bold text-green-700'>
+                            {selectedSystemWallet.walletPhoneNo}
+                          </p>
+                          <p className='text-xl font-bold text-green-800 mt-2'>
+                            পরিমাণ: {selectedOrder.deliveryCharge}৳
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
+                    {/* Sender Wallet Number */}
                     <div className='relative'>
                       <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        আপনার {selectedSystemWallet?.walletName || 'ওয়ালেট'} নম্বর
+                        আপনার {selectedSystemWallet?.walletName || 'ওয়ালেট'} নম্বর *
                       </label>
                       <input
-                        type='text'
-                        className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                        placeholder='ফোন নম্বর'
+                        type='tel'
+                        className='w-full px-3 py-3 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                        placeholder='যে নম্বর থেকে পেমেন্ট করেছেন সেটি লিখুন'
                         value={sellerWalletPhoneNo}
                         onChange={e => {
-                          setSellerWalletPhoneNo(e.target.value)
-                          setShowSuggestions(e.target.value.length > 0)
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 11)
+                          setSellerWalletPhoneNo(value)
+                          setShowSuggestions(value.length > 0)
                         }}
+                        maxLength={11}
                         required
                       />
+                      {/* Saved Wallets Suggestions */}
                       {showSuggestions && savedWallets.length > 0 && (
-                        <div className='absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm'>
+                        <div className='absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 max-h-32 overflow-y-auto border'>
                           {savedWallets
                             .filter(
                               wallet =>
@@ -1074,7 +1182,7 @@ const Checkout = () => {
                             .map((wallet, index) => (
                               <div
                                 key={index}
-                                className='px-4 py-2 hover:bg-gray-100 cursor-pointer'
+                                className='px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm'
                                 onClick={() => {
                                   setSellerWalletPhoneNo(wallet.walletPhoneNo)
                                   setShowSuggestions(false)
@@ -1087,59 +1195,97 @@ const Checkout = () => {
                       )}
                     </div>
 
+                    {/* Transaction ID */}
                     <div>
                       <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        ট্রানজেকশন আইডি
+                        ট্রানজেকশন আইডি *
                       </label>
                       <input
                         type='text'
-                        className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                        placeholder='ট্রানজেকশন আইডি'
+                        className='w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-xs'
+                        placeholder='পেমেন্ট করার পর ট্রানজেকশন আইডি লিখুন'
                         value={transactionId}
-                        onChange={e => setTransactionId(e.target.value)}
+                        onChange={e => setTransactionId(e.target.value.trim())}
                         required
                       />
                     </div>
                   </div>
                 )}
 
+                {/* Error Display */}
                 {error && (
-                  <div className='p-3 bg-red-50 border border-red-200 rounded-lg'>
-                    <p className='text-red-600 text-sm'>{error}</p>
+                  <div className='p-4 bg-red-50 border border-red-200 rounded-lg'>
+                    <div className='flex  items-center'>
+                      <svg
+                        className='w-5 h-5 text-red-400 flex-shrink-0'
+                        fill='currentColor'
+                        viewBox='0 0 20 20'
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
+                          clipRule='evenodd'
+                        />
+                      </svg>
+
+                      <p className='text-sm text-red-700 pl-2'>{error}</p>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Footer Actions */}
-            <div className='p-4 border-t bg-white flex-shrink-0'>
-              <div className='flex flex-col gap-2'>
-                {(!selectedOrder.sellerVerified || paymentMethod) && (
+              {/* Footer Actions */}
+              <div className='p-4 bg-gray-50 rounded-b-lg'>
+                <div className='space-y-3'>
+                  {(!selectedOrder.sellerVerified || paymentMethod) && (
+                    <button
+                      onClick={handlePayment}
+                      disabled={
+                        actionLoading.type === 'payment' &&
+                        actionLoading.id === selectedOrder.orderId
+                      }
+                      className='w-full px-4 py-3 text-base bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-all duration-200 flex items-center justify-center'
+                    >
+                      {actionLoading.type === 'payment' &&
+                      actionLoading.id === selectedOrder.orderId ? (
+                        <>
+                          <div className='animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2'></div>
+                          প্রক্রিয়াধীন...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className='w-5 h-5 mr-2'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth={2}
+                              d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'
+                            />
+                          </svg>
+                          {paymentMethod === 'BALANCE'
+                            ? 'ব্যালেন্স থেকে পেমেন্ট করুন'
+                            : paymentMethod === 'WALLET'
+                            ? 'ওয়ালেট পেমেন্ট কনফার্ম করুন'
+                            : 'পেমেন্ট করুন'}
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
-                    onClick={handlePayment}
-                    disabled={
-                      actionLoading.type === 'payment' && actionLoading.id === selectedOrder.orderId
-                    }
-                    className='w-full px-4 py-2 text-sm bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors'
+                    onClick={() => {
+                      setShowPaymentModal(false)
+                      resetPaymentForm()
+                    }}
+                    className='w-full px-4 py-2 text-base bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors'
                   >
-                    {actionLoading.type === 'payment' && actionLoading.id === selectedOrder.orderId
-                      ? 'প্রক্রিয়াধীন...'
-                      : paymentMethod === 'BALANCE'
-                      ? 'ব্যালেন্স থেকে পেমেন্ট করুন'
-                      : paymentMethod === 'WALLET'
-                      ? 'ওয়ালেট পেমেন্ট করুন'
-                      : 'কনফার্ম করুন'}
+                    বাতিল করুন
                   </button>
-                )}
-                <button
-                  onClick={() => {
-                    setShowPaymentModal(false)
-                    resetPaymentForm()
-                  }}
-                  className='w-full px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors'
-                >
-                  বাতিল করুন
-                </button>
+                </div>
               </div>
             </div>
           </div>

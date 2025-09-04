@@ -767,54 +767,78 @@ const CustomerOrders = () => {
       {/* Payment Modal - Delivery Charge Only */}
       {/* Payment Modal - Mobile First Responsive */}
       {showPaymentModal && selectedOrder && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50'>
-          <div className='bg-white rounded-lg shadow-xl w-full max-w-md mx-2 sm:mx-auto'>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto mt-16'>
+          <div className='bg-white sm:rounded-lg shadow-xl w-full max-w-md min-h-screen sm:min-h-0 sm:max-h-[90vh] overflow-hidden flex flex-col sm:my-4'>
             {/* Header */}
-            <div className='p-3 sm:p-4 border-b'>
-              <h2 className='text-base sm:text-lg font-medium text-center'>
-                ডেলিভারি চার্জ পেমেন্ট <br className='sm:hidden' />
-                (অর্ডার #{selectedOrder.orderId})
-              </h2>
+            <div className='p-4 border-b flex-shrink-0 bg-green-50'>
+              <div className='flex items-center justify-between'>
+                <h2 className='text-lg font-medium text-green-600'>পেমেন্ট সম্পূর্ণ করুন</h2>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className='p-1 hover:bg-green-100 rounded-full transition-colors'
+                >
+                  <svg
+                    className='w-5 h-5 text-gray-500'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M6 18L18 6M6 6l12 12'
+                    />
+                  </svg>
+                </button>
+              </div>
+              <p className='text-sm text-gray-600 mt-1'>অর্ডার #{selectedOrder.orderId}</p>
             </div>
 
-            {/* Content */}
-            <div className='p-3 sm:p-4 space-y-3 sm:space-y-4'>
-              {/* Payment Notice */}
-              <div className='bg-blue-50 border-l-4 border-blue-400 p-2 sm:p-3'>
-                <div className='flex items-start'>
-                  <div className='flex-shrink-0 pt-0.5'>
-                    <span className='text-blue-500 text-sm sm:text-base'>!</span>
+            {/* Scrollable Content */}
+            <div className='flex-1 overflow-y-auto p-4 space-y-4'>
+              {/* Warning Alert */}
+              <div className='bg-yellow-50 border-l-4 border-yellow-400 p-3'>
+                <div className='flex'>
+                  <div className='flex-shrink-0'>
+                    <svg
+                      className='w-5 h-5 text-yellow-400'
+                      fill='currentColor'
+                      viewBox='0 0 20 20'
+                    >
+                      <path
+                        fillRule='evenodd'
+                        d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z'
+                        clipRule='evenodd'
+                      />
+                    </svg>
                   </div>
-                  <div className='ml-2'>
-                    <p className='text-xs sm:text-sm text-blue-700'>
-                      দয়া করে নিচের ওয়ালেটে ডেলিভারি চার্জ পাঠান এবং ট্রানজেকশন আইডি দিন
+                  <div className='ml-3'>
+                    <p className='text-sm text-yellow-700 font-medium'>সতর্কতা</p>
+                    <p className='text-sm text-yellow-600'>
+                      ভুল পেমেন্ট তথ্য দিলে অর্ডার রিজেক্ট করা হবে।
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Delivery Charge Info */}
-              <div className='bg-gray-50 p-3 sm:p-4 rounded-lg'>
+              {/* Payment Amount */}
+              <div className='bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border'>
                 <div className='flex justify-between items-center'>
-                  <div>
-                    <p className='text-sm sm:text-base font-medium'>ডেলিভারি চার্জ</p>
-                    <p className='text-xs sm:text-sm text-gray-500'>
-                      অর্ডার গ্রহণের জন্য প্রয়োজনীয়
-                    </p>
-                  </div>
-                  <p className='text-base sm:text-lg font-bold text-green-600'>
-                    {selectedOrder.deliveryCharge}৳
-                  </p>
+                  <span className='text-base font-medium text-gray-700'>পেমেন্ট পরিমাণ:</span>
+                  <span className='text-xl font-bold text-green-600'>
+                    ৳{selectedOrder.deliveryCharge.toLocaleString('bn-BD')}
+                  </span>
                 </div>
               </div>
 
               {/* System Wallet Selection */}
               <div>
-                <label className='block text-xs sm:text-sm font-medium text-gray-700 mb-1'>
-                  সিস্টেম ওয়ালেট
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  পেমেন্ট মাধ্যম নির্বাচন করুন *
                 </label>
                 <select
-                  className='w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500'
+                  className='w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white'
                   value={selectedSystemWallet?.walletId || ''}
                   onChange={e => {
                     const walletId = parseInt(e.target.value)
@@ -823,71 +847,146 @@ const CustomerOrders = () => {
                   }}
                   required
                 >
-                  <option value=''>ওয়ালেট সিলেক্ট করুন</option>
+                  <option value=''>একটি ওয়ালেট নির্বাচন করুন</option>
                   {systemWallets.map(wallet => (
                     <option key={wallet.walletId} value={wallet.walletId}>
-                      {wallet.walletName} ({wallet.walletPhoneNo})
+                      {wallet.walletName} - {wallet.walletPhoneNo}
                     </option>
                   ))}
                 </select>
               </div>
 
+              {/* Selected Wallet Info */}
+              {selectedSystemWallet && (
+                <div className='bg-blue-50 border border-blue-200 rounded-lg p-3'>
+                  <h4 className='text-sm font-medium text-blue-800 mb-1'>নির্বাচিত ওয়ালেট:</h4>
+                  <p className='text-blue-700 font-medium'>{selectedSystemWallet.walletName}</p>
+                  <p className='text-blue-600 text-sm'>{selectedSystemWallet.walletPhoneNo}</p>
+                </div>
+              )}
+
               {/* Customer Wallet Number */}
               <div>
-                <label className='block text-xs sm:text-sm font-medium text-gray-700 mb-1'>
-                  আপনার {selectedSystemWallet?.walletName || 'ওয়ালেট'} নম্বর
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  আপনার ওয়ালেট নম্বর *
                 </label>
                 <input
-                  type='text'
-                  className='w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500'
-                  placeholder='ওয়ালেট ফোন নম্বর'
+                  type='tel'
+                  className='w-full px-3 py-3 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                  placeholder='যে নম্বর থেকে পেমেন্ট করেছেন সেটি লিখুন'
                   value={customerWalletPhoneNo}
-                  onChange={e => setCustomerWalletPhoneNo(e.target.value)}
+                  onChange={e =>
+                    setCustomerWalletPhoneNo(e.target.value.replace(/\D/g, '').slice(0, 11))
+                  }
+                  maxLength={11}
                   required
                 />
               </div>
 
               {/* Transaction ID */}
               <div>
-                <label className='block text-xs sm:text-sm font-medium text-gray-700 mb-1'>
-                  ট্রানজেকশন আইডি
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  ট্রানজেকশন আইডি *
                 </label>
                 <input
                   type='text'
-                  className='w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500'
-                  placeholder='ট্রানজেকশন আইডি'
+                  className='w-full px-3 py-3 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                  placeholder='ট্রানজেকশন আইডি লিখুন'
                   value={transactionId}
-                  onChange={e => setTransactionId(e.target.value)}
+                  onChange={e => setTransactionId(e.target.value.trim())}
                   required
                 />
               </div>
 
+              {/* Payment Instructions */}
+              <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+                <h4 className='text-base font-medium text-blue-800 mb-3 flex items-center'>
+                  <svg className='w-5 h-5 mr-2' fill='currentColor' viewBox='0 0 20 20'>
+                    <path
+                      fillRule='evenodd'
+                      d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
+                      clipRule='evenodd'
+                    />
+                  </svg>
+                  পেমেন্ট নির্দেশনা
+                </h4>
+                <div className='space-y-2 text-sm text-blue-700'>
+                  <div className='flex items-start'>
+                    <span className='flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5'>
+                      1
+                    </span>
+                    <p>
+                      উপরের নির্বাচিত ওয়ালেট নম্বরে{' '}
+                      <strong>৳{selectedOrder.deliveryCharge}</strong> সেন্ড মানি করুন
+                    </p>
+                  </div>
+                  <div className='flex items-start'>
+                    <span className='flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5'>
+                      2
+                    </span>
+                    <p>পেমেন্ট সম্পূর্ণ হওয়ার পর ট্রানজেকশন আইডি সংগ্রহ করুন</p>
+                  </div>
+                  <div className='flex items-start'>
+                    <span className='flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5'>
+                      3
+                    </span>
+                    <p>সকল তথ্য সঠিকভাবে পূরণ করে নিচের বাটনে ক্লিক করুন</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Message */}
               {error && (
-                <div className='p-2 text-xs sm:text-sm bg-red-50 text-red-600 rounded'>{error}</div>
+                <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
+                  <div className='flex'>
+                    <svg
+                      className='w-5 h-5 text-red-400 flex-shrink-0'
+                      fill='currentColor'
+                      viewBox='0 0 20 20'
+                    >
+                      <path
+                        fillRule='evenodd'
+                        d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
+                        clipRule='evenodd'
+                      />
+                    </svg>
+                    <div className='ml-3'>
+                      <p className='text-sm font-medium text-red-800'>পেমেন্ট ত্রুটি</p>
+                      <p className='text-sm text-red-700'>{error}</p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
-            {/* Footer - Mobile responsive buttons */}
-            <div className='p-3 sm:p-4 border-t flex flex-col sm:flex-row justify-between gap-2 sm:gap-3'>
-              <button
-                onClick={() => {
-                  setShowPaymentModal(false)
-                  resetPaymentForm()
-                }}
-                className='px-4 py-2 text-xs sm:text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200'
-              >
-                বাতিল করুন
-              </button>
+            {/* Footer Actions */}
+            <div className='p-4 border-t bg-gray-50 flex-shrink-0 space-y-3'>
               <button
                 onClick={handlePayment}
                 disabled={
-                  actionLoading.type === 'payment' && actionLoading.id === selectedOrder.orderId
+                  !selectedSystemWallet ||
+                  !customerWalletPhoneNo ||
+                  !transactionId ||
+                  customerWalletPhoneNo.length !== 11
                 }
-                className='px-4 py-2 text-xs sm:text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50'
+                className='w-full px-4 py-3 text-base bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center'
               >
-                {actionLoading.type === 'payment' && actionLoading.id === selectedOrder.orderId
-                  ? 'প্রক্রিয়াধীন...'
-                  : 'পেমেন্ট সম্পন্ন করুন'}
+                <svg className='w-5 h-5 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M5 13l4 4L19 7'
+                  />
+                </svg>
+                পেমেন্ট কনফার্ম করুন
+              </button>
+
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className='w-full px-4 py-2 text-base border border-gray-300 text-gray-700 bg-white rounded-lg font-medium hover:bg-gray-50 transition-colors'
+              >
+                বাতিল
               </button>
             </div>
           </div>

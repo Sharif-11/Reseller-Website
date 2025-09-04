@@ -50,6 +50,10 @@ const SingleProductOrder = () => {
   const [selectedImage, setSelectedImage] = useState<{ imageUrl: string; imageId: number } | null>(
     null
   )
+  const [currentImageIndex, setCurrentImageIndex] = useState<{
+    imageUrl: string
+    imageId: number
+  } | null>(null)
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
   const [quantity, setQuantity] = useState('1')
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -213,7 +217,8 @@ const SingleProductOrder = () => {
   useEffect(() => {
     const calculateDeliveryCharge = () => {
       if (!formik.values.zilla) {
-        setDeliveryCharge(0)
+        // alert(product?.shop.deliveryChargeOutside || 0)
+        setDeliveryCharge(product?.shop.deliveryChargeOutside || 0)
         return
       }
       const isInside =
@@ -234,7 +239,7 @@ const SingleProductOrder = () => {
     }
 
     calculateDeliveryCharge()
-  }, [quantity, formik.values.zilla])
+  }, [quantity, formik.values.zilla, product])
 
   // Send OTP to customer phone
   const handleSendOtp = async () => {
@@ -525,11 +530,61 @@ const SingleProductOrder = () => {
             <div className='relative aspect-square bg-gray-100 rounded-lg overflow-hidden'>
               <img
                 src={
-                  selectedImage?.imageUrl || product.ProductImage[0]?.imageUrl || '/placeholder.jpg'
+                  selectedImage?.imageUrl ||
+                  currentImageIndex?.imageUrl ||
+                  product.ProductImage[0]?.imageUrl ||
+                  '/placeholder.jpg'
                 }
                 alt={product.name}
                 className='w-full h-full object-contain'
               />
+              {product.ProductImage.length > 1 && (
+                <>
+                  <button
+                    onClick={() => {
+                      const currentIndex = product.ProductImage.findIndex(
+                        img => img.imageUrl === currentImageIndex?.imageUrl
+                      )
+                      const prevIndex =
+                        currentIndex <= 0 ? product.ProductImage.length - 1 : currentIndex - 1
+                      setCurrentImageIndex(product.ProductImage[prevIndex])
+                    }}
+                    className='absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all'
+                  >
+                    <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M15 19l-7-7 7-7'
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const currentIndex = product.ProductImage.findIndex(
+                        img => img.imageUrl === currentImageIndex?.imageUrl
+                      )
+                      const length = product.ProductImage.length
+                      // alert()
+                      const nextIndex = (currentIndex + 1) % length
+                      console.log({ currentIndex, nextIndex, length })
+
+                      setCurrentImageIndex(product.ProductImage[nextIndex])
+                    }}
+                    className='absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all'
+                  >
+                    <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M9 5l7 7-7 7'
+                      />
+                    </svg>
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Thumbnail Images */}
@@ -763,7 +818,7 @@ const SingleProductOrder = () => {
               ডেলিভারির ঠিকানা *
             </label>
             <textarea
-              rows={3}
+              rows={4}
               className={`w-full px-3 py-2 border rounded-lg ${
                 formik.touched.deliveryAddress && formik.errors.deliveryAddress
                   ? 'border-red-500'
@@ -781,7 +836,7 @@ const SingleProductOrder = () => {
           <div>
             <label className='block text-sm font-medium mb-1'>অতিরিক্ত মন্তব্য (ঐচ্ছিক)</label>
             <textarea
-              rows={3}
+              rows={4}
               className='w-full px-3 py-2 border border-gray-300 rounded-lg'
               placeholder='অর্ডার সম্পর্কে কোন অতিরিক্ত নির্দেশিকা থাকলে লিখুন'
               {...formik.getFieldProps('comments')}
@@ -808,10 +863,9 @@ const SingleProductOrder = () => {
                 <span>মোট:</span>
                 <span>
                   ৳
-                  {(
-                    product.suggestedMaxPrice * parseInt(quantity) +
-                    Number(deliveryCharge)
-                  ).toLocaleString('bn-BD')}
+                  {(product.price! * parseInt(quantity) + Number(deliveryCharge)).toLocaleString(
+                    'bn-BD'
+                  )}
                 </span>
               </div>
             </div>
@@ -842,16 +896,33 @@ const SingleProductOrder = () => {
       </div>
 
       {/* Payment Modal */}
+      {/* Payment Modal - Mobile Friendly Version */}
+      {/* Payment Modal - Mobile Friendly Modal Version */}
       {showPaymentModal && selectedOrder && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-          <div className='bg-white rounded-lg shadow-xl w-full max-w-md'>
-            <div className='p-4 border-b'>
-              <h2 className='text-lg font-medium text-green-600 text-center'>
-                পেমেন্ট সম্পূর্ণ করুন (#{selectedOrder.orderId})
-              </h2>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50'>
+          <div className='bg-white w-full sm:w-full sm:max-w-md max-h-screen sm:max-h-[90vh] overflow-y-auto sm:rounded-lg shadow-xl'>
+            <div className='sticky top-0 bg-white p-4 border-b border-gray-200 sm:rounded-t-lg'>
+              <div className='flex items-center justify-between'>
+                <h2 className='text-lg font-medium text-green-600'>
+                  পেমেন্ট সম্পূর্ণ করুন (#{selectedOrder.orderId})
+                </h2>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className='p-2 hover:bg-gray-100 rounded-full transition-colors'
+                >
+                  <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M6 18L18 6M6 6l12 12'
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            <div className='p-4'>
+            <div className='p-4 pb-safe'>
               <div className='bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4'>
                 <p className='text-sm text-yellow-700'>
                   সতর্কতা: ভুল পেমেন্ট তথ্য দিলে অর্ডার রিজেক্ট করা হবে।
@@ -872,7 +943,7 @@ const SingleProductOrder = () => {
                   সিস্টেম ওয়ালেট নির্বাচন করুন *
                 </label>
                 <select
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg'
+                  className='w-full px-3 py-3 border border-gray-300 rounded-lg text-base'
                   value={selectedSystemWallet?.walletId || ''}
                   onChange={e => {
                     const walletId = parseInt(e.target.value)
@@ -896,7 +967,7 @@ const SingleProductOrder = () => {
                 </label>
                 <input
                   type='text'
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg'
+                  className='w-full px-3 py-3 border border-gray-300 rounded-lg text-base'
                   placeholder='01XXXXXXXXX'
                   value={customerWalletNumber}
                   onChange={e => setCustomerWalletNumber(e.target.value)}
@@ -910,7 +981,7 @@ const SingleProductOrder = () => {
                 </label>
                 <input
                   type='text'
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg'
+                  className='w-full px-3 py-3 border border-gray-300 rounded-lg text-base'
                   placeholder='ট্রানজেকশন আইডি'
                   value={transactionId}
                   onChange={e => setTransactionId(e.target.value)}
@@ -918,7 +989,7 @@ const SingleProductOrder = () => {
                 />
               </div>
 
-              <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4'>
+              <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6'>
                 <h4 className='text-sm font-medium text-blue-800 mb-2'>পেমেন্ট নির্দেশনা:</h4>
                 <ol className='list-decimal list-inside text-xs text-blue-700 space-y-1'>
                   <li>উপরের নির্বাচিত ওয়ালেটে {selectedOrder.deliveryCharge}৳ সেন্ড মানি করুন</li>
@@ -926,23 +997,28 @@ const SingleProductOrder = () => {
                   <li>পেমেন্ট কনফার্ম করুন বাটনে ক্লিক করুন</li>
                 </ol>
               </div>
-            </div>
-            {paymentError && <div className='mt-2 text-sm text-red-600'>{paymentError}</div>}
 
-            <div className='p-4 border-t flex gap-2'>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className='flex-1 py-2 border border-gray-300 rounded-lg'
-              >
-                বাতিল
-              </button>
-              <button
-                onClick={handlePayment}
-                disabled={!selectedSystemWallet || !customerWalletNumber || !transactionId}
-                className='flex-1 py-2 bg-green-600 text-white rounded-lg font-medium hover:green-700 disabled:opacity-50'
-              >
-                পেমেন্ট কনফার্ম করুন
-              </button>
+              {paymentError && (
+                <div className='mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200'>
+                  {paymentError}
+                </div>
+              )}
+
+              <div className='flex flex-col gap-3'>
+                <button
+                  onClick={handlePayment}
+                  disabled={!selectedSystemWallet || !customerWalletNumber || !transactionId}
+                  className='w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors text-base'
+                >
+                  পেমেন্ট কনফার্ম করুন
+                </button>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className='w-full py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors text-base'
+                >
+                  বাতিল
+                </button>
+              </div>
             </div>
           </div>
         </div>
