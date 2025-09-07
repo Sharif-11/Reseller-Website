@@ -11,6 +11,12 @@ const RegistrationConfirmation = ({
   setPage: React.Dispatch<React.SetStateAction<number>>
 }) => {
   const navigate = useNavigate()
+  // automatically navigate to /categories#categories after 5 seconds if success is true
+  if (success) {
+    setTimeout(() => {
+      navigate('/categories#categories')
+    }, 1000)
+  }
 
   return (
     <div className='p-6 max-w-md mx-auto text-center'>

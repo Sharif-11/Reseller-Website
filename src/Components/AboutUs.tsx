@@ -1,10 +1,14 @@
 import { motion } from 'framer-motion'
-import { FaHeadset, FaLeaf, FaRegSmile } from 'react-icons/fa'
-import { GiProgression, GiTakeMyMoney } from 'react-icons/gi'
-import { MdOutlineInventory, MdPayment } from 'react-icons/md'
+import { BiTransferAlt } from 'react-icons/bi'
+import { BsCashCoin, BsTicketDetailed } from 'react-icons/bs'
+import { FaRegSmile, FaShieldAlt, FaUserPlus } from 'react-icons/fa'
+import { GiProgression } from 'react-icons/gi'
+import { MdGroup, MdPayment, MdWeb } from 'react-icons/md'
+import { useNavigate } from 'react-router-dom'
 import Footer from './Footer'
 
 const AboutUs = () => {
+  const navigate = useNavigate()
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -44,14 +48,18 @@ const AboutUs = () => {
               শপ বিডি রিসেলার জবস
             </span>
             <br />
-            <span className='text-lg sm:text-xl md:text-2xl font-semibold text-gray-600'>
-              আপনার অনলাইন ব্যবসার সম্পূর্ণ সমাধান
+            <span className='text-lg sm:text-xl md:text-2xl font-semibold text-gray-600 mt-2 block'>
+              বিনিয়োগ ছাড়াই নিজের ব্যবসা শুরু করুন!
             </span>
           </motion.h1>
-          <motion.div variants={fadeIn} className='w-24 h-1 bg-blue-600 mx-auto'></motion.div>
+          <motion.p variants={fadeIn} className='text-gray-600 max-w-2xl mx-auto mt-4'>
+            শপবিডি রিসেলার প্রোগ্রামে যুক্ত হয়ে আপনি সহজেই একটি অনলাইন ব্যবসা শুরু করতে পারেন।
+            এখানে আছে দারুণ কিছু সুবিধা, যা আপনার কাজকে আরও সহজ করবে
+          </motion.p>
+          <motion.div variants={fadeIn} className='w-24 h-1 bg-blue-600 mx-auto mt-6'></motion.div>
         </motion.div>
 
-        {/* Why Choose Us Section */}
+        {/* Amazing Features Section */}
         <motion.div
           initial='hidden'
           animate='visible'
@@ -62,62 +70,57 @@ const AboutUs = () => {
             variants={fadeIn}
             className='text-2xl md:text-3xl font-semibold text-gray-800 mb-8 text-center'
           >
-            কেন শপ বিডি রিসেলার জবস বেছে নিবেন?
+            দুর্দান্ত আকর্ষণীয় ফিচারসমূহ
           </motion.h2>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-            <motion.div
-              variants={fadeIn}
-              whileHover={{ y: -5 }}
-              className='bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100'
-            >
-              <div className='bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <FaLeaf className='text-xl text-blue-600' />
-              </div>
-              <h3 className='text-xl font-semibold text-gray-800 mb-3 text-center'>
-                বিনা পুঁজিতে শুরু করুন
-              </h3>
-              <p className='text-gray-600 text-center'>
-                কোনো প্রাথমিক বিনিয়োগ ছাড়াই অনলাইন ব্যবসা শুরু করুন। আমাদের সাথে আপনাকে কোনো স্টক
-                বা ইনভেন্টরি রাখতে হবে না।
-              </p>
-            </motion.div>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+            {[
+              {
+                icon: FaShieldAlt,
+                title: 'কাস্টমার ফ্রড চেকার',
+                desc: 'আপনার ব্যবসাকে ফ্রড থেকে সুরক্ষিত রাখুন',
+              },
+              {
+                icon: FaUserPlus,
+                title: 'সেলার রেফার',
+                desc: 'অন্যান্য রিসেলারদের রেফার করে ইনকাম করুন',
+              },
+              {
+                icon: FaUserPlus,
+                title: 'কাস্টমার রেফার',
+                desc: 'কাস্টমার রেফার করে অতিরিক্ত আয় করুন',
+              },
+              {
+                icon: MdWeb,
+                title: 'ল্যান্ডিং পেজ ফ্রী',
+                desc: 'প্রতিটি পণ্যের জন্য বিনামূল্যে ল্যান্ডিং পেজ',
+              },
 
-            <motion.div
-              variants={fadeIn}
-              whileHover={{ y: -5 }}
-              className='bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100'
-            >
-              <div className='bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <GiTakeMyMoney className='text-xl text-blue-600' />
-              </div>
-              <h3 className='text-xl font-semibold text-gray-800 mb-3 text-center'>
-                লাভের নিশ্চয়তা
-              </h3>
-              <p className='text-gray-600 text-center'>
-                প্রতিটি পণ্যে ২০০-৫০০ টাকা পর্যন্ত লাভের সুযোগ। প্রতিদিনের আয় সরাসরি আপনার
-                অ্যাকাউন্টে।
-              </p>
-            </motion.div>
-
-            <motion.div
-              variants={fadeIn}
-              whileHover={{ y: -5 }}
-              className='bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100'
-            >
-              <div className='bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <FaHeadset className='text-xl text-blue-600' />
-              </div>
-              <h3 className='text-xl font-semibold text-gray-800 mb-3 text-center'>
-                সম্পূর্ণ সহায়তা
-              </h3>
-              <p className='text-gray-600 text-center'>
-                নতুনদের জন্য ফ্রি ট্রেনিং এবং ২৪/৭ সাপোর্ট। আমরা আপনাকে প্রতিটি ধাপে গাইড করব।
-              </p>
-            </motion.div>
+              {
+                icon: MdGroup,
+                title: 'টিম ব্যবস্থাপনা',
+                desc: 'আপনার টিম তৈরি করে প্যাসিভ ইনকাম করুন',
+              },
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                variants={fadeIn}
+                whileHover={{ y: -5 }}
+                className='bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 flex flex-col items-center text-center'
+              >
+                <div className='bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4'>
+                  <feature.icon className='text-xl text-blue-600' />
+                </div>
+                <h3 className='text-lg font-semibold text-gray-800 mb-2'>{feature.title}</h3>
+                <p className='text-gray-600 text-sm'>{feature.desc}</p>
+                <span className='mt-3 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full'>
+                  লাইফটাইম ফ্রী
+                </span>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
 
-        {/* How It Works Section */}
+        {/* Main Benefits Section */}
         <motion.div
           initial='hidden'
           animate='visible'
@@ -128,42 +131,65 @@ const AboutUs = () => {
             variants={fadeIn}
             className='text-2xl md:text-3xl font-semibold text-gray-800 mb-8 text-center'
           >
-            কিভাবে ব্যবসা করবেন?
+            মূল সুবিধাগুলো
           </motion.h2>
           <div className='space-y-6'>
-            {[1, 2, 3, 4].map(step => (
+            {[
+              {
+                icon: MdWeb,
+                title: 'বিনামূল্যে ল্যান্ডিং পেজ',
+                desc: 'প্রতিটি পণ্যের জন্য আলাদা ল্যান্ডিং পেজ তৈরি করতে পারবেন এবং তা দিয়ে বুস্ট বা মার্কেটিং করতে পারবেন। আপনি আপনার ইচ্ছেমতো পণ্যের দাম নির্ধারণ করতে পারবেন।',
+              },
+              {
+                icon: FaShieldAlt,
+                title: 'ফ্রড চেকার',
+                desc: 'আপনার ব্যবসা নিরাপদ রাখতে আছে কাস্টমার ফ্রড চেকার।',
+              },
+              {
+                icon: FaUserPlus,
+                title: 'রেফার করে ইনকাম',
+                desc: 'আপনি আপনার বন্ধুদের রিসেলার বা কাস্টমার হিসেবে রেফার করতে পারেন এবং প্রতি অর্ডারে ইনকাম করতে পারবেন।',
+              },
+              {
+                icon: MdGroup,
+                title: 'টিম তৈরি করে প্যাসিভ ইনকাম',
+                desc: 'আপনার অধীনে একটি রিসেলার টিম তৈরি করে দুই লেভেল পর্যন্ত প্যাসিভ ইনকাম করার সুযোগ পাবেন।',
+              },
+              {
+                icon: BsCashCoin,
+                title: 'ক্যাশ অন ডেলিভারি',
+                desc: 'গ্রাহকদের কাছ থেকে ডেলিভারি চার্জ অগ্রিম নেওয়ার প্রয়োজন নেই। একাধিক পণ্য অর্ডারের জন্য একটি মাত্র ডেলিভারি চার্জ প্রযোজ্য।',
+              },
+              {
+                icon: BiTransferAlt,
+                title: 'দ্রুত পেমেন্ট',
+                desc: 'মাত্র ৫০ টাকা হলেই বিকাশ বা নগদের মাধ্যমে টাকা তুলতে পারবেন। পেমেন্ট উইথড্র করার সর্বোচ্চ ২৪ ঘন্টার মধ্যে উইথড্র কৃত টাকা পেয়ে যাবেন।',
+              },
+              {
+                icon: BsTicketDetailed,
+                title: 'সাপোর্ট সিস্টেম',
+                desc: 'যেকোনো প্রয়োজনে সাপোর্ট সেন্টার, সাপোর্ট টিকেট এবং হটলাইন নাম্বারের সুবিধা পাবেন।',
+              },
+            ].map((benefit, index) => (
               <motion.div
-                key={step}
+                key={index}
                 variants={fadeIn}
                 whileHover={{ x: 5 }}
-                className='flex flex-col md:flex-row gap-6 items-center bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all'
+                className='flex flex-col md:flex-row gap-6 items-start bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all'
               >
-                <div className='bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl'>
-                  {step}
+                <div className='bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center text-blue-600 text-xl flex-shrink-0'>
+                  <benefit.icon className='text-xl' />
                 </div>
                 <div className='flex-1'>
-                  <h3 className='text-xl font-semibold text-gray-800 mb-2'>
-                    {step === 1 && 'নিবন্ধন করুন'}
-                    {step === 2 && 'পণ্য নির্বাচন করুন'}
-                    {step === 3 && 'বিক্রয় করুন'}
-                    {step === 4 && 'আয় করুন'}
-                  </h3>
-                  <p className='text-gray-600'>
-                    {step === 1 &&
-                      'আমাদের ওয়েবসাইট বা অ্যাপে সম্পূর্ণ ফ্রিতে রেজিস্ট্রেশন করুন। কোনো লুকানো ফি নেই।'}
-                    {step === 2 &&
-                      'আমাদের ভেরিফাইড পণ্য ক্যাটালগ থেকে কম দামে কোয়ালিটি পণ্য বাছাই করুন।'}
-                    {step === 3 &&
-                      'ফেসবুক বা অন্যান্য প্ল্যাটফর্মে পণ্য প্রচার করুন এবং অর্ডার সংগ্রহ করুন।'}
-                    {step === 4 && 'পণ্য ডেলিভারির পর আপনার লাভের টাকা সাথে সাথে পেয়ে যাবেন।'}
-                  </p>
+                  <h3 className='text-xl font-semibold text-gray-800 mb-2'>{benefit.title}</h3>
+                  <p className='text-gray-600'>{benefit.desc}</p>
                 </div>
               </motion.div>
             ))}
           </div>
         </motion.div>
 
-        {/* Unique Features */}
+        {/* Requirements Section */}
         <motion.div
           initial='hidden'
           animate='visible'
@@ -174,7 +200,7 @@ const AboutUs = () => {
             variants={fadeIn}
             className='text-2xl md:text-3xl font-semibold text-blue-800 mb-8 text-center'
           >
-            আমাদের বিশেষ সুবিধাসমূহ
+            প্রয়োজনীয় শর্তাবলী
           </motion.h2>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <motion.div
@@ -182,63 +208,81 @@ const AboutUs = () => {
               whileHover={{ x: 5 }}
               className='flex items-start gap-4 bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-all'
             >
-              <div className='bg-blue-100 p-2 rounded-full text-blue-600'>
-                <MdOutlineInventory className='text-xl' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-gray-800'>নিজস্ব স্টক ব্যবস্থাপনা</h3>
-                <p className='text-gray-600 text-sm'>
-                  আমাদের নিজস্ব গুদামে পর্যাপ্ত স্টক থাকায় দ্রুত ডেলিভারি নিশ্চিত
-                </p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              variants={fadeIn}
-              whileHover={{ x: 5 }}
-              className='flex items-start gap-4 bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-all'
-            >
-              <div className='bg-blue-100 p-2 rounded-full text-blue-600'>
-                <GiProgression className='text-xl' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-gray-800'>বিক্রয় ট্র্যাকিং</h3>
-                <p className='text-gray-600 text-sm'>
-                  রিয়েল-টাইমে আপনার বিক্রয় ও আয়ের হিসাব দেখতে পারবেন
-                </p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              variants={fadeIn}
-              whileHover={{ x: 5 }}
-              className='flex items-start gap-4 bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-all'
-            >
-              <div className='bg-blue-100 p-2 rounded-full text-blue-600'>
-                <MdPayment className='text-xl' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-gray-800'>নিরাপদ পেমেন্ট</h3>
-                <p className='text-gray-600 text-sm'>বিকাশ/নগদ মাধ্যমে নিরাপদ লেনদেন</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              variants={fadeIn}
-              whileHover={{ x: 5 }}
-              className='flex items-start gap-4 bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-all'
-            >
-              <div className='bg-blue-100 p-2 rounded-full text-blue-600'>
+              <div className='bg-blue-100 p-3 rounded-full text-blue-600'>
                 <FaRegSmile className='text-xl' />
               </div>
               <div>
-                <h3 className='font-semibold text-gray-800'>গ্রাহক সন্তুষ্টি</h3>
+                <h3 className='font-semibold text-gray-800'>রেজিস্ট্রেশন</h3>
                 <p className='text-gray-600 text-sm'>
-                  কোয়ালিটি পণ্য ও সময়মতো ডেলিভারির মাধ্যমে গ্রাহক ধরে রাখুন
+                  রেজিস্ট্রেশন করতে কোনো ইনভেস্টমেন্টের প্রয়োজন নেই, সম্পূর্ণ বিনামূল্যে।
+                </p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={fadeIn}
+              whileHover={{ x: 5 }}
+              className='flex items-start gap-4 bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-all'
+            >
+              <div className='bg-blue-100 p-3 rounded-full text-blue-600'>
+                <GiProgression className='text-xl' />
+              </div>
+              <div>
+                <h3 className='font-semibold text-gray-800'>ভেরিফিকেশন</h3>
+                <p className='text-gray-600 text-sm'>
+                  রেফারেল ইনকাম পেতে হলে প্রথমে আপনাকে একটি অর্ডার দিয়ে আপনার অ্যাকাউন্ট ভেরিফাই
+                  করতে হবে।
+                </p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={fadeIn}
+              whileHover={{ x: 5 }}
+              className='flex items-start gap-4 bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-all md:col-span-2'
+            >
+              <div className='bg-blue-100 p-3 rounded-full text-blue-600'>
+                <MdPayment className='text-xl' />
+              </div>
+              <div>
+                <h3 className='font-semibold text-gray-800'>ডেলিভারি চার্জ</h3>
+                <p className='text-gray-600 text-sm'>
+                  কাস্টমার রেফার বা ল্যান্ডিং পেজ এর মাধ্যমে কাস্টমার অর্ডার সাবমিট করতে অফিস
+                  নাম্বারে ডেলিভারি চার্জ অগ্রিম প্রদান আবশ্যক করে দেওয়া হয়েছে তাই রিটার্ন হওয়ার
+                  কোন ঝামেলা নেই।
                 </p>
               </div>
             </motion.div>
           </div>
+        </motion.div>
+
+        {/* Call to Action */}
+        <motion.div
+          initial='hidden'
+          animate='visible'
+          variants={staggerContainer}
+          className='text-center mb-12'
+        >
+          <motion.h2
+            variants={fadeIn}
+            className='text-2xl md:text-3xl font-bold text-gray-800 mb-4'
+          >
+            আজই শুরু করুন এবং প্রতিদিন আনলিমিটেড আয় করার সুযোগ নিন।
+          </motion.h2>
+          <motion.p variants={fadeIn} className='text-gray-600 mb-6 max-w-2xl mx-auto'>
+            শপ বিডি রিসেলার প্রোগ্রামে যোগ দিন এবং আপনার আর্থিক স্বাধীনতার পথ শুরু করুন
+          </motion.p>
+          <motion.button
+            variants={fadeIn}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              navigate('/register#register')
+            }}
+            className='bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-full transition-colors duration-300 shadow-md'
+          >
+            প্রোগ্রামে যোগ দিন
+          </motion.button>
         </motion.div>
       </div>
       <Footer />

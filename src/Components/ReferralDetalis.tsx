@@ -117,7 +117,7 @@ export const ReferralDetails = () => {
           </div>
 
           {/* Seller Referral Link Section */}
-          <div className='p-3 border-b'>
+          <div className='p-3 border-b pb-1'>
             <h2 className='text-sm font-medium text-gray-700 mb-2'>
               সেলারদের সাথে শেয়ার করার লিংক
             </h2>
@@ -143,15 +143,15 @@ export const ReferralDetails = () => {
                 </button>
               </div>
             </div>
-            <div className='bg-yellow-50 border border-yellow-200 p-2 rounded-lg'>
+            {/* <div className='bg-yellow-50 border border-yellow-200 p-2 rounded-lg'>
               <p className='text-xs text-yellow-800 text-center'>
                 🔗 সেলারদের সাথে রেফারেল লিংক শেয়ার করে আয় করুন
               </p>
-            </div>
+            </div> */}
           </div>
 
           {/* Customer Referral Link Section */}
-          <div className='p-3'>
+          <div className='p-3 pb-1'>
             <h2 className='text-sm font-medium text-gray-700 mb-2'>
               কাস্টমারদের সাথে শেয়ার করার লিংক
             </h2>
@@ -177,11 +177,11 @@ export const ReferralDetails = () => {
                 </button>
               </div>
             </div>
-            <div className='bg-green-50 border border-green-200 p-2 rounded-lg'>
+            {/* <div className='bg-green-50 border border-green-200 p-2 rounded-lg'>
               <p className='text-xs text-green-800 text-center'>
                 💰 কাস্টমারদের সাথে শেয়ার করে ৭০% কমিশন পান!
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
 

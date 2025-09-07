@@ -348,7 +348,7 @@ const Categories = () => {
 
   // Loading states
   const [applyingFilters, setApplyingFilters] = useState(false)
-  const [downloadingSizeChart, setDownloadingSizeChart] = useState(false)
+  const [downloadingSizeCharts, setDownloadingSizeCharts] = useState<{ [key: number]: boolean }>({})
 
   useEffect(() => {
     const loadAndMergeCategories = async () => {
@@ -617,9 +617,9 @@ const Categories = () => {
     }
   }
 
-  const downloadSizeChart = async (sizeChartUrl: string) => {
+  const downloadSizeChart = async (sizeChartUrl: string, categoryId: number) => {
     if (sizeChartUrl) {
-      setDownloadingSizeChart(true)
+      setDownloadingSizeCharts(prev => ({ ...prev, [categoryId]: true }))
       try {
         await fileDownloader.downloadAllFiles([sizeChartUrl], {
           baseNamePrefix: 'size_chart',
@@ -628,7 +628,7 @@ const Categories = () => {
       } catch (error) {
         console.error('Error downloading size chart:', error)
       } finally {
-        setDownloadingSizeChart(false)
+        setDownloadingSizeCharts(prev => ({ ...prev, [categoryId]: false }))
       }
     }
   }
@@ -647,9 +647,9 @@ const Categories = () => {
     })
   }
 
-  const handleSizeChartDownload = () => {
+  const handleSizeChartDownload = (categoryId: number) => {
     if (sizeChartModal.sizeChart) {
-      downloadSizeChart(sizeChartModal.sizeChart)
+      downloadSizeChart(sizeChartModal.sizeChart, categoryId)
     }
   }
 
@@ -674,7 +674,7 @@ const Categories = () => {
         isOpen={sizeChartModal.isOpen}
         onClose={closeSizeChart}
         sizeChart={sizeChartModal.sizeChart}
-        onDownload={handleSizeChartDownload}
+        onDownload={() => handleSizeChartDownload(selectedFilterCategory!)}
       />
 
       <div className='bg-white rounded-lg p-2 mb-1 border border-gray-200 shadow-sm mt-2'>
@@ -892,24 +892,33 @@ const Categories = () => {
                 <div className='flex justify-between items-center mb-1'>
                   <div className='flex items-center space-x-1'>
                     <h3 className='font-bold text-gray-900 text-xs'>{category.name}</h3>
+                  </div>
+                  <div className='flex items-center space-x-2'>
                     {category.categoryIcon && (
                       <button
-                        onClick={() => downloadSizeChart(category.categoryIcon!)}
-                        className='py-1 px-2 bg-blue-100 rounded hover:bg-blue-200 transition-colors flex items-center'
+                        onClick={e => {
+                          e.stopPropagation()
+                          downloadSizeChart(category.categoryIcon!, category.categoryId)
+                        }}
+                        className='py-1 px-2 bg-blue-100 rounded hover:bg-blue-200 transition-colors flex items-center text-[10px] min-w-[80px] justify-center'
                         title='Download Size Chart'
+                        disabled={downloadingSizeCharts[category.categoryId]}
                       >
-                        {downloadingSizeChart ? (
-                          <span className='text-[10px] text-blue-600'>ডাউনলোড হচ্ছে...</span>
+                        {downloadingSizeCharts[category.categoryId] ? (
+                          <div className='flex items-center'>
+                            <div className='animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500 mr-1'></div>
+                            <span className='text-blue-600'>লোড হচ্ছে...</span>
+                          </div>
                         ) : (
                           <>
                             <Download className='h-3 w-3 mr-0.5 text-blue-600' />
-                            <span className='text-[10px] text-blue-600'>সাইজ চার্ট</span>
+                            <span className='text-blue-600'>সাইজ চার্ট</span>
                           </>
                         )}
                       </button>
                     )}
+                    <span className='text-xs text-gray-600'>({category.products})</span>
                   </div>
-                  <span className='text-xs text-gray-600'>({category.products})</span>
                 </div>
 
                 {category?.subCategories && category?.subCategories?.length > 0 ? (
@@ -920,7 +929,7 @@ const Categories = () => {
                         className='border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group relative p-2'
                       >
                         {/* Product count in absolute top right cornermost position without background */}
-                        <span className='absolute top-2 right-2 text-[10px] font-bold text-gray-700 transform translate-x-1 -translate-y-1'>
+                        <span className='absolute top-2 right-2 text-[10px] font-bold text-gray-700'>
                           {subCategory.products}
                         </span>
 
@@ -930,7 +939,7 @@ const Categories = () => {
                               e.stopPropagation()
                               openSizeChart(subCategory.sizeChart)
                             }}
-                            className='absolute top-0 left-0 m-1 p-0.5 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity'
+                            className='absolute top-2 left-2 p-1 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity'
                             title='View Size Chart'
                           >
                             <Ruler className='h-3 w-3 text-gray-600' />
