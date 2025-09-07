@@ -1,4 +1,14 @@
-import { ChevronLeft, ChevronRight, Download, Heart, MapPin, Package, Ruler, X } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Heart,
+  MapPin,
+  Package,
+  Ruler,
+  Search,
+  X,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { fileDownloader } from '../Api/ftp.api'
@@ -568,7 +578,9 @@ const Categories = () => {
         setFilterPage(page)
 
         if (data.products && data.products.length === 0) {
-          setFilterProductMessage('No products found')
+          setFilterProductMessage('কোন প্রোডাক্ট পাওয়া যায়নি')
+        } else if (!data.products) {
+          setFilterProductMessage('কোন প্রোডাক্ট পাওয়া যায়নি')
         } else {
           setFilterProductMessage(null)
         }
@@ -812,9 +824,21 @@ const Categories = () => {
           />
         </div>
       )}
+      {}
 
       {filteredResults.length === 0 && filterProductMessage && !applyingFilters && (
-        <div className='text-center text-gray-500 py-2'>{filterProductMessage}</div>
+        <div className='flex flex-col items-center justify-center py-8 px-4 bg-gray-50 rounded-lg border border-gray-200 my-4'>
+          <Search className='h-12 w-12 text-gray-400 mb-3' />
+          <p className='text-gray-600 text-center max-w-md'>{filterProductMessage}</p>
+          <div className='mt-4 flex flex-col sm:flex-row gap-3'>
+            <button
+              onClick={resetFilters}
+              className='px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium'
+            >
+              Clear Search
+            </button>
+          </div>
+        </div>
       )}
 
       <div className='mb-4'>
