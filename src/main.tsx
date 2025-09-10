@@ -47,6 +47,7 @@ import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import ProductDetail from './Components/ProductDetail.tsx'
 import ProductList from './Components/Products.tsx'
+import ReferralOrders from './Components/ReferralOrders.tsx'
 import ReferredSellers from './Components/ReferredSellers.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
@@ -379,6 +380,14 @@ const UserProviderWrapper = () => {
             element={
               <PrivateRoute>
                 <ReferredSellers />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='seller-referral-orders'
+            element={
+              <PrivateRoute>
+                <ReferralOrders />
               </PrivateRoute>
             }
           />
