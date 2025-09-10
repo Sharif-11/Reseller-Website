@@ -6,6 +6,7 @@ import {
   FaCoins,
   FaExclamationTriangle,
   FaHeadset,
+  FaListAlt,
   FaMapMarkerAlt,
   FaMoneyBillWave,
   FaQuestionCircle,
@@ -15,16 +16,19 @@ import {
 import { NavLink, useNavigate } from 'react-router-dom'
 import { getAllAnnouncements } from '../Api/announcements.api'
 import { useAuth } from '../Hooks/useAuth'
+import { orderApi } from '../Api/order.api'
 
 const SellerHomeDashboard = () => {
   const navigate = useNavigate()
   // Sample balance data (negative for demo)
-  const [announcements, setAnnouncements] = useState<string[]>([])
+  const [announcements, setAnnouncements] = useState<string[]>()
   const { user } = useAuth()
   const currentBalance = user?.balance || 0 // Example balance, replace with actual data
 
   const fetchAnnouncements = async () => {
     const { success, data } = await getAllAnnouncements()
+    const test = await orderApi.getAllReferredOrdersForASeller({ page: 1, limit: 1 })
+
     if (success) {
       setAnnouncements(data || [])
     } else {
@@ -40,6 +44,11 @@ const SellerHomeDashboard = () => {
       title: 'সকল প্রোডাক্টস',
       icon: <FaBoxOpen className='text-3xl text-blue-600' />,
       url: '/categories',
+    },
+    {
+      title: 'সকল ক্যাটাগরি',
+      icon: <FaListAlt className='text-3xl text-blue-600' />,
+      url: '/category-list',
     },
     {
       title: 'সেলস গাইডলাইন',
@@ -97,19 +106,23 @@ const SellerHomeDashboard = () => {
     <div className='min-h-screen bg-gray-50 p-4 md:p-8'>
       <div className='max-w-6xl mx-auto'>
         {/* Announcement Bar with Moving Text */}
-        {announcements.length > 0 && (
-          <div className='bg-indigo-600 text-white rounded-lg mb-6 overflow-hidden'>
-            <div className='flex items-center p-3'>
-              <FaBullhorn className='text-xl md:text-md mr-3 flex-shrink-0' />
-              <div className='whitespace-nowrap overflow-hidden'>
-                <div className='inline-block animate-marquee'>
-                  {announcements.map((announcement, index) => (
-                    <span key={index} className='mx-8 inline-block'>
-                      {announcement}
-                    </span>
-                  ))}
+        {/* Announcement Section - Beautiful Static Display */}
+        {announcements?.length! > 0 && (
+          <div className='bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg mb-4 p-3 shadow-md w-full'>
+            <div className='flex items-center mb-2'>
+              <FaBullhorn className='text-lg mr-2 flex-shrink-0' />
+              <h3 className='font-semibold text-sm'>নোটিশ বোর্ড</h3>
+            </div>
+            <div className='w-full max-h-40 overflow-y-auto'>
+              {announcements?.map((announcement, index) => (
+                <div
+                  key={index}
+                  className='py-2 flex items-start text-sm border-b border-indigo-400 border-opacity-30 last:border-b-0'
+                >
+                  <span className='w-2 h-2 bg-white rounded-full mt-2 mr-3 flex-shrink-0'></span>
+                  <p className='flex-1'>{announcement}</p>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         )}

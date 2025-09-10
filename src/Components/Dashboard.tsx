@@ -9,6 +9,8 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     withdraw: false,
+    'seller-referral': false,
+    'customer-referral': false,
   })
   const userContext = useContext(UserContext)
   const user = userContext ? userContext.user : null
@@ -192,6 +194,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 <button
                   onClick={() => toggleAccordion('withdraw')}
                   className='w-full flex items-center justify-between px-4 py-3 text-indigo-100 hover:bg-indigo-600/30 rounded-lg transition-all'
+                  aria-expanded={openAccordions.withdraw}
                 >
                   <div className='flex items-center'>
                     <svg
@@ -294,6 +297,192 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 </svg>
                 পেমেন্ট হিস্ট্রি
               </NavLink>
+              <div className='border-b border-indigo-600/30 pb-1'>
+                <button
+                  onClick={() => toggleAccordion('seller-referral')}
+                  className='w-full flex items-center justify-between px-4 py-3 text-indigo-100 hover:bg-indigo-600/30 rounded-lg transition-all'
+                  aria-expanded={openAccordions['seller-referral']}
+                >
+                  <div className='flex items-center'>
+                    <svg
+                      className='w-5 h-5 mr-3'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'
+                      />
+                    </svg>
+                    সেলার রেফারেল
+                  </div>
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      openAccordions['seller-referral'] ? 'transform rotate-180' : ''
+                    }`}
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M19 9l-7 7-7-7'
+                    />
+                  </svg>
+                </button>
+
+                {openAccordions['seller-referral'] && (
+                  <div className='ml-8 mt-1 space-y-1'>
+                    <NavLink
+                      to='/seller-referrals'
+                      className={({ isActive }) => `
+          flex items-center px-3 py-2 rounded-lg text-sm transition-all
+          ${isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/30'}
+        `}
+                      onClick={() => setIsSidebarOpen(false)}
+                    >
+                      {/* Users icon for referred customers */}
+                      <svg
+                        className='w-4 h-4 mr-2'
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'
+                        />
+                      </svg>
+                      রেফার্ড সেলার
+                    </NavLink>
+                    <NavLink
+                      to='/seller-referral-orders'
+                      className={({ isActive }) => `
+          flex items-center px-3 py-2 rounded-lg text-sm transition-all
+          ${isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/30'}
+        `}
+                      onClick={() => setIsSidebarOpen(false)}
+                    >
+                      {/* Shopping cart icon for customer orders */}
+                      <svg
+                        className='w-4 h-4 mr-2'
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'
+                        />
+                      </svg>
+                      সেলার অর্ডার
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+              <div className='border-b border-indigo-600/30 pb-1'>
+                <button
+                  onClick={() => toggleAccordion('customer-referral')}
+                  className='w-full flex items-center justify-between px-4 py-3 text-indigo-100 hover:bg-indigo-600/30 rounded-lg transition-all'
+                  aria-expanded={openAccordions['customer-referral']}
+                >
+                  <div className='flex items-center'>
+                    <svg
+                      className='w-5 h-5 mr-3'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'
+                      />
+                    </svg>
+                    কাস্টমার রেফারেল
+                  </div>
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      openAccordions['customer-referral'] ? 'transform rotate-180' : ''
+                    }`}
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M19 9l-7 7-7-7'
+                    />
+                  </svg>
+                </button>
+
+                {openAccordions['customer-referral'] && (
+                  <div className='ml-8 mt-1 space-y-1'>
+                    <NavLink
+                      to='/customer-referrals'
+                      className={({ isActive }) => `
+          flex items-center px-3 py-2 rounded-lg text-sm transition-all
+          ${isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/30'}
+        `}
+                      onClick={() => setIsSidebarOpen(false)}
+                    >
+                      {/* Users icon for referred customers */}
+                      <svg
+                        className='w-4 h-4 mr-2'
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'
+                        />
+                      </svg>
+                      রেফার্ড কাস্টমার
+                    </NavLink>
+
+                    <NavLink
+                      to='/customer-referral-orders'
+                      className={({ isActive }) => `
+          flex items-center px-3 py-2 rounded-lg text-sm transition-all
+          ${isActive ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-indigo-600/30'}
+        `}
+                      onClick={() => setIsSidebarOpen(false)}
+                    >
+                      {/* Shopping cart icon for customer orders */}
+                      <svg
+                        className='w-4 h-4 mr-2'
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'
+                        />
+                      </svg>
+                      কাস্টমার অর্ডার
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+
               <NavLink
                 to='/balance-statement'
                 className={({ isActive }) => `
@@ -371,27 +560,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 </svg>
                 পাসওয়ার্ড পরিবর্তন
               </NavLink>
-              {/* <div className='relative'>
-                <div className='flex items-center px-4 py-3 rounded-lg text-indigo-100 opacity-80'>
-                  <svg
-                    className='w-5 h-5 mr-3'
-                    fill='none'
-                    stroke='currentColor'
-                    viewBox='0 0 24 24'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z'
-                    />
-                  </svg>
-                  সাপোর্ট টিকিট
-                  <span className='absolute top-2 right-4 bg-yellow-100 text-yellow-800 text-[8px] px-1 py-0.5 rounded-full'>
-                    শীঘ্রই আসছে
-                  </span>
-                </div>
-              </div> */}
+
               <NavLink
                 to='/support-tickets'
                 className={({ isActive }) => `
@@ -429,7 +598,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           {/* Main Content */}
           <main className='flex-1 w-full p-0 md:p-6 bg-white md:bg-transparent md:rounded-tl-lg overflow-hidden'>
             <div className='bg-white min-h-[calc(100vh-4rem)] md:rounded-lg md:shadow-sm p-4 md:p-6'>
-              {children}
+              {children || <Outlet />}
             </div>
           </main>
         </div>

@@ -1,10 +1,82 @@
+import { Package } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router'
+import shopApi from '../Api/shop.api'
 import { useAuth } from '../Hooks/useAuth'
 import HomeIntroduction from './CompanyIntro'
 import CustomerIntroduction from './CustomerIntroduction'
 import Footer from './Footer'
 
+interface Category {
+  categoryId: number
+  name: string
+  categoryIcon: string | null
+  description: string
+  parentId: number | null
+  createdAt?: string
+  updatedAt?: string
+  subCategories?: SubCategory[]
+  products: number
+  sizeChart?: string
+}
+
+interface SubCategory {
+  categoryId: number
+  name: string
+  categoryIcon: string | null
+  description: string
+  parentId: number
+  createdAt: string
+  updatedAt: string
+  products: number
+  sizeChart?: string
+}
+
 const LandingPage = () => {
   const { customerMode } = useAuth()
+  const navigate = useNavigate()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true)
+      const { success, data } = await shopApi.getCategories(null)
+      if (success) {
+        setCategories(data || [])
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error)
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
+
+  const navigateToProductLists = (categoryId: number) => {
+    navigate('/products', {
+      state: {
+        categoryId,
+      },
+    })
+  }
+
+  // Get all subcategories merged together
+  const getAllSubCategories = () => {
+    const allSubCategories: SubCategory[] = []
+    categories.forEach(category => {
+      if (category.subCategories && category.subCategories.length > 0) {
+        allSubCategories.push(...category.subCategories)
+      }
+    })
+    return allSubCategories
+  }
+
+  const allSubCategories = getAllSubCategories()
+
   return (
     <div className='flex flex-col'>
       <main className='flex-grow'>
@@ -72,7 +144,61 @@ const LandingPage = () => {
           </section>
         )}
 
-        {/* Products Section */}
+        {/* Categories Section - Modified for landing page */}
+        <section id='categories' className='py-8 bg-gray-50'>
+          <div className='container mx-auto px-4'>
+            <h2 className='text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8'>
+              প্রোডাক্ট ক্যাটাগরি
+            </h2>
+
+            {loadingCategories ? (
+              <div className='flex justify-center items-center h-32 bg-white rounded'>
+                <div className='animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500'></div>
+              </div>
+            ) : allSubCategories.length === 0 ? (
+              <div className='text-center py-3 bg-white rounded'>
+                <p className='text-gray-500 text-xs'>No categories found</p>
+              </div>
+            ) : (
+              <div className='grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1'>
+                {allSubCategories.map(subCategory => (
+                  <div
+                    key={subCategory.categoryId}
+                    className='border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group relative p-2'
+                    onClick={() => navigateToProductLists(subCategory.categoryId)}
+                  >
+                    {/* Product count in absolute top right cornermost position without background */}
+                    <span className='absolute top-2 right-2 text-[10px] font-bold text-gray-700'>
+                      {subCategory.products || 0}
+                    </span>
+
+                    <div className='flex flex-col items-center mt-3'>
+                      {subCategory.categoryIcon ? (
+                        <div className='w-16 h-16 mb-2 flex items-center justify-center rounded-lg overflow-hidden bg-gray-100'>
+                          <img
+                            src={subCategory.categoryIcon}
+                            alt={subCategory.name}
+                            className='w-full h-full object-cover'
+                            onError={e => {
+                              ;(e.target as HTMLImageElement).src = 'https://via.placeholder.com/64'
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className='w-16 h-16 bg-blue-50 rounded-lg flex items-center justify-center mb-2'>
+                          <Package className='h-8 w-8 text-blue-400' />
+                        </div>
+                      )}
+                      <h4 className='font-medium text-xs text-gray-900 text-center line-clamp-2 leading-tight'>
+                        {subCategory.name}
+                      </h4>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       </main>
 
       {/* Footer */}

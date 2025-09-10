@@ -33,18 +33,21 @@ import { CookiesProvider } from 'react-cookie'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import NewSupportTicketPage from './Components/AddTicket.tsx'
 import AddWallet from './Components/AddWallet.tsx'
+import AllCategories from './Components/AllCategories.tsx'
 import Categories from './Components/Categories.tsx'
 import CustomerCheckout from './Components/CustomerCheckout.tsx'
 import CustomerOrders from './Components/CustomerOrders.tsx'
 import CustomerRegister from './Components/CustomerRegister.tsx'
 import Footer from './Components/Footer.tsx'
 import FraudCheckComponent from './Components/FraudChecker.tsx'
+import OrderProduct from './Components/OrderProduct.tsx'
 import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
 import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import ProductDetail from './Components/ProductDetail.tsx'
 import ProductList from './Components/Products.tsx'
+import ReferredSellers from './Components/ReferredSellers.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
 import SupportTicketDetailPage from './Components/SupportTicketDetail.tsx'
@@ -54,7 +57,6 @@ import {
 } from './Components/SupportTicketList.tsx'
 import TermsAndConditions from './Components/TermsAndConditions.tsx'
 import { CartFavoriteProvider } from './Context/cartContext.tsx'
-import OrderProduct from './Components/OrderProduct.tsx'
 
 Sentry.init({
   dsn: 'https://283a749ae1d929c3da86a952b8290e15@o4509187069378560.ingest.de.sentry.io/4509187074359376',
@@ -362,6 +364,22 @@ const UserProviderWrapper = () => {
               <PublicRoute>
                 <PasswordReset />
               </PublicRoute>
+            }
+          />
+          <Route
+            path='category-list'
+            element={
+              <PrivateRoute>
+                <AllCategories />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='seller-referrals'
+            element={
+              <PrivateRoute>
+                <ReferredSellers />
+              </PrivateRoute>
             }
           />
           <Route
