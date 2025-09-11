@@ -16,7 +16,6 @@ import {
 import { NavLink, useNavigate } from 'react-router-dom'
 import { getAllAnnouncements } from '../Api/announcements.api'
 import { useAuth } from '../Hooks/useAuth'
-import { orderApi } from '../Api/order.api'
 
 const SellerHomeDashboard = () => {
   const navigate = useNavigate()
@@ -27,7 +26,7 @@ const SellerHomeDashboard = () => {
 
   const fetchAnnouncements = async () => {
     const { success, data } = await getAllAnnouncements()
-    const test = await orderApi.getAllReferredOrdersForASeller({ page: 1, limit: 1 })
+    // const test = await orderApi.getAllCustomerOrdersForASeller({ page: 1, limit: 1 })
 
     if (success) {
       setAnnouncements(data || [])

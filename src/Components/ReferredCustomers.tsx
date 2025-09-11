@@ -1,51 +1,45 @@
 import { useEffect, useState } from 'react'
 import { userApi } from '../Api/user.api'
 
-export interface Seller {
-  userId: string
-  name: string
-  phoneNo: string
-  zilla: string | null
-  upazilla: string | null
-  address: string | null
-  level: number
+export interface Customer {
+  customerId: string
+  customerPhoneNo: string
+  customerName: string | null
   createdAt: string
 }
 
-export interface ReferredSellersResponse {
-  sellers: Seller[]
+export interface ReferredCustomersResponse {
+  customers: Customer[]
   totalCount: number
   totalPages: number
   currentPage: number
 }
 
-const ReferredSellers = () => {
-  const [sellers, setSellers] = useState<Seller[]>([])
+const ReferredCustomers = () => {
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [level, setLevel] = useState(1)
 
   const limit = 5
 
   useEffect(() => {
-    fetchReferredSellers()
-  }, [currentPage, level])
+    fetchReferredCustomers()
+  }, [currentPage])
 
-  const fetchReferredSellers = async () => {
+  const fetchReferredCustomers = async () => {
     try {
       setLoading(true)
-      const response = await userApi.getReferredSellersByLevel({
-        level,
+      const response = await userApi.getReferredCustomersBySeller({
         page: currentPage,
         limit,
         search: searchTerm,
       })
 
       if (response.data) {
-        setSellers(response.data.sellers)
+        setCustomers(response.data.customers)
         setTotalPages(response.data.totalPages)
       }
     } catch (err) {
@@ -59,7 +53,7 @@ const ReferredSellers = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setCurrentPage(1)
-    fetchReferredSellers()
+    fetchReferredCustomers()
   }
 
   const handlePageChange = (page: number) => {
@@ -171,46 +165,17 @@ const ReferredSellers = () => {
             {/* Title & Count */}
             <div className='flex items-center justify-between'>
               <div>
-                <h1 className='text-xl font-bold text-gray-900'>রেফার্ড সেলার</h1>
-                <p className='text-sm text-gray-500'>মোট {sellers.length} জন</p>
+                <h1 className='text-xl font-bold text-gray-900'>রেফার্ড কাস্টমার</h1>
+                <p className='text-sm text-gray-500'>মোট {customers.length} জন</p>
               </div>
-              {/* <div className='bg-indigo-50 px-3 py-1 rounded-full'>
-                <span className='text-xs font-medium text-indigo-700'>লেভেল {level}</span>
-              </div> */}
             </div>
 
-            {/* Controls */}
+            {/* Search Control */}
             <div className='flex flex-col sm:flex-row gap-3'>
-              <div className='relative flex-shrink-0'>
-                <select
-                  value={level}
-                  onChange={e => {
-                    setLevel(parseInt(e.target.value))
-                    setCurrentPage(1)
-                  }}
-                  className='w-full sm:w-32 px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white appearance-none pr-8'
-                >
-                  <option value={1}>লেভেল ১</option>
-                  <option value={2}>লেভেল ২</option>
-                  <option value={3}>লেভেল ৩</option>
-                  <option value={4}>লেভেল ৪</option>
-                </select>
-                <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400'>
-                  <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M19 9l-7 7-7-7'
-                    />
-                  </svg>
-                </div>
-              </div>
-
               <form onSubmit={handleSearch} className='flex flex-1'>
                 <input
                   type='text'
-                  placeholder='নাম বা ফোন খুঁজুন...'
+                  placeholder='ফোন নম্বর খুঁজুন...'
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   className='flex-1 px-3 py-2.5 text-sm border border-gray-200 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
@@ -254,7 +219,7 @@ const ReferredSellers = () => {
         )}
 
         {/* Content */}
-        {sellers.length === 0 ? (
+        {customers.length === 0 ? (
           <div className='bg-white rounded-2xl shadow-sm p-8 text-center'>
             <div className='w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center'>
               <svg
@@ -271,36 +236,26 @@ const ReferredSellers = () => {
                 />
               </svg>
             </div>
-            <h3 className='text-lg font-medium text-gray-900 mb-2'>কোন সেলার পাওয়া যায়নি</h3>
+            <h3 className='text-lg font-medium text-gray-900 mb-2'>কোন কাস্টমার পাওয়া যায়নি</h3>
             <p className='text-gray-500 text-sm mb-4'>
-              {searchTerm ? 'অনুসন্ধানের সাথে কিছু মেলেনি' : `লেভেল ${level} এ কোন সেলার নেই`}
+              {searchTerm ? 'অনুসন্ধানের সাথে কিছু মেলেনি' : 'কোন কাস্টমার রেফার করেননি'}
             </p>
-            {searchTerm && (
-              <button
-                onClick={() => {
-                  setSearchTerm('')
-                  setCurrentPage(1)
-                  fetchReferredSellers()
-                }}
-                className='inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors'
-              >
-                সব দেখুন
-              </button>
-            )}
           </div>
         ) : (
           <div className='space-y-3'>
-            {/* Sellers List */}
-            {sellers.map(seller => (
+            {/* Customers List */}
+            {customers.map(customer => (
               <div
-                key={seller.userId}
+                key={customer.customerId}
                 className='bg-white rounded-xl shadow-sm p-4 transition-all hover:shadow-md'
               >
                 <div className='flex items-start space-x-3'>
                   {/* Avatar */}
                   <div className='w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0'>
                     <span className='text-white font-semibold text-sm'>
-                      {seller.name?.charAt(0).toUpperCase()}
+                      {customer.customerName
+                        ? customer.customerName.charAt(0).toUpperCase()
+                        : customer.customerPhoneNo.charAt(0)}
                     </span>
                   </div>
 
@@ -308,81 +263,34 @@ const ReferredSellers = () => {
                   <div className='flex-1 min-w-0'>
                     <div className='flex items-start justify-between mb-2'>
                       <div className='flex-1 min-w-0'>
-                        <h3 className='font-semibold text-gray-900 text-sm truncate'>
-                          {seller.name}
-                        </h3>
-                        <p className='text-xs text-gray-600'>{seller.phoneNo}</p>
+                        {customer.customerName && (
+                          <h3 className='font-semibold text-gray-900 text-sm truncate'>
+                            {customer.customerName || 'নাম উল্লেখ নেই'}
+                          </h3>
+                        )}
+                        <p className='text-xs text-gray-600'>{customer.customerPhoneNo}</p>
                       </div>
-                      <span className='ml-2 px-2 py-1 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-700 whitespace-nowrap'>
-                        লেভেল {seller.level}
-                      </span>
                     </div>
 
-                    {/* Location & Date */}
-                    {/* <div className='space-y-1'>
-                      {(seller.zilla || seller.upazilla) && (
-                        <div className='flex items-center text-xs text-gray-500'>
-                          <svg
-                            className='w-3 h-3 mr-1.5 text-gray-400 flex-shrink-0'
-                            fill='none'
-                            stroke='currentColor'
-                            viewBox='0 0 24 24'
-                          >
-                            <path
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                              strokeWidth={2}
-                              d='M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'
-                            />
-                            <path
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                              strokeWidth={2}
-                              d='M15 11a3 3 0 11-6 0 3 3 0 016 0z'
-                            />
-                          </svg>
-                          <span className='truncate'>
-                            {[seller.zilla, seller.upazilla].filter(Boolean).join(', ')}
-                          </span>
-                        </div>
-                      )}
-
-                      {seller.address && (
-                        <div className='flex items-start text-xs text-gray-500'>
-                          <svg
-                            className='w-3 h-3 mr-1.5 text-gray-400 flex-shrink-0 mt-0.5'
-                            fill='none'
-                            stroke='currentColor'
-                            viewBox='0 0 24 24'
-                          >
-                            <path
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                              strokeWidth={2}
-                              d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'
-                            />
-                          </svg>
-                          <span className='line-clamp-2 leading-4'>{seller.address}</span>
-                        </div>
-                      )}
-
-                      <div className='flex items-center text-xs text-gray-400'>
-                        <svg
-                          className='w-3 h-3 mr-1.5 flex-shrink-0'
-                          fill='none'
-                          stroke='currentColor'
-                          viewBox='0 0 24 24'
-                        >
-                          <path
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                            strokeWidth={2}
-                            d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
-                          />
-                        </svg>
-                        <span>{new Date(seller.createdAt).toLocaleDateString('bn-BD')}</span>
-                      </div>
-                    </div> */}
+                    {/* Date */}
+                    <div className='flex items-center text-xs text-gray-400'>
+                      <svg
+                        className='w-3 h-3 mr-1.5 flex-shrink-0'
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+                        />
+                      </svg>
+                      <span>
+                        যোগদান: {new Date(customer.createdAt).toLocaleDateString('bn-BD')}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -399,4 +307,4 @@ const ReferredSellers = () => {
   )
 }
 
-export default ReferredSellers
+export default ReferredCustomers

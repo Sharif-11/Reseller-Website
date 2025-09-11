@@ -37,6 +37,7 @@ import AllCategories from './Components/AllCategories.tsx'
 import Categories from './Components/Categories.tsx'
 import CustomerCheckout from './Components/CustomerCheckout.tsx'
 import CustomerOrders from './Components/CustomerOrders.tsx'
+import CustomerReferralOrders from './Components/CustomerReferralOrders.tsx'
 import CustomerRegister from './Components/CustomerRegister.tsx'
 import Footer from './Components/Footer.tsx'
 import FraudCheckComponent from './Components/FraudChecker.tsx'
@@ -48,6 +49,7 @@ import PrivacyPolicy from './Components/PrivacyPolicy.tsx'
 import ProductDetail from './Components/ProductDetail.tsx'
 import ProductList from './Components/Products.tsx'
 import ReferralOrders from './Components/ReferralOrders.tsx'
+import ReferredCustomers from './Components/ReferredCustomers.tsx'
 import ReferredSellers from './Components/ReferredSellers.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
@@ -380,6 +382,22 @@ const UserProviderWrapper = () => {
             element={
               <PrivateRoute>
                 <ReferredSellers />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='customer-referrals'
+            element={
+              <PrivateRoute>
+                <ReferredCustomers />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='customer-referral-orders'
+            element={
+              <PrivateRoute>
+                <CustomerReferralOrders />
               </PrivateRoute>
             }
           />

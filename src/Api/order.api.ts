@@ -32,16 +32,31 @@ class OrderApi {
   public async getAllReferredOrdersForASeller({
     page = 1,
     limit = 10,
- 
   }: {
     page?: number
     limit?: number
- 
   }) {
     return apiClient.get('orders/seller/referral', {
       params: {
         page,
         limit,
+      },
+    })
+  }
+  public async getAllCustomerOrdersForASeller({
+    page = 1,
+    limit = 10,
+    search,
+  }: {
+    page?: number
+    limit?: number
+    search?: string
+  }) {
+    return apiClient.get('orders/seller/customer-referral', {
+      params: {
+        page,
+        limit,
+        search,
       },
     })
   }

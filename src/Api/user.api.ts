@@ -25,11 +25,17 @@ export interface Seller {
   createdAt: string
 }
 
-export interface ReferredSellersResponse {
+export interface ApiResponse {
   sellers: Seller[]
   totalCount: number
   totalPages: number
   currentPage: number
+}
+export interface ReferredSellersResponse extends ApiResponse {
+  sellers: Seller[]
+}
+export interface ReferredCustomersResponse extends ApiResponse {
+  customers: Customer[]
 }
 
 class UserApi {
@@ -55,6 +61,23 @@ class UserApi {
     if (search) queryParams.append('search', search)
 
     return apiClient.get<ReferredSellersResponse>(`auth/referred-users?${queryParams.toString()}`)
+  }
+  public async getReferredCustomersBySeller({
+    page = 1,
+    limit = 10,
+    search = '',
+  }: {
+    page?: number
+    limit?: number
+    search?: string
+  }) {
+    const queryParams = new URLSearchParams()
+    queryParams.append('page', page.toString())
+    queryParams.append('limit', limit.toString())
+    if (search) queryParams.append('search', search)
+    return apiClient.get<ReferredCustomersResponse>(
+      `auth/referred-customers?${queryParams.toString()}`
+    )
   }
 }
 

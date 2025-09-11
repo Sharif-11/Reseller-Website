@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FaBox, FaImage, FaSearch, FaStore, FaUser } from 'react-icons/fa'
+import { FaBox, FaImage, FaMoneyBillAlt, FaSearch, FaStore, FaUser } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import { orderApi } from '../Api/order.api'
 import { formatDate } from '../utils/date.utils'
@@ -9,6 +9,8 @@ interface ReferralOrder {
   sellerName: string
   sellerPhoneNo: string
   sellerLevel: number
+  commission: number
+  orderStatus: string
   products: Array<{
     name: string
     quantity: number
@@ -80,6 +82,43 @@ const ReferralOrders = () => {
     }
   }
 
+  const getStatusBadge = (status: string) => {
+    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium'
+
+    switch (status) {
+      case 'UNPAID':
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>আনপেইড</span>
+      case 'PAID':
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>পেইড</span>
+      case 'CONFIRMED':
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>কনফার্মড</span>
+      case 'PROCESSING':
+        return <span className={`${baseClasses} bg-indigo-100 text-indigo-800`}>প্রসেসিং</span>
+      case 'DELIVERED':
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>ডেলিভারড</span>
+      case 'COMPLETED':
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>কমপ্লিটেড</span>
+      case 'CANCELLED':
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>বাতিল</span>
+      case 'RETURNED':
+        return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>ফেরত</span>
+      case 'REJECTED':
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>রিজেক্টেড</span>
+      case 'REFUNDED':
+        return <span className={`${baseClasses} bg-teal-100 text-teal-800`}>রিফান্ডেড</span>
+      case 'FAILED':
+        return <span className={`${baseClasses} bg-pink-100 text-pink-800`}>ফেইলড</span>
+      default:
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{status}</span>
+    }
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
+    fetchReferralOrders()
+  }
+
   const filteredOrders = orders.filter(
     order =>
       order.sellerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,35 +129,50 @@ const ReferralOrders = () => {
     <div className='p-4 max-w-6xl mx-auto'>
       <h1 className='text-xl font-bold mb-6'>রেফারেল অর্ডারসমূহ</h1>
 
-      {/* Search Section */}
+      {/* Search Section - Mobile First */}
       <div className='mb-6'>
-        <div className='relative'>
-          <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-            <FaSearch className='text-gray-400 h-4 w-4' />
+        <form onSubmit={handleSearch} className='flex flex-col sm:flex-row gap-2'>
+          <div className='relative flex-1'>
+            <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+              <FaSearch className='text-gray-400' />
+            </div>
+            <input
+              type='text'
+              placeholder='সেলার নাম বা ফোন নম্বর দিয়ে খুঁজুন...'
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className='w-full border border-gray-300 rounded-md pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs'
+            />
           </div>
-          <input
-            type='text'
-            placeholder='বিক্রেতার নাম বা ফোন নম্বর দিয়ে খুঁজুন...'
-            className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
+          <button
+            type='submit'
+            className='bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
+          >
+            খুঁজুন
+          </button>
+        </form>
       </div>
 
-      {/* Page Size Selector */}
-      <div className='flex justify-end mb-4'>
-        <select
-          value={pagination.pageSize}
-          onChange={e =>
-            setPagination(prev => ({ ...prev, pageSize: Number(e.target.value), currentPage: 1 }))
-          }
-          className='border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-        >
-          <option value='5'>৫টি অর্ডার</option>
-          <option value='10'>১০টি অর্ডার</option>
-          <option value='20'>২০টি অর্ডার</option>
-        </select>
+      {/* Page Size Selector and Total Orders */}
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2'>
+        <p className='text-sm text-gray-600'>মোট অর্ডার: {pagination.totalOrders}</p>
+        <div className='flex items-center gap-2'>
+          <label htmlFor='pageSize' className='text-sm text-gray-600 whitespace-nowrap'>
+            প্রতি পৃষ্ঠায়:
+          </label>
+          <select
+            id='pageSize'
+            value={pagination.pageSize}
+            onChange={e =>
+              setPagination(prev => ({ ...prev, pageSize: Number(e.target.value), currentPage: 1 }))
+            }
+            className='border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+          >
+            <option value='5'>৫</option>
+            <option value='10'>১০</option>
+            <option value='20'>২০</option>
+          </select>
+        </div>
       </div>
 
       {/* Loading State */}
@@ -137,7 +191,7 @@ const ReferralOrders = () => {
 
       {!loading && filteredOrders.length > 0 && (
         <div className='bg-white rounded-lg shadow overflow-hidden'>
-          {/* Mobile View */}
+          {/* Mobile View - Always visible */}
           <div className='md:hidden space-y-3 p-3'>
             {filteredOrders.map(order => (
               <div key={order.orderId} className='border rounded-lg p-3'>
@@ -158,6 +212,15 @@ const ReferralOrders = () => {
                   {order.createdAt && (
                     <span className='text-xs text-gray-500'>{formatDate(order.createdAt)}</span>
                   )}
+                </div>
+
+                {/* Status Display for Mobile */}
+                <div className='mb-3'>{getStatusBadge(order.orderStatus)}</div>
+
+                {/* Commission Display for Mobile */}
+                <div className='flex items-center gap-2 mb-3 text-green-600'>
+                  <FaMoneyBillAlt className='text-green-500' />
+                  <span className='text-sm font-medium'>কমিশন: ৳{order.commission}</span>
                 </div>
 
                 <div className='space-y-2'>
@@ -195,12 +258,80 @@ const ReferralOrders = () => {
             ))}
           </div>
 
-          {/* Desktop View */}
-          <table className='hidden md:table min-w-full divide-y divide-gray-200'>
+          {/* Tablet View (md) */}
+          <div className='hidden md:block lg:hidden'>
+            {filteredOrders.map(order => (
+              <div key={order.orderId} className='border-b p-4 last:border-b-0'>
+                <div className='grid grid-cols-2 gap-4 mb-3'>
+                  <div>
+                    <div className='flex items-center gap-2 mb-1'>
+                      <FaUser className='text-gray-400' />
+                      <span className='font-medium'>{order.sellerName}</span>
+                    </div>
+                    <div className='text-sm text-gray-500 pl-6'>{order.sellerPhoneNo}</div>
+                  </div>
+
+                  <div className='flex justify-between items-start'>
+                    <div>
+                      <div className='text-sm mb-1'>অর্ডার #{order.orderId}</div>
+                      {order.createdAt && (
+                        <div className='text-xs text-gray-500'>{formatDate(order.createdAt)}</div>
+                      )}
+                    </div>
+                    {getLevelBadge(order.sellerLevel)}
+                  </div>
+                </div>
+
+                <div className='grid grid-cols-2 gap-4 mb-3'>
+                  <div>{getStatusBadge(order.orderStatus)}</div>
+                  <div className='flex items-center gap-2 text-green-600 justify-end'>
+                    <FaMoneyBillAlt className='text-green-500' />
+                    <span className='font-medium'>৳{order.commission}</span>
+                  </div>
+                </div>
+
+                <div className='mb-2 text-sm font-medium flex items-center gap-2'>
+                  <FaBox className='text-gray-400' />
+                  <span>পণ্যসমূহ:</span>
+                </div>
+
+                <div className='space-y-2'>
+                  {order.products.map((product, index) => (
+                    <div key={index} className='flex items-center gap-2 pl-4'>
+                      {product.image ? (
+                        <div className='w-10 h-10 flex-shrink-0 bg-gray-200 rounded-md overflow-hidden'>
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className='w-full h-full object-cover'
+                            onError={e => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className='w-10 h-10 flex-shrink-0 bg-gray-100 rounded-md flex items-center justify-center'>
+                          <FaImage className='text-gray-400' />
+                        </div>
+                      )}
+                      <div className='flex-1 min-w-0'>
+                        <p className='text-sm text-gray-900 truncate'>{product.name}</p>
+                        <p className='text-xs text-gray-500'>{product.quantity} টি</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop View (lg+) */}
+          <table className='hidden lg:table min-w-full divide-y divide-gray-200'>
             <thead className='bg-gray-50'>
               <tr>
                 <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
-                  বিক্রেতা
+                  সেলার
                 </th>
                 <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
                   লেভেল
@@ -210,6 +341,12 @@ const ReferralOrders = () => {
                 </th>
                 <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
                   পণ্য
+                </th>
+                <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
+                  কমিশন
+                </th>
+                <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
+                  স্ট্যাটাস
                 </th>
                 <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
                   তারিখ
@@ -260,6 +397,13 @@ const ReferralOrders = () => {
                       ))}
                     </div>
                   </td>
+                  <td className='px-4 py-3'>
+                    <div className='flex items-center text-green-600'>
+                      <FaMoneyBillAlt className='mr-1 text-green-500' />
+                      <span className='font-medium'>৳{order.commission}</span>
+                    </div>
+                  </td>
+                  <td className='px-4 py-3'>{getStatusBadge(order.orderStatus)}</td>
                   <td className='px-4 py-3 text-sm text-gray-500'>
                     {order.createdAt ? formatDate(order.createdAt) : 'N/A'}
                   </td>
@@ -268,25 +412,28 @@ const ReferralOrders = () => {
             </tbody>
           </table>
 
-          {/* Pagination */}
+          {/* Pagination - Responsive */}
           {pagination.totalPages > 1 && (
             <div className='px-4 py-3 bg-gray-50 flex items-center justify-between border-t border-gray-200'>
-              <div className='flex-1 flex justify-between sm:hidden'>
+              <div className='flex flex-col xs:flex-row xs:justify-between w-full sm:hidden gap-2'>
                 <button
                   onClick={() =>
                     setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))
                   }
                   disabled={pagination.currentPage === 1}
-                  className='relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50'
+                  className='relative inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   পূর্ববর্তী
                 </button>
+                <div className='text-center text-sm text-gray-700'>
+                  পৃষ্ঠা {pagination.currentPage} / {pagination.totalPages}
+                </div>
                 <button
                   onClick={() =>
                     setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))
                   }
                   disabled={pagination.currentPage === pagination.totalPages}
-                  className='ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50'
+                  className='relative inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   পরবর্তী
                 </button>
@@ -319,7 +466,7 @@ const ReferralOrders = () => {
                         setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))
                       }
                       disabled={pagination.currentPage === 1}
-                      className='relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50'
+                      className='relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
                     >
                       <span className='sr-only'>পূর্ববর্তী</span>
                       <svg
@@ -366,7 +513,7 @@ const ReferralOrders = () => {
                         setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))
                       }
                       disabled={pagination.currentPage === pagination.totalPages}
-                      className='relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50'
+                      className='relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
                     >
                       <span className='sr-only'>পরবর্তী</span>
                       <svg
