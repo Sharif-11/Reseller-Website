@@ -106,7 +106,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
 
               {/* Standalone Categories Link */}
               <NavLink
-                to='/categories'
+                to='/products#products'
                 className={({ isActive }) => `
                   flex items-center px-4 py-3 rounded-lg transition-all
                   ${

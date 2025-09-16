@@ -14,7 +14,7 @@ const RegistrationConfirmation = ({
   // automatically navigate to /categories#categories after 5 seconds if success is true
   if (success) {
     setTimeout(() => {
-      navigate('/categories#categories')
+      navigate('/products#products')
     }, 1000)
   }
 
@@ -30,7 +30,7 @@ const RegistrationConfirmation = ({
             আপনার নিবন্ধন সফলভাবে সম্পন্ন হয়েছে। আমাদের পণ্য দেখতে নিচের বাটনে ক্লিক করুন।
           </p>
           <button
-            onClick={() => navigate('/categories#categories')}
+            onClick={() => navigate('/products#products')}
             className='bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg flex items-center justify-center mx-auto transition-colors'
           >
             প্রোডাক্টস দেখুন <FaArrowRight className='ml-2' />

@@ -10,6 +10,7 @@ export interface Seller {
   address: string | null
   level: number
   createdAt: string
+  referrerName: string
 }
 
 export interface ReferredSellersResponse {
@@ -17,6 +18,7 @@ export interface ReferredSellersResponse {
   totalCount: number
   totalPages: number
   currentPage: number
+  levelCount: Record<number, number>
 }
 
 const ReferredSellers = () => {
@@ -26,13 +28,14 @@ const ReferredSellers = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [level, setLevel] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [levelCounts, setLevelCounts] = useState<Record<number, number>>({})
+  const level = 2
 
-  const limit = 5
-
+  const limit = 10
   useEffect(() => {
     fetchReferredSellers()
-  }, [currentPage, level])
+  }, [currentPage])
 
   const fetchReferredSellers = async () => {
     try {
@@ -47,6 +50,8 @@ const ReferredSellers = () => {
       if (response.data) {
         setSellers(response.data.sellers)
         setTotalPages(response.data.totalPages)
+        setLevelCounts(response.data.levelCount || {})
+        setTotalCount(response.data.totalCount)
       }
     } catch (err) {
       setError('ডেটা লোড করতে সমস্যা হয়েছে')
@@ -67,6 +72,22 @@ const ReferredSellers = () => {
       setCurrentPage(page)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
+  }
+
+  const renderLevelCounts = () => {
+    if (Object.keys(levelCounts).length === 0) return null
+
+    return (
+      <div className='flex flex-wrap gap-2 mt-2'>
+        {Object.entries(levelCounts).map(([level, count]) => (
+          <div key={level} className='bg-indigo-50 px-3 py-1 rounded-full flex items-center'>
+            <span className='text-xs font-medium text-indigo-700'>
+              লেভেল {level}: {count} জন
+            </span>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   const renderCompactPagination = () => {
@@ -172,41 +193,15 @@ const ReferredSellers = () => {
             <div className='flex items-center justify-between'>
               <div>
                 <h1 className='text-xl font-bold text-gray-900'>রেফার্ড সেলার</h1>
-                <p className='text-sm text-gray-500'>মোট {sellers.length} জন</p>
+                <p className='text-sm text-gray-500'>মোট {totalCount} জন</p>
               </div>
-              {/* <div className='bg-indigo-50 px-3 py-1 rounded-full'>
-                <span className='text-xs font-medium text-indigo-700'>লেভেল {level}</span>
-              </div> */}
             </div>
+
+            {/* Level Counts */}
+            {renderLevelCounts()}
 
             {/* Controls */}
             <div className='flex flex-col sm:flex-row gap-3'>
-              <div className='relative flex-shrink-0'>
-                <select
-                  value={level}
-                  onChange={e => {
-                    setLevel(parseInt(e.target.value))
-                    setCurrentPage(1)
-                  }}
-                  className='w-full sm:w-32 px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white appearance-none pr-8'
-                >
-                  <option value={1}>লেভেল ১</option>
-                  <option value={2}>লেভেল ২</option>
-                  <option value={3}>লেভেল ৩</option>
-                  <option value={4}>লেভেল ৪</option>
-                </select>
-                <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400'>
-                  <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M19 9l-7 7-7-7'
-                    />
-                  </svg>
-                </div>
-              </div>
-
               <form onSubmit={handleSearch} className='flex flex-1'>
                 <input
                   type='text'
@@ -272,21 +267,6 @@ const ReferredSellers = () => {
               </svg>
             </div>
             <h3 className='text-lg font-medium text-gray-900 mb-2'>কোন সেলার পাওয়া যায়নি</h3>
-            <p className='text-gray-500 text-sm mb-4'>
-              {searchTerm ? 'অনুসন্ধানের সাথে কিছু মেলেনি' : `লেভেল ${level} এ কোন সেলার নেই`}
-            </p>
-            {searchTerm && (
-              <button
-                onClick={() => {
-                  setSearchTerm('')
-                  setCurrentPage(1)
-                  fetchReferredSellers()
-                }}
-                className='inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors'
-              >
-                সব দেখুন
-              </button>
-            )}
           </div>
         ) : (
           <div className='space-y-3'>
@@ -311,7 +291,11 @@ const ReferredSellers = () => {
                         <h3 className='font-semibold text-gray-900 text-sm truncate'>
                           {seller.name}
                         </h3>
-                        <p className='text-xs text-gray-600'>{seller.phoneNo}</p>
+                        <p className='text-xs text-gray-600'>
+                          {seller.level === 1
+                            ? seller.phoneNo
+                            : `রেফার্ড বাই: ${seller.referrerName}`}
+                        </p>
                       </div>
                       <span className='ml-2 px-2 py-1 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-700 whitespace-nowrap'>
                         লেভেল {seller.level}

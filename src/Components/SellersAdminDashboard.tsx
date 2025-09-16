@@ -26,7 +26,7 @@ const SellerHomeDashboard = () => {
 
   const fetchAnnouncements = async () => {
     const { success, data } = await getAllAnnouncements()
-    // const test = await orderApi.getAllCustomerOrdersForASeller({ page: 1, limit: 1 })
+    // const test = await transactionApi.getIncomeStatisticsOfAUser()
 
     if (success) {
       setAnnouncements(data || [])
@@ -42,12 +42,12 @@ const SellerHomeDashboard = () => {
     {
       title: 'সকল প্রোডাক্টস',
       icon: <FaBoxOpen className='text-3xl text-blue-600' />,
-      url: '/categories',
+      url: '/products#products',
     },
     {
       title: 'সকল ক্যাটাগরি',
       icon: <FaListAlt className='text-3xl text-blue-600' />,
-      url: '/category-list',
+      url: '/categories',
     },
     {
       title: 'সেলস গাইডলাইন',
@@ -77,9 +77,9 @@ const SellerHomeDashboard = () => {
       // upcoming: true
     },
     {
-      title: 'সেলার ড্যাশবোর্ড',
+      title: 'সেলার ইনকাম',
       icon: <FaBoxOpen className='text-3xl text-blue-600' />,
-      url: '/seller-dashboard',
+      url: '/seller-income',
       // upcoming: true,
     },
     {

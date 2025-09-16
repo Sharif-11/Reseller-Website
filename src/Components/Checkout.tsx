@@ -435,7 +435,7 @@ const Checkout = () => {
           <h2 className='text-xl font-bold text-gray-800 mb-4'>আপনার কার্টে কোনো পণ্য নেই</h2>
           <p className='text-gray-600 mb-6'>অর্ডার সম্পূর্ণ করতে কার্টে পণ্য যোগ করুন</p>
           <button
-            onClick={() => navigate('/categories')}
+            onClick={() => navigate('/products')}
             className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center mx-auto'
           >
             <FiChevronLeft className='mr-1' />

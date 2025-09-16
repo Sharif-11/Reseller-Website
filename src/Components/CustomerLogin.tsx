@@ -25,7 +25,7 @@ const CustomerLogin = ({ phoneNumber }: LoginProps) => {
       alert(success)
       if (success) {
         setUser(data?.user)
-        navigate('/categories')
+        navigate('/products')
       } else {
         setError(message)
       }

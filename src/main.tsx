@@ -193,7 +193,7 @@ const UserProviderWrapper = () => {
             }
           />
           <Route
-            path='seller-dashboard'
+            path='seller-income'
             element={
               <QueryClientProvider client={new QueryClient()}>
                 <SellerRoute>

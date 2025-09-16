@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FaBox, FaImage, FaMoneyBillAlt, FaSearch, FaStore, FaUser } from 'react-icons/fa'
+import { FaBox, FaImage, FaSearch, FaStore, FaUser } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import { orderApi } from '../Api/order.api'
 import { formatDate } from '../utils/date.utils'
@@ -218,10 +218,6 @@ const ReferralOrders = () => {
                 <div className='mb-3'>{getStatusBadge(order.orderStatus)}</div>
 
                 {/* Commission Display for Mobile */}
-                <div className='flex items-center gap-2 mb-3 text-green-600'>
-                  <FaMoneyBillAlt className='text-green-500' />
-                  <span className='text-sm font-medium'>কমিশন: ৳{order.commission}</span>
-                </div>
 
                 <div className='space-y-2'>
                   <div className='flex items-center gap-2'>
@@ -282,14 +278,6 @@ const ReferralOrders = () => {
                   </div>
                 </div>
 
-                <div className='grid grid-cols-2 gap-4 mb-3'>
-                  <div>{getStatusBadge(order.orderStatus)}</div>
-                  <div className='flex items-center gap-2 text-green-600 justify-end'>
-                    <FaMoneyBillAlt className='text-green-500' />
-                    <span className='font-medium'>৳{order.commission}</span>
-                  </div>
-                </div>
-
                 <div className='mb-2 text-sm font-medium flex items-center gap-2'>
                   <FaBox className='text-gray-400' />
                   <span>পণ্যসমূহ:</span>
@@ -342,9 +330,7 @@ const ReferralOrders = () => {
                 <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
                   পণ্য
                 </th>
-                <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
-                  কমিশন
-                </th>
+
                 <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
                   স্ট্যাটাস
                 </th>
@@ -397,12 +383,7 @@ const ReferralOrders = () => {
                       ))}
                     </div>
                   </td>
-                  <td className='px-4 py-3'>
-                    <div className='flex items-center text-green-600'>
-                      <FaMoneyBillAlt className='mr-1 text-green-500' />
-                      <span className='font-medium'>৳{order.commission}</span>
-                    </div>
-                  </td>
+
                   <td className='px-4 py-3'>{getStatusBadge(order.orderStatus)}</td>
                   <td className='px-4 py-3 text-sm text-gray-500'>
                     {order.createdAt ? formatDate(order.createdAt) : 'N/A'}

@@ -15,6 +15,7 @@ export type ApiResponse<T = any> = {
   data?: T
   error?: any
   response?: any
+  totalCount?: number
   pagination?: {
     page: number
     limit: number

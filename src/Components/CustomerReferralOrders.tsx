@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import {
   FaBox,
-  FaCheckCircle,
   FaChevronLeft,
   FaChevronRight,
-  FaClock,
+  FaCopy,
   FaImage,
+  FaInfoCircle,
   FaMoneyBillAlt,
   FaSearch,
-  FaTimesCircle,
+  FaShoppingBag,
+  FaTimes,
+  FaTruck,
   FaUser,
 } from 'react-icons/fa'
 import { toast } from 'react-toastify'
@@ -22,6 +24,11 @@ interface CustomerOrder {
   actualCommission: string
   orderStatus: string
   createdAt?: string
+  deliveryCharge: string
+  totalProductSellingPrice: string
+  cashOnAmount: string | null
+  amountPaidByCustomer: string | null
+  trackingUrl: string | null
   OrderProduct: Array<{
     productName: string
     productImage?: string
@@ -40,6 +47,8 @@ const CustomerReferralOrders = () => {
   const [orders, setOrders] = useState<CustomerOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedOrder, setSelectedOrder] = useState<CustomerOrder | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const [pagination, setPagination] = useState<PaginationState>({
     currentPage: 1,
@@ -84,24 +93,28 @@ const CustomerReferralOrders = () => {
     const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium'
 
     switch (status) {
-      case 'PAID':
-        return (
-          <span className={`${baseClasses} bg-green-100 text-green-800`}>
-            <FaCheckCircle className='inline mr-1' /> পেইড
-          </span>
-        )
       case 'UNPAID':
-        return (
-          <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
-            <FaClock className='inline mr-1' /> আনপেইড
-          </span>
-        )
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>আনপেইড</span>
+      case 'PAID':
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>পেইড</span>
+      case 'CONFIRMED':
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>কনফার্মড</span>
+      case 'PROCESSING':
+        return <span className={`${baseClasses} bg-indigo-100 text-indigo-800`}>প্রসেসিং</span>
+      case 'DELIVERED':
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>ডেলিভারড</span>
+      case 'COMPLETED':
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>কমপ্লিটেড</span>
       case 'CANCELLED':
-        return (
-          <span className={`${baseClasses} bg-red-100 text-red-800`}>
-            <FaTimesCircle className='inline mr-1' /> বাতিল
-          </span>
-        )
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>বাতিল</span>
+      case 'RETURNED':
+        return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>ফেরত</span>
+      case 'REJECTED':
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>রিজেক্টেড</span>
+      case 'REFUNDED':
+        return <span className={`${baseClasses} bg-teal-100 text-teal-800`}>রিফান্ডেড</span>
+      case 'FAILED':
+        return <span className={`${baseClasses} bg-pink-100 text-pink-800`}>ফেইলড</span>
       default:
         return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{status}</span>
     }
@@ -111,6 +124,16 @@ const CustomerReferralOrders = () => {
     e.preventDefault()
     setPagination(prev => ({ ...prev, currentPage: 1 }))
     fetchCustomerOrders()
+  }
+
+  const openOrderDetails = (order: CustomerOrder) => {
+    setSelectedOrder(order)
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedOrder(null)
   }
 
   // Function to generate pagination buttons
@@ -269,6 +292,16 @@ const CustomerReferralOrders = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Details Button for Mobile */}
+                <div className='mt-3'>
+                  <button
+                    onClick={() => openOrderDetails(order)}
+                    className='w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 py-2 rounded-md text-sm font-medium hover:bg-blue-100'
+                  >
+                    <FaInfoCircle /> বিস্তারিত দেখুন
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -295,6 +328,9 @@ const CustomerReferralOrders = () => {
                   </th>
                   <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
                     তারিখ
+                  </th>
+                  <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
+                    অপশন
                   </th>
                 </tr>
               </thead>
@@ -354,6 +390,14 @@ const CustomerReferralOrders = () => {
                     <td className='px-4 py-3'>{getStatusBadge(order.orderStatus)}</td>
                     <td className='px-4 py-3 text-sm text-gray-500'>
                       {order.createdAt ? formatDate(order.createdAt) : 'N/A'}
+                    </td>
+                    <td className='px-4 py-3'>
+                      <button
+                        onClick={() => openOrderDetails(order)}
+                        className='flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm'
+                      >
+                        <FaInfoCircle /> বিস্তারিত
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -435,6 +479,161 @@ const CustomerReferralOrders = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Order Detail Modal */}
+      {/* Order Detail Modal */}
+      {/* Order Detail Modal */}
+      {isModalOpen && selectedOrder && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 z-50 overflow-y-auto py-8'>
+          <div className='bg-white rounded-lg w-full max-w-md my-8'>
+            {/* Modal Header */}
+            <div className='flex items-center justify-between p-4 border-b'>
+              <h2 className='text-lg font-bold'>অর্ডার বিস্তারিত</h2>
+              <button onClick={closeModal} className='text-gray-500 hover:text-gray-700 p-1'>
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className='p-4 space-y-4'>
+              {/* Customer Info */}
+              <div className='space-y-2'>
+                <h3 className='font-medium flex items-center gap-2'>
+                  <FaUser className='text-blue-500' /> কাস্টমার তথ্য
+                </h3>
+                <div className='grid grid-cols-2 gap-2 text-sm'>
+                  <div className='text-gray-600'>নাম:</div>
+                  <div className='font-medium'>{selectedOrder.customerName}</div>
+
+                  <div className='text-gray-600'>ফোন নম্বর:</div>
+                  <div className='font-medium'>{selectedOrder.customerPhoneNo}</div>
+                </div>
+              </div>
+
+              {/* Order Info */}
+              <div className='space-y-2'>
+                <h3 className='font-medium flex items-center gap-2'>
+                  <FaShoppingBag className='text-blue-500' /> অর্ডার তথ্য
+                </h3>
+                <div className='grid grid-cols-2 gap-2 text-sm'>
+                  <div className='text-gray-600'>অর্ডার আইডি:</div>
+                  <div className='font-medium'>#{selectedOrder.orderId}</div>
+
+                  <div className='text-gray-600'>স্ট্যাটাস:</div>
+                  <div>{getStatusBadge(selectedOrder.orderStatus)}</div>
+
+                  <div className='text-gray-600'>তারিখ:</div>
+                  <div className='font-medium'>
+                    {selectedOrder.createdAt ? formatDate(selectedOrder.createdAt) : 'N/A'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Info */}
+              <div className='space-y-2'>
+                <h3 className='font-medium flex items-center gap-2'>
+                  <FaMoneyBillAlt className='text-blue-500' /> আর্থিক তথ্য
+                </h3>
+                <div className='grid grid-cols-2 gap-2 text-sm'>
+                  <div className='text-gray-600'>মোট পণ্যমূল্য:</div>
+                  <div className='font-medium'>৳{selectedOrder.totalProductSellingPrice}</div>
+
+                  <div className='text-gray-600'>ডেলিভারি চার্জ:</div>
+                  <div className='font-medium'>৳{selectedOrder.deliveryCharge}</div>
+
+                  <div className='text-gray-600'>কমিশন:</div>
+                  <div className='font-medium text-green-600'>
+                    ৳{selectedOrder.actualCommission}
+                  </div>
+
+                  {selectedOrder.cashOnAmount && (
+                    <>
+                      <div className='text-gray-600'>ক্যাশ অন ডেলিভারি:</div>
+                      <div className='font-medium'>৳{selectedOrder.cashOnAmount}</div>
+                    </>
+                  )}
+
+                  {selectedOrder.amountPaidByCustomer && (
+                    <>
+                      <div className='text-gray-600'>গ্রাহক কর্তৃক প্রদত্ত:</div>
+                      <div className='font-medium'>৳{selectedOrder.amountPaidByCustomer}</div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Products */}
+              <div className='space-y-2'>
+                <h3 className='font-medium flex items-center gap-2'>
+                  <FaBox className='text-blue-500' /> পণ্য তালিকা
+                </h3>
+                <div className='space-y-3'>
+                  {selectedOrder.OrderProduct.map((product, index) => (
+                    <div key={index} className='flex items-center gap-3 p-2 bg-gray-50 rounded-md'>
+                      {product.productImage ? (
+                        <div className='w-12 h-12 flex-shrink-0 bg-gray-200 rounded-md overflow-hidden'>
+                          <img
+                            src={product.productImage}
+                            alt={product.productName}
+                            className='w-full h-full object-cover'
+                            onError={e => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className='w-12 h-12 flex-shrink-0 bg-gray-100 rounded-md flex items-center justify-center'>
+                          <FaImage className='text-gray-400' />
+                        </div>
+                      )}
+                      <div className='flex-1'>
+                        <p className='text-sm font-medium'>{product.productName}</p>
+                        <p className='text-xs text-gray-500'>{product.productQuantity} টি</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tracking Info */}
+              {selectedOrder.trackingUrl && (
+                <div className='space-y-2'>
+                  <h3 className='font-medium flex items-center gap-2'>
+                    <FaTruck className='text-blue-500' /> ট্র্যাকিং তথ্য
+                  </h3>
+                  <div className='flex items-center gap-2'>
+                    <div className='flex-1 bg-gray-100 p-2 rounded text-sm break-all'>
+                      {selectedOrder.trackingUrl}
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedOrder.trackingUrl || '')
+                        toast.success('ট্র্যাকিং লিংক কপি করা হয়েছে')
+                      }}
+                      className='p-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                      title='কপি করুন'
+                    >
+                      <FaCopy />
+                    </button>
+                  </div>
+                  <div className='text-xs text-gray-500 mt-1'>লিংকটি কপি করতে ক্লিক করুন</div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className='p-4 border-t'>
+              <button
+                onClick={closeModal}
+                className='w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600'
+              >
+                বন্ধ করুন
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

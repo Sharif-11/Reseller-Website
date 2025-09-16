@@ -147,7 +147,7 @@ const CustomerIntroduction = () => {
               </p>
               <div className='flex flex-col sm:flex-row justify-center gap-4'>
                 <motion.button
-                  onClick={() => navigate('/categories')}
+                  onClick={() => navigate('/products#products')}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className='bg-white text-blue-600 px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg font-bold hover:bg-gray-50 transition-all shadow-lg text-sm sm:text-base'

@@ -18,5 +18,8 @@ class TransactionApi {
       },
     })
   }
+  public async getIncomeStatisticsOfAUser(){
+    return apiClient.get('/transactions/seller/income')
+  }
 }
 export const transactionApi = new TransactionApi()

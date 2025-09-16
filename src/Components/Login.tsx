@@ -1,7 +1,7 @@
 import { ErrorMessage, Field, Form, Formik } from 'formik'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FiKey, FiLogIn, FiUserPlus } from 'react-icons/fi'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import * as Yup from 'yup'
 import { login } from '../Api/auth.api'
 import { localStorageAvailable } from '../Axios/baseUrl'
@@ -10,8 +10,13 @@ import Footer from './Footer'
 
 const LoginPage = () => {
   const [error, setError] = useState<string | null>(null)
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false)
   const { setUser, user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Get phone and password from navigation state
+  const { mobileNumber: preFilledMobile, password: preFilledPassword } = location.state || {}
 
   const validationSchema = Yup.object().shape({
     mobileNumber: Yup.string()
@@ -38,11 +43,11 @@ const LoginPage = () => {
             localStorage.setItem('token', result.data?.token)
           }
           console.log({ user })
+          // Navigate after successful login
+          navigate('/home', { replace: true }) // Change to your desired route
         } else {
           setError('আপনার একাউন্ট সেলার হিসেবে নিবন্ধিত নয়।')
         }
-        // const role= result.data?.user?.role;
-        // navigate(role === "Admin" ? "/profile" : "/cart", { replace: true });
       } else {
         setError(result.message || 'লগইন করতে ব্যর্থ হয়েছে')
       }
@@ -50,6 +55,17 @@ const LoginPage = () => {
       setError('একটি ত্রুটি ঘটেছে, পরে আবার চেষ্টা করুন')
     }
   }
+
+  // Auto-login effect when pre-filled credentials are available
+  useEffect(() => {
+    if (preFilledMobile && preFilledPassword && !autoLoginAttempted) {
+      setAutoLoginAttempted(true)
+      handleLogin({
+        mobileNumber: preFilledMobile,
+        password: preFilledPassword,
+      })
+    }
+  }, [preFilledMobile, preFilledPassword, autoLoginAttempted])
 
   return (
     <>
@@ -69,9 +85,13 @@ const LoginPage = () => {
             )}
 
             <Formik
-              initialValues={{ mobileNumber: '', password: '' }}
+              initialValues={{
+                mobileNumber: preFilledMobile || '',
+                password: preFilledPassword || '',
+              }}
               validationSchema={validationSchema}
               onSubmit={handleLogin}
+              enableReinitialize
             >
               {({ isSubmitting, errors, touched }) => (
                 <Form className='space-y-4'>

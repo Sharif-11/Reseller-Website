@@ -7,7 +7,7 @@ import {
   MapPin,
   Package,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { fileDownloader } from '../Api/ftp.api'
 import { productApi } from '../Api/product.api'
@@ -24,6 +24,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
   const { categoryId, shopId, categoryName } = location.state || {}
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [favorites, setFavorites] = useState<Product[]>(
     JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
   )
@@ -31,84 +32,103 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
   const [autoSlideIntervals] = useState<{ [key: number]: NodeJS.Timeout }>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0])
-  // const [showFilters, setShowFilters] = useState(false)
   const [totalProducts, setTotalProducts] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
+  const [applyFilters, setApplyFilters] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const { loadFavoriteCount } = useCartFavorite()
   const navigate = useNavigate()
+  const observer = useRef<IntersectionObserver | null>(null)
+  const lastProductRef = useRef<HTMLDivElement | null>(null)
 
-  const loadProducts = async () => {
+  const PRODUCTS_PER_PAGE = 20
+
+  const loadProducts = async (page: number = 1, isLoadMore: boolean = false) => {
     try {
-      const { success, data } = await productApi.getAllProducts({
+      if (isLoadMore) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
+
+      const { success, data, totalCount } = await productApi.getAllProducts({
         shopId: shopId ? parseInt(shopId) : undefined,
         categoryId: categoryId ? parseInt(categoryId) : undefined,
         search: searchTerm || undefined,
         minPrice: !isNaN(priceRange[0]) ? priceRange[0] : undefined,
         maxPrice: !isNaN(priceRange[1]) ? priceRange[1] : undefined,
+        page,
+        limit: PRODUCTS_PER_PAGE,
       })
 
       if (success) {
-        setProducts(data || [])
-        setTotalProducts(data.length || 0)
-        // Initialize image indexes
-        const initialIndexes: { [key: number]: number } = {}
-        data.forEach((product: Product) => {
-          initialIndexes[product.productId] = 0
-          if (product.ProductImage && product.ProductImage.length > 1) {
-            // startAutoSlide(product.productId, product.ProductImage.length)
-          }
-        })
-        setCurrentImageIndex(initialIndexes)
+        if (isLoadMore) {
+          setProducts(prev => [...prev, ...(data || [])])
+        } else {
+          setProducts(data || [])
+          // Initialize image indexes for new products
+          const initialIndexes: { [key: number]: number } = {}
+          data.forEach((product: Product) => {
+            initialIndexes[product.productId] = 0
+          })
+          setCurrentImageIndex(initialIndexes)
+        }
+
+        setTotalProducts(totalCount || 0)
+        setHasMore((data || []).length === PRODUCTS_PER_PAGE)
       }
     } catch (error) {
       console.error('Error loading products:', error)
-      setProducts([])
+      if (!isLoadMore) {
+        setProducts([])
+      }
       setTotalProducts(0)
+      setHasMore(false)
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
   useEffect(() => {
-    loadProducts()
+    setCurrentPage(1)
+    loadProducts(1, false)
     return () => {
       Object.values(autoSlideIntervals).forEach(interval => clearInterval(interval))
     }
-  }, [shopId, categoryId, searchTerm, priceRange, currentPage])
+  }, [shopId, categoryId])
+  useEffect(() => {
+    setCurrentPage(1)
+    loadProducts(1, false)
+    return () => {
+      Object.values(autoSlideIntervals).forEach(interval => clearInterval(interval))
+    }
+  }, [shopId, categoryId, applyFilters])
 
   useEffect(() => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
     loadFavoriteCount()
   }, [favorites])
 
-  // const startAutoSlide = (productId: number, totalImages: number) => {
-  //   if (autoSlideIntervals[productId]) {
-  //     clearInterval(autoSlideIntervals[productId])
-  //   }
+  // Infinite scroll implementation
+  const lastProductElementRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (loadingMore) return
+      if (observer.current) observer.current.disconnect()
 
-  //   const interval = setInterval(() => {
-  //     setCurrentImageIndex(prev => ({
-  //       ...prev,
-  //       [productId]: ((prev[productId] || 0) + 1) % totalImages,
-  //     }))
-  //   }, 3000)
+      observer.current = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && hasMore) {
+          const nextPage = currentPage + 1
+          setCurrentPage(nextPage)
+          loadProducts(nextPage, true)
+        }
+      })
 
-  //   setAutoSlideIntervals(prev => ({
-  //     ...prev,
-  //     [productId]: interval,
-  //   }))
-  // }
-
-  // const stopAutoSlide = (productId: number) => {
-  //   if (autoSlideIntervals[productId]) {
-  //     clearInterval(autoSlideIntervals[productId])
-  //     setAutoSlideIntervals(prev => {
-  //       const newIntervals = { ...prev }
-  //       delete newIntervals[productId]
-  //       return newIntervals
-  //     })
-  //   }
-  // }
+      if (node) observer.current.observe(node)
+      lastProductRef.current = node
+    },
+    [loadingMore, hasMore, currentPage]
+  )
 
   const nextImage = (productId: number, totalImages: number, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -118,7 +138,6 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
     }))
     if (autoSlideIntervals[productId]) {
       clearInterval(autoSlideIntervals[productId])
-      // startAutoSlide(productId, totalImages)
     }
   }
 
@@ -130,7 +149,6 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
     }))
     if (autoSlideIntervals[productId]) {
       clearInterval(autoSlideIntervals[productId])
-      // startAutoSlide(productId, totalImages)
     }
   }
 
@@ -172,8 +190,9 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
 
   const clearFilters = () => {
     setSearchTerm('')
-    setPriceRange([0, 10000])
+    setPriceRange([0, 0])
     setCurrentPage(1)
+    setHasMore(true)
   }
 
   if (loading && currentPage === 1) {
@@ -185,7 +204,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 p-4'>
+    <div className='min-h-screen bg-gray-50 p-4' id='products'>
       {/* Header with Back Button and Search */}
       <div className='mb-6'>
         <div className='flex items-center justify-between mb-4'>
@@ -232,15 +251,30 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
             className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none mb-2'
           />
 
-          {/* Clear Filters Button (only shown when filters are active) */}
-          {(searchTerm || priceRange[0] > 0 || priceRange[1] < 10000) && (
+          {/* Filter Buttons Container */}
+          <div className='flex flex-col sm:flex-row gap-2'>
+            {/* Filter Button */}
             <button
-              onClick={clearFilters}
-              className='text-xs text-blue-600 hover:text-blue-800 font-medium'
+              onClick={() => setApplyFilters(prev => !prev)}
+              className='py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium px-3'
             >
-              ফিল্টার ক্লিয়ার করুন
+              🔍 প্রোডাক্ট সার্চ করুন
             </button>
-          )}
+
+            {/* Clear Filters Button */}
+            {(searchTerm || priceRange[0] >= 0 || priceRange[1] < Infinity) && (
+              <button
+                onClick={() => {
+                  setSearchTerm('')
+                  setPriceRange([0, 0])
+                  setApplyFilters(prev => !prev)
+                }}
+                className='py-1.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-xs font-medium px-3'
+              >
+                ফিল্টার ক্লিয়ার করুন
+              </button>
+            )}
+          </div>
         </div>
 
         <div className='text-sm text-gray-600 mb-2'>
@@ -248,7 +282,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
         </div>
       </div>
 
-      {products.length === 0 ? (
+      {products.length === 0 && !loading ? (
         <div className='text-center py-12 bg-white rounded-lg'>
           <Package className='h-12 w-12 text-gray-400 mx-auto mb-4' />
           <p className='text-gray-500'>কোন প্রোডাক্ট পাওয়া যায়নি</p>
@@ -262,21 +296,22 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
       ) : (
         <>
           <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4'>
-            {products.map(product => {
+            {products.map((product, index) => {
               const isFavorite = favorites.some(p => p.productId === product.productId)
               const productImages = product.ProductImage || []
               const currentIndex = currentImageIndex[product.productId] || 0
               const totalImages = productImages.length
 
+              // Add ref to the last product for infinite scroll
+              const isLastProduct = index === products.length - 1
+              const productRef = isLastProduct ? lastProductElementRef : null
+
               return (
                 <div
                   key={product.productId}
+                  ref={productRef}
                   onClick={() => handleNavigate(product.productId)}
                   className='bg-white rounded-lg shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group'
-                  // onMouseEnter={() =>
-                  //   totalImages > 1 && startAutoSlide(product.productId, totalImages)
-                  // }
-                  // onMouseLeave={() => stopAutoSlide(product.productId)}
                 >
                   {/* Product Image with Slider */}
                   <div className='relative aspect-[3/4]'>
@@ -384,30 +419,12 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
             })}
           </div>
 
-          {/* Pagination */}
-          {/* {totalProducts > 12 && (
-            <div className='flex justify-center mt-8'>
-              <div className='flex items-center gap-2'>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className='p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100'
-                >
-                  <ChevronLeft className='h-5 w-5' />
-                </button>
-                <span className='px-4 py-2 text-gray-700'>
-                  Page {currentPage} of {Math.ceil(totalProducts / 12)}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(prev => prev + 1)}
-                  disabled={currentPage >= Math.ceil(totalProducts / 12)}
-                  className='p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100'
-                >
-                  <ChevronRight className='h-5 w-5' />
-                </button>
-              </div>
+          {/* Loading spinner for infinite scroll */}
+          {loadingMore && (
+            <div className='flex justify-center mt-6'>
+              <div className='animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500'></div>
             </div>
-          )} */}
+          )}
         </>
       )}
     </div>

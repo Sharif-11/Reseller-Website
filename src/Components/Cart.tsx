@@ -321,7 +321,7 @@ const Cart = () => {
           <h2 className='text-2xl font-bold text-gray-800 mb-2'>আপনার কার্ট খালি</h2>
           <p className='text-gray-600 mb-6'>কার্টে পণ্য যোগ করুন অর্ডার দেওয়ার জন্য</p>
           <Link
-            to='/categories'
+            to='/products#products'
             className='inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors'
           >
             <FiArrowLeft className='mr-2' />

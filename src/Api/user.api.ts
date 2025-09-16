@@ -23,6 +23,7 @@ export interface Seller {
   address: string | null
   level: number
   createdAt: string
+  referrerName: string
 }
 
 export interface ApiResponse {
@@ -33,6 +34,7 @@ export interface ApiResponse {
 }
 export interface ReferredSellersResponse extends ApiResponse {
   sellers: Seller[]
+  levelCount: Record<number, number>
 }
 export interface ReferredCustomersResponse extends ApiResponse {
   customers: Customer[]
