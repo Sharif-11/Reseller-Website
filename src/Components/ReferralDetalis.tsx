@@ -96,23 +96,13 @@ export const ReferralDetails = () => {
         <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
           {/* Referral Code Section */}
           <div className='p-3 border-b'>
-            <div className='flex justify-between items-center mb-2'>
+            <div className='mb-2'>
               <h2 className='text-sm font-medium text-gray-700'>আপনার রেফারেল কোড</h2>
             </div>
-            <div className='flex items-center justify-between bg-indigo-50 p-3 rounded-lg'>
-              <div className='flex-1'>
-                <p className='text-lg font-bold text-indigo-800 tracking-wider'>
-                  {user.referralCode}
-                </p>
-                <p className='text-xs text-indigo-600 mt-1'>শুধুমাত্র কোড শেয়ার করুন</p>
-              </div>
-              <button
-                onClick={() => user.referralCode && copyToClipboard(user.referralCode, 'code')}
-                className='text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg flex items-center gap-1 transition-colors'
-              >
-                {copiedItem === 'code' ? <FiCheck className='text-green-200' /> : <FiCopy />}
-                {copiedItem === 'code' ? 'কপি হয়েছে!' : 'কোড কপি করুন'}
-              </button>
+            <div className='bg-indigo-50 p-3 rounded-lg'>
+              <p className='text-lg font-bold text-indigo-800 tracking-wider text-center'>
+                {user.referralCode}
+              </p>
             </div>
           </div>
 

@@ -1,22 +1,94 @@
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Heart,
-  MapPin,
-  Package,
-} from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Heart, MapPin, Package, Ruler, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { fileDownloader } from '../Api/ftp.api'
 import { productApi } from '../Api/product.api'
-import { Product } from '../Api/shop.api'
+import shopApi, { Product } from '../Api/shop.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { FAVORITES_KEY } from '../utils/utils.variables'
 
 interface ProductListProps {
   showShopInfo?: boolean
+}
+
+// Size Chart Modal Component
+const SizeChartModal = ({
+  isOpen,
+  onClose,
+  sizeChart,
+  onDownload,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  sizeChart?: string
+  onDownload: () => void
+}) => {
+  if (!isOpen) return null
+
+  return (
+    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2'>
+      <div className='bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto'>
+        <div className='flex justify-between items-center p-3 border-b'>
+          <h3 className='text-lg font-semibold'>Size Chart</h3>
+          <div className='flex items-center space-x-2'>
+            <button
+              onClick={onDownload}
+              className='p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors'
+              title='Download Size Chart'
+            >
+              <Download className='h-4 w-4' />
+            </button>
+            <button onClick={onClose} className='text-gray-500 hover:text-gray-700'>
+              <X className='h-5 w-5' />
+            </button>
+          </div>
+        </div>
+        <div className='p-3'>
+          {sizeChart ? (
+            <img
+              src={sizeChart}
+              alt='Size Chart'
+              className='w-full h-auto object-contain'
+              onError={e => {
+                ;(e.target as HTMLImageElement).src =
+                  'https://via.placeholder.com/400x600?text=Size+Chart+Not+Available'
+              }}
+            />
+          ) : (
+            <div className='text-center py-6'>
+              <Ruler className='h-10 w-10 text-gray-400 mx-auto mb-3' />
+              <p className='text-gray-500'>Size chart not available</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface Category {
+  categoryId: number
+  name: string
+  categoryIcon: string | null
+  description: string
+  parentId: number | null
+  createdAt?: string
+  updatedAt?: string
+  subCategories?: SubCategory[]
+  products: number
+  sizeChart?: string
+}
+
+interface SubCategory {
+  categoryId: number
+  name: string
+  categoryIcon: string | null
+  description: string
+  parentId: number
+  createdAt: string
+  updatedAt: string
+  products: number
+  sizeChart?: string
 }
 
 const ProductList = ({ showShopInfo = true }: ProductListProps) => {
@@ -30,18 +102,54 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
   )
   const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({})
   const [autoSlideIntervals] = useState<{ [key: number]: NodeJS.Timeout }>({})
-  const [searchTerm, setSearchTerm] = useState('')
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0])
   const [totalProducts, setTotalProducts] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
-  const [applyFilters, setApplyFilters] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const { loadFavoriteCount } = useCartFavorite()
   const navigate = useNavigate()
   const observer = useRef<IntersectionObserver | null>(null)
   const lastProductRef = useRef<HTMLDivElement | null>(null)
 
+  // Filter state (from Categories component)
+  const [shops, setShops] = useState<any[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [minPrice, setMinPrice] = useState<number | undefined>(undefined)
+  const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined)
+  const [selectedShopId, setSelectedShopId] = useState<number | undefined>(undefined)
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState<number | undefined>(
+    undefined
+  )
+  const [selectedFilterSubCategory, setSelectedFilterSubCategory] = useState<number | undefined>(
+    undefined
+  )
+  const [searchQuery, setSearchQuery] = useState<string | ''>('')
+  const [applyingFilters, setApplyingFilters] = useState(false)
+  const [sizeChartModal, setSizeChartModal] = useState<{
+    isOpen: boolean
+    sizeChart?: string
+  }>({
+    isOpen: false,
+    sizeChart: undefined,
+  })
+  const [, setDownloadingSizeCharts] = useState<{ [key: number]: boolean }>({})
+
   const PRODUCTS_PER_PAGE = 20
+
+  useEffect(() => {
+    const loadShopsAndCategories = async () => {
+      try {
+        const shopsResponse = await shopApi.getAllShops()
+        setShops(shopsResponse.data.shops || [])
+
+        const { success, data } = await shopApi.getCategories(null)
+        if (success) setCategories(data || [])
+      } catch (error) {
+        console.error('Error loading shops and categories:', error)
+      }
+    }
+
+    loadShopsAndCategories()
+  }, [])
 
   const loadProducts = async (page: number = 1, isLoadMore: boolean = false) => {
     try {
@@ -51,12 +159,24 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
         setLoading(true)
       }
 
+      // Determine category filter
+      let categoryIdFilter: number | number[] | undefined = undefined
+      if (selectedFilterCategory && selectedFilterSubCategory) {
+        categoryIdFilter = selectedFilterSubCategory
+      } else if (selectedFilterCategory) {
+        const category = categories.find(cat => cat.categoryId === selectedFilterCategory)
+        const subCategories = category?.subCategories?.map(sub => sub.categoryId) || []
+        categoryIdFilter = subCategories
+      } else if (categoryId) {
+        categoryIdFilter = parseInt(categoryId)
+      }
+
       const { success, data, totalCount } = await productApi.getAllProducts({
-        shopId: shopId ? parseInt(shopId) : undefined,
-        categoryId: categoryId ? parseInt(categoryId) : undefined,
-        search: searchTerm || undefined,
-        minPrice: !isNaN(priceRange[0]) ? priceRange[0] : undefined,
-        maxPrice: !isNaN(priceRange[1]) ? priceRange[1] : undefined,
+        shopId: selectedShopId || (shopId ? parseInt(shopId) : undefined),
+        categoryId: categoryIdFilter,
+        search: searchQuery || undefined,
+        minPrice: minPrice || undefined,
+        maxPrice: maxPrice || undefined,
         page,
         limit: PRODUCTS_PER_PAGE,
       })
@@ -87,6 +207,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
     } finally {
       setLoading(false)
       setLoadingMore(false)
+      setApplyingFilters(false)
     }
   }
 
@@ -97,13 +218,6 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
       Object.values(autoSlideIntervals).forEach(interval => clearInterval(interval))
     }
   }, [shopId, categoryId])
-  useEffect(() => {
-    setCurrentPage(1)
-    loadProducts(1, false)
-    return () => {
-      Object.values(autoSlideIntervals).forEach(interval => clearInterval(interval))
-    }
-  }, [shopId, categoryId, applyFilters])
 
   useEffect(() => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
@@ -188,11 +302,58 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
     navigate(`/products/${productId}`)
   }
 
-  const clearFilters = () => {
-    setSearchTerm('')
-    setPriceRange([0, 0])
+  const resetFilters = () => {
+    setMinPrice(undefined)
+    setMaxPrice(undefined)
+    setSelectedShopId(undefined)
+    setSelectedFilterCategory(undefined)
+    setSelectedFilterSubCategory(undefined)
+    setSearchQuery('')
     setCurrentPage(1)
     setHasMore(true)
+    loadProducts(1, false)
+  }
+
+  const downloadSizeChart = async (sizeChartUrl: string, categoryId: number) => {
+    if (sizeChartUrl) {
+      setDownloadingSizeCharts(prev => ({ ...prev, [categoryId]: true }))
+      try {
+        await fileDownloader.downloadAllFiles([sizeChartUrl], {
+          baseNamePrefix: 'size_chart',
+          delayBetweenDownloads: 500,
+        })
+      } catch (error) {
+        console.error('Error downloading size chart:', error)
+      } finally {
+        setDownloadingSizeCharts(prev => ({ ...prev, [categoryId]: false }))
+      }
+    }
+  }
+
+  // const openSizeChart = (sizeChart?: string) => {
+  //   setSizeChartModal({
+  //     isOpen: true,
+  //     sizeChart,
+  //   })
+  // }
+
+  const closeSizeChart = () => {
+    setSizeChartModal({
+      isOpen: false,
+      sizeChart: undefined,
+    })
+  }
+
+  const handleSizeChartDownload = (categoryId: number) => {
+    if (sizeChartModal.sizeChart) {
+      downloadSizeChart(sizeChartModal.sizeChart, categoryId)
+    }
+  }
+
+  const applyFilters = () => {
+    setCurrentPage(1)
+    setApplyingFilters(true)
+    loadProducts(1, false)
   }
 
   if (loading && currentPage === 1) {
@@ -204,82 +365,140 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 p-4' id='products'>
-      {/* Header with Back Button and Search */}
-      <div className='mb-6'>
-        <div className='flex items-center justify-between mb-4'>
+    <div className='min-h-screen bg-gray-50 p-1 sm:p-2' id='products'>
+      <SizeChartModal
+        isOpen={sizeChartModal.isOpen}
+        onClose={closeSizeChart}
+        sizeChart={sizeChartModal.sizeChart}
+        onDownload={() => handleSizeChartDownload(selectedFilterCategory!)}
+      />
+
+      {/* Header with Back Button */}
+      <div className='mb-5 mt-3'>
+        {/* <div className='flex items-center justify-between mb-2'>
           <button
             onClick={() => navigate(-1)}
-            className='flex items-center text-blue-600 hover:text-blue-800'
+            className='flex items-center text-blue-600 hover:text-blue-800 text-sm'
           >
-            <ArrowLeft className='h-5 w-5 mr-1' />
+            <ArrowLeft className='h-4 w-4 mr-1' />
             <span>Back to {categoryName || 'Categories'}</span>
           </button>
-        </div>
+        </div> */}
 
-        {/* Search and Filter Bar */}
-        <div className='bg-white rounded-lg p-3 mb-4 border border-gray-200'>
-          {/* Price Range Filter */}
+        {/* Filter Section (from Categories component) */}
+        <div className='bg-white rounded-lg p-2 mb-2 border border-gray-200 shadow-sm'>
+          <div className='flex justify-between items-center mb-2'>
+            <h3 className='text-sm font-semibold text-gray-800'>প্রোডাক্ট ফিল্টার</h3>
+            <button
+              onClick={resetFilters}
+              className='text-xs text-red-500 flex items-center hover:text-red-700'
+            >
+              <X className='h-3 w-3 mr-0.5' />
+              রিসেট
+            </button>
+          </div>
+
           <div className='flex items-center mb-2 w-full'>
             <div className='flex-1 min-w-0'>
               <input
                 type='number'
                 placeholder='শুরু মূল্য'
-                value={priceRange[0] || ''}
-                onChange={e => setPriceRange([Number(e.target.value), priceRange[1]])}
-                className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none'
+                value={minPrice || ''}
+                onChange={e =>
+                  setMinPrice(e.target.value === '' ? undefined : Number(e.target.value))
+                }
+                className='w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400'
               />
             </div>
-            <span className='px-2 text-xs text-gray-500 whitespace-nowrap'>to</span>
+            <span className='px-1 text-xs text-gray-600 whitespace-nowrap'>থেকে</span>
             <div className='flex-1 min-w-0'>
               <input
                 type='number'
                 placeholder='শেষ মূল্য'
-                value={priceRange[1] || ''}
-                onChange={e => setPriceRange([priceRange[0], Number(e.target.value)])}
-                className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none'
+                value={maxPrice || ''}
+                onChange={e =>
+                  setMaxPrice(e.target.value === '' ? undefined : Number(e.target.value))
+                }
+                className='w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400'
               />
             </div>
           </div>
 
-          {/* Search Filter */}
+          <select
+            className='w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 mb-1'
+            value={selectedFilterCategory || ''}
+            onChange={e =>
+              setSelectedFilterCategory(e.target.value ? Number(e.target.value) : undefined)
+            }
+          >
+            <option value=''>ক্যাটাগরি সিলেক্ট করুন</option>
+            {categories.map(cat => (
+              <option key={cat.categoryId} value={cat.categoryId}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className='w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 mb-1'
+            value={selectedFilterSubCategory || ''}
+            onChange={e =>
+              setSelectedFilterSubCategory(e.target.value ? Number(e.target.value) : undefined)
+            }
+            disabled={!selectedFilterCategory}
+          >
+            <option value=''>সাব-ক্যাটাগরি সিলেক্ট করুন</option>
+            {selectedFilterCategory &&
+              categories
+                .find(cat => cat.categoryId === selectedFilterCategory)
+                ?.subCategories?.map(sub => (
+                  <option key={sub.categoryId} value={sub.categoryId}>
+                    {sub.name}
+                  </option>
+                ))}
+          </select>
+
+          <select
+            className='w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 mb-1'
+            value={selectedShopId || ''}
+            onChange={e => setSelectedShopId(e.target.value ? Number(e.target.value) : undefined)}
+          >
+            <option value=''>শপ সিলেক্ট করুন</option>
+            {shops.map(shop => (
+              <option key={shop.shopId} value={shop.shopId}>
+                {shop.shopName}
+              </option>
+            ))}
+          </select>
+
           <input
             type='text'
             placeholder='প্রোডাক্টের নাম দিয়ে সার্চ করুন'
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className='w-full p-1 border-b border-gray-300 text-xs focus:outline-none mb-2'
+            className='w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 mb-2'
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
           />
 
-          {/* Filter Buttons Container */}
-          <div className='flex flex-col sm:flex-row gap-2'>
-            {/* Filter Button */}
+          <div className='flex justify-between items-center'>
             <button
-              onClick={() => setApplyFilters(prev => !prev)}
-              className='py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium px-3'
+              className='flex-1 bg-blue-500 text-white text-xs font-medium py-1.5 rounded hover:bg-blue-600 transition mr-1 disabled:opacity-50'
+              onClick={applyFilters}
+              disabled={applyingFilters}
             >
-              🔍 প্রোডাক্ট সার্চ করুন
+              {applyingFilters ? 'সার্চ হচ্ছে...' : '🔍 প্রোডাক্ট সার্চ করুন'}
             </button>
-
-            {/* Clear Filters Button */}
-            {(searchTerm || priceRange[0] >= 0 || priceRange[1] < Infinity) && (
-              <button
-                onClick={() => {
-                  setSearchTerm('')
-                  setPriceRange([0, 0])
-                  setApplyFilters(prev => !prev)
-                }}
-                className='py-1.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-xs font-medium px-3'
-              >
-                ফিল্টার ক্লিয়ার করুন
-              </button>
-            )}
+            <button
+              className='flex-1 bg-gray-200 text-gray-700 text-xs font-medium py-1.5 rounded hover:bg-gray-300 transition'
+              onClick={resetFilters}
+            >
+              রিসেট
+            </button>
           </div>
         </div>
 
-        <div className='text-sm text-gray-600 mb-2'>
+        {/* <div className='text-sm text-gray-600 mb-2'>
           Showing {products.length} of {totalProducts} products
-        </div>
+        </div> */}
       </div>
 
       {products.length === 0 && !loading ? (
@@ -287,15 +506,15 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
           <Package className='h-12 w-12 text-gray-400 mx-auto mb-4' />
           <p className='text-gray-500'>কোন প্রোডাক্ট পাওয়া যায়নি</p>
           <button
-            onClick={clearFilters}
-            className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'
+            onClick={resetFilters}
+            className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm'
           >
             ফিল্টার ক্লিয়ার করুন
           </button>
         </div>
       ) : (
         <>
-          <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4'>
+          <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2'>
             {products.map((product, index) => {
               const isFavorite = favorites.some(p => p.productId === product.productId)
               const productImages = product.ProductImage || []
@@ -311,7 +530,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                   key={product.productId}
                   ref={productRef}
                   onClick={() => handleNavigate(product.productId)}
-                  className='bg-white rounded-lg shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group'
+                  className='bg-white rounded-lg shadow-sm border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group mb-1'
                 >
                   {/* Product Image with Slider */}
                   <div className='relative aspect-[3/4]'>
@@ -323,7 +542,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                       />
                     ) : (
                       <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
-                        <Package className='h-12 w-12 text-gray-400' />
+                        <Package className='h-6 w-6 text-gray-400' />
                       </div>
                     )}
 
@@ -332,13 +551,13 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                       <>
                         <button
                           onClick={e => prevImage(product.productId, totalImages, e)}
-                          className='absolute left-[2px] top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                          className='absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
                         >
                           <ChevronLeft className='h-4 w-4' />
                         </button>
                         <button
                           onClick={e => nextImage(product.productId, totalImages, e)}
-                          className='absolute right-[2px] top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                          className='absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
                         >
                           <ChevronRight className='h-4 w-4' />
                         </button>
@@ -347,7 +566,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
 
                     {/* Image Indicators */}
                     {totalImages > 1 && (
-                      <div className='absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1'>
+                      <div className='absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1'>
                         {productImages.map((_, index) => (
                           <button
                             key={index}
@@ -367,7 +586,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                     )}
 
                     {/* Action Buttons */}
-                    <div className='absolute top-2 right-2 flex flex-col space-y-2'>
+                    <div className='absolute top-1 right-1 flex flex-col space-y-1'>
                       <button
                         onClick={e => toggleFavorite(product, e)}
                         className={`p-1.5 rounded-full shadow-lg transition-all ${
@@ -376,7 +595,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                             : 'bg-white/90 text-gray-700 hover:bg-white'
                         }`}
                       >
-                        <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+                        <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
                       </button>
 
                       {productImages.length > 0 && (
@@ -385,14 +604,14 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                           className='p-1.5 bg-white/90 text-gray-700 hover:bg-white rounded-full shadow-lg transition-all'
                           title='Download all images'
                         >
-                          <Download className='h-3.5 w-3.5' />
+                          <Download className='h-4 w-4' />
                         </button>
                       )}
                     </div>
                   </div>
 
                   {/* Product Info */}
-                  <div className='p-3'>
+                  <div className='p-2'>
                     <h3 className='font-bold text-gray-900 mb-1 text-sm line-clamp-2'>
                       {product.name}
                     </h3>
@@ -403,11 +622,11 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                     {showShopInfo && product.shop && (
                       <div className='text-xs text-gray-500 mt-1'>
                         <div className='flex-1'>
-                          <h6 className='text-md font-[600] text-gray-900'>
+                          <h6 className='text-xs font-[600] text-gray-900'>
                             {product.shop.shopName}
                           </h6>
-                          <div className='flex items-center text-gray-600 mt-1'>
-                            <MapPin className='h-4 w-4 mr-1' />
+                          <div className='flex items-center text-gray-600 mt-0.5'>
+                            <MapPin className='h-3 w-3 mr-0.5' />
                             <span className='text-xs'>{product.shop.shopLocation}</span>
                           </div>
                         </div>
@@ -421,7 +640,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
 
           {/* Loading spinner for infinite scroll */}
           {loadingMore && (
-            <div className='flex justify-center mt-6'>
+            <div className='flex justify-center mt-4'>
               <div className='animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500'></div>
             </div>
           )}

@@ -14,7 +14,7 @@ const HomeIntroduction = () => {
     try {
       const { success, message, data } = await getAllAnnouncements()
       if (success && data) {
-        // setAnnouncements(data)
+        setAnnouncements(data)
       } else {
         console.log(message)
       }
