@@ -5,6 +5,7 @@ import { toast } from 'react-toastify'
 import { orderApi } from '../Api/order.api'
 import { walletApi } from '../Api/wallet.api'
 import { formatDate } from '../utils/date.utils'
+import { formatUrl } from '../utils/url.utils'
 
 interface Order {
   orderId: number
@@ -98,7 +99,7 @@ const CustomerOrders = () => {
   const { phoneNo } = location.state || { phoneNo: '' }
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<{
-    type: 'cancel' | 'payment' | null
+    type: 'cancel' | 'payment' | 'reorder' | null
     id: number | null
   }>({ type: null, id: null })
   const [searchQuery] = useState('')
@@ -127,6 +128,7 @@ const CustomerOrders = () => {
   const [transactionId, setTransactionId] = useState('')
   const [cancelReason, setCancelReason] = useState('')
   const [error, setError] = useState('')
+  const [showReorderModal, setShowReorderModal] = useState(false)
 
   const fetchOrders = async () => {
     if (!phoneNumber) return
@@ -274,6 +276,32 @@ const CustomerOrders = () => {
       setActionLoading({ type: null, id: null })
     }
   }
+  const handleReorder = async (order: Order) => {
+    try {
+      setActionLoading({ type: 'reorder', id: order.orderId })
+      setError('')
+
+      const response = await orderApi.reorderFailedOrderByCustomer({
+        orderId: order.orderId,
+        phoneNo: phoneNumber,
+      })
+
+      if (response.success) {
+        toast.success('অর্ডারটি পুনরায় দেওয়া হয়েছে')
+        fetchOrders() // Refresh the orders list
+      } else {
+        setError(response.message || 'অর্ডার পুনরায় দিতে ব্যর্থ হয়েছে')
+        toast.error(response.message || 'অর্ডার পুনরায় দিতে ব্যর্থ হয়েছে')
+      }
+    } catch (error) {
+      setError('একটি ত্রুটি ঘটেছে')
+      toast.error('একটি ত্রুটি ঘটেছে')
+      console.error('Error reordering:', error)
+    } finally {
+      setActionLoading({ type: null, id: null })
+      setShowReorderModal(false)
+    }
+  }
 
   const resetPaymentForm = () => {
     setPaymentMethod('BALANCE')
@@ -380,6 +408,34 @@ const CustomerOrders = () => {
                 : 'বাতিল করুন'}
             </button>
           </>
+        )}
+
+        {/* Add Reorder button for FAILED orders */}
+        {order.orderStatus === 'FAILED' && (
+          <button
+            onClick={() => {
+              setSelectedOrder(order)
+              setShowReorderModal(true)
+            }}
+            disabled={actionLoading.type === 'reorder' && actionLoading.id === order.orderId}
+            className='px-3 py-1 bg-blue-600 text-white rounded text-xs flex items-center gap-1 hover:bg-blue-700'
+          >
+            {actionLoading.type === 'reorder' && actionLoading.id === order.orderId ? (
+              'প্রক্রিয়াধীন...'
+            ) : (
+              <>
+                <svg className='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+                  />
+                </svg>
+                পুনরায় অর্ডার করুন
+              </>
+            )}
+          </button>
         )}
       </div>
     )
@@ -1085,7 +1141,7 @@ const CustomerOrders = () => {
                     <div className='flex-1 bg-white p-1 sm:p-2 rounded border border-gray-200 overflow-hidden'>
                       <p className='text-xs sm:text-sm text-blue-600 truncate'>
                         <a
-                          href={selectedOrder.trackingUrl}
+                          href={formatUrl(selectedOrder.trackingUrl)}
                           target='_blank'
                           rel='noopener noreferrer'
                           className='hover:underline break-all'
@@ -1265,6 +1321,43 @@ const CustomerOrders = () => {
                 className='px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs sm:text-sm'
               >
                 বন্ধ করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showReorderModal && selectedOrder && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+          <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
+            <div className='p-4 border-b'>
+              <h2 className='text-lg font-medium text-blue-600'>পুনরায় অর্ডার করুন</h2>
+            </div>
+            <div className='p-4'>
+              <p className='mb-4'>
+                আপনি কি নিশ্চিতভাবে অর্ডার #{selectedOrder.orderId} পুনরায় দিতে চান?
+              </p>
+              {error && <p className='text-red-500 text-sm mt-2'>{error}</p>}
+            </div>
+            <div className='p-4 border-t flex justify-end gap-3'>
+              <button
+                onClick={() => {
+                  setShowReorderModal(false)
+                  setError('')
+                }}
+                className='px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200'
+              >
+                বাদ দিন
+              </button>
+              <button
+                onClick={() => handleReorder(selectedOrder)}
+                disabled={
+                  actionLoading.type === 'reorder' && actionLoading.id === selectedOrder.orderId
+                }
+                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+              >
+                {actionLoading.type === 'reorder' && actionLoading.id === selectedOrder.orderId
+                  ? 'প্রক্রিয়াধীন...'
+                  : 'পুনরায় অর্ডার করুন'}
               </button>
             </div>
           </div>

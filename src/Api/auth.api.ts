@@ -267,6 +267,7 @@ export const updateProfile = async ({
   address,
   nomineePhone,
   facebookProfileLink,
+  profileImage,
 }: {
   name: string
   email: string
@@ -276,6 +277,7 @@ export const updateProfile = async ({
   address: string
   nomineePhone: string
   facebookProfileLink: string
+  profileImage?: string | null
 }) => {
   try {
     const { data } = await axiosInstance.patch('auth/profile', {
@@ -287,6 +289,7 @@ export const updateProfile = async ({
       address,
       nomineePhone,
       facebookProfileLink,
+      profileImage,
     })
     const { success, message, statusCode } = data
     const responseData = data?.data

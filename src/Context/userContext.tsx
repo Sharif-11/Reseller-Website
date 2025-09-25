@@ -27,6 +27,7 @@ export interface User {
   role: 'Seller' | 'Admin'
   wallets?: Wallet[] // Optional property for wallets
   facebookProfileLink?: string | null
+  profileImage?: string | null
 }
 
 interface UserContextType {

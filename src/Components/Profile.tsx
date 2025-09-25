@@ -1,6 +1,7 @@
 import { useFormik } from 'formik'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
+  FiCamera,
   FiFacebook,
   FiMail,
   FiMapPin,
@@ -8,10 +9,12 @@ import {
   FiSave,
   FiShoppingBag,
   FiUser,
+  FiX,
 } from 'react-icons/fi'
 import * as Yup from 'yup'
 import districts from '../../public/zillasInfo.json'
 import { updateProfile } from '../Api/auth.api'
+import { fileDownloader } from '../Api/ftp.api'
 import { useAuth } from '../Hooks/useAuth'
 import { omitEmptyStringKeys } from '../utils/omitEmptyStrings'
 
@@ -24,12 +27,17 @@ export interface ProfileInfo {
   address: string
   nomineePhone: string
   facebookProfileLink: string
+  profileImage?: string | null
 }
 
 const Profile = () => {
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [upazillas, setUpazillas] = useState<string[]>([])
+  const [isUploading, setIsUploading] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { user, setUser } = useAuth()
 
   useEffect(() => {
@@ -61,15 +69,53 @@ const Profile = () => {
       address: user?.address || '',
       nomineePhone: user?.nomineePhone || '',
       facebookProfileLink: user?.facebookProfileLink || '',
+      profileImage: user?.profileImage || '',
     },
     validationSchema,
     onSubmit: async values => {
       setError(null)
       setSuccessMessage(null)
+      setIsUploading(true)
+
       try {
-        const result = await updateProfile(omitEmptyStringKeys(values) as ProfileInfo)
+        let profileImageUrl = values.profileImage
+
+        // Upload new image only if a file is selected
+        if (selectedImage) {
+          const uploadResponse = await fileDownloader.uploadFile(selectedImage, {
+            additionalData: {
+              folder: 'profile-images',
+              userId: user?.userId,
+            },
+          })
+
+          if (uploadResponse.success && uploadResponse.data) {
+            profileImageUrl = uploadResponse.data.publicUrl
+            // we need to set this to formik as well so that if user removes the image
+            // before submitting, the previous image url is not sent again
+            formik.setFieldValue('profileImage', profileImageUrl)
+          } else {
+            setError(uploadResponse.error || 'ছবি আপলোড করতে ব্যর্থ হয়েছে')
+            setIsUploading(false)
+            return
+          }
+        }
+
+        // Prepare payload with updated image URL
+        const payload: ProfileInfo = {
+          ...values,
+          profileImage: profileImageUrl,
+        }
+        console.log(payload)
+
+        const result = await updateProfile(omitEmptyStringKeys(payload) as ProfileInfo)
+
         if (result.success) {
           setUser(result.data)
+          setSelectedImage(null) // Clear selected image after successful upload
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '' // Reset file input
+          }
           setSuccessMessage('প্রোফাইল সফলভাবে আপডেট হয়েছে')
           setTimeout(() => setSuccessMessage(null), 3000)
         } else {
@@ -77,6 +123,8 @@ const Profile = () => {
         }
       } catch (err) {
         setError('একটি ত্রুটি ঘটেছে, পরে আবার চেষ্টা করুন')
+      } finally {
+        setIsUploading(false)
       }
     },
   })
@@ -86,6 +134,75 @@ const Profile = () => {
     formik.setFieldValue('zilla', selectedZilla)
     formik.setFieldValue('upazilla', '')
     setUpazillas(selectedZilla ? districts[selectedZilla] || [] : [])
+  }
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setError('শুধুমাত্র JPG, PNG, বা WebP ইমেজ আপলোড করতে পারবেন')
+      return
+    }
+
+    // Validate file size (max 250KB)
+    const maxSize = 250 * 1024
+    if (file.size > maxSize) {
+      setError('ইমেজের সাইজ ২৫০KB এর কম হতে হবে')
+      return
+    }
+
+    setError(null)
+    setSelectedImage(file)
+
+    // Create preview
+    const reader = new FileReader()
+    reader.onload = e => {
+      setImagePreview(e.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    formik.setFieldValue('profileImage', '') // Clear profile image from form
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    setSuccessMessage('ছবি সরানো হয়েছে')
+    setTimeout(() => setSuccessMessage(null), 3000)
+  }
+
+  const getDisplayImage = () => {
+    if (imagePreview) return imagePreview
+    if (formik.values.profileImage) return formik.values.profileImage
+    return ''
+  }
+
+  const hasChanges = () => {
+    const initialValues = {
+      name: user?.name || '',
+      email: user?.email || '',
+      shopName: user?.shopName || '',
+      zilla: user?.zilla || '',
+      upazilla: user?.upazilla || '',
+      address: user?.address || '',
+      nomineePhone: user?.nomineePhone || '',
+      facebookProfileLink: user?.facebookProfileLink || '',
+      profileImage: user?.profileImage || '',
+    }
+
+    return (
+      Object.keys(initialValues).some(key => {
+        return (
+          formik.values[key as keyof typeof formik.values] !==
+          initialValues[key as keyof typeof initialValues]
+        )
+      }) || selectedImage !== null
+    )
   }
 
   return (
@@ -100,8 +217,18 @@ const Profile = () => {
                 আপনার ব্যক্তিগত তথ্য আপডেট করুন
               </p>
             </div>
-            <div className='bg-blue-500 rounded-full h-10 w-10 flex items-center justify-center text-white font-bold'>
-              {user?.name?.charAt(0).toUpperCase()}
+            <div className='relative'>
+              <div className='relative h-16 w-16 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg'>
+                {getDisplayImage() ? (
+                  <img
+                    src={getDisplayImage()}
+                    alt='Profile'
+                    className='h-full w-full rounded-full object-cover'
+                  />
+                ) : (
+                  user?.name?.charAt(0).toUpperCase()
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -118,6 +245,67 @@ const Profile = () => {
               {successMessage}
             </div>
           )}
+
+          {/* Profile Image Upload Section */}
+          <div className='mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200'>
+            <div className='flex flex-col sm:flex-row items-center gap-4'>
+              <div className='relative'>
+                <div className='h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center border-4 border-white shadow-sm'>
+                  {getDisplayImage() ? (
+                    <img
+                      src={getDisplayImage()}
+                      alt='Profile'
+                      className='h-full w-full rounded-full object-cover'
+                    />
+                  ) : (
+                    <FiUser className='text-gray-400 text-2xl' />
+                  )}
+                </div>
+                {(getDisplayImage() || selectedImage) && (
+                  <button
+                    type='button'
+                    onClick={handleRemoveImage}
+                    className='absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors'
+                  >
+                    <FiX className='text-xs' />
+                  </button>
+                )}
+              </div>
+
+              <div className='flex-1'>
+                <h3 className='font-medium text-gray-700 mb-2'>প্রোফাইল ছবি</h3>
+                <div className='flex flex-col sm:flex-row gap-2'>
+                  <label className='flex-1 cursor-pointer'>
+                    <input
+                      ref={fileInputRef}
+                      type='file'
+                      accept='image/jpeg,image/jpg,image/png,image/webp'
+                      onChange={handleImageSelect}
+                      className='hidden'
+                      disabled={isUploading}
+                    />
+                    <div className='w-full bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50'>
+                      <FiCamera />
+                      {selectedImage ? 'ছবি পরিবর্তন করুন' : 'ছবি নির্বাচন করুন'}
+                    </div>
+                  </label>
+
+                  {(getDisplayImage() || selectedImage) && (
+                    <button
+                      type='button'
+                      onClick={handleRemoveImage}
+                      className='px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2'
+                    >
+                      <FiX />
+                      ছবি সরান
+                    </button>
+                  )}
+                </div>
+
+                <p className='text-xs text-gray-500'>JPG, PNG, বা WebP ফরম্যাট, সর্বোচ্চ ২৫০KB</p>
+              </div>
+            </div>
+          </div>
 
           <form onSubmit={formik.handleSubmit} className='space-y-3 sm:space-y-4'>
             {/* Phone (Readonly) */}
@@ -310,11 +498,15 @@ const Profile = () => {
             <div className='pt-4'>
               <button
                 type='submit'
-                disabled={formik.isSubmitting}
-                className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                disabled={formik.isSubmitting || isUploading || !hasChanges()}
+                className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
               >
                 <FiSave />
-                {formik.isSubmitting ? 'আপডেট হচ্ছে...' : 'প্রোফাইল আপডেট করুন'}
+                {isUploading
+                  ? 'আপলোড হচ্ছে...'
+                  : formik.isSubmitting
+                  ? 'আপডেট হচ্ছে...'
+                  : 'প্রোফাইল আপডেট করুন'}
               </button>
             </div>
           </form>

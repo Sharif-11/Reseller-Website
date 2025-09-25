@@ -15,6 +15,7 @@ import { orderApi } from '../Api/order.api'
 import { walletApi } from '../Api/wallet.api'
 import { useAuth } from '../Hooks/useAuth'
 import { formatDate } from '../utils/date.utils'
+import { formatUrl } from '../utils/url.utils'
 
 interface Order {
   orderId: number
@@ -326,7 +327,7 @@ const Orders = () => {
   const handleReorder = async (orderId: number) => {
     try {
       setActionLoading({ type: 'reorder', id: orderId })
-      const response = await orderApi.reorderFailedOrder(orderId)
+      const response = await orderApi.reorderFailedOrderBySeller(orderId)
       if (response.success) {
         toast.success('পুনরায় অর্ডার করা হয়েছে')
         fetchOrders()
@@ -1296,7 +1297,7 @@ const Orders = () => {
                     <div className='flex-1 bg-white p-1 sm:p-2 rounded border border-gray-200 overflow-hidden'>
                       <p className='text-xs sm:text-sm text-blue-600 truncate'>
                         <a
-                          href={selectedOrder.trackingUrl}
+                          href={formatUrl(selectedOrder.trackingUrl!)}
                           target='_blank'
                           rel='noopener noreferrer'
                           className='hover:underline break-all'

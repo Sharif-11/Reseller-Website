@@ -49,6 +49,48 @@ const Header = ({
     isSidebarOpen && setIsDropdownOpen(false)
   }, [isSidebarOpen])
 
+  // Render user avatar component
+  const UserAvatar = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
+    const sizeClasses = {
+      sm: 'h-6 w-6',
+      md: 'h-7 w-7 sm:h-8 sm:w-8',
+      lg: 'h-8 w-8',
+    }
+
+    if (user?.profileImage) {
+      return (
+        <img
+          src={user.profileImage}
+          alt={user.name || 'User'}
+          className={`rounded-full object-cover ${sizeClasses[size]}`}
+        />
+      )
+    }
+
+    return (
+      <div
+        className={`rounded-full bg-indigo-500 flex items-center justify-center ${sizeClasses[size]}`}
+      >
+        <svg
+          className={
+            size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4 sm:h-5 sm:w-5' : 'h-5 w-5'
+          }
+          xmlns='http://www.w3.org/2000/svg'
+          fill='none'
+          viewBox='0 0 24 24'
+          stroke='currentColor'
+        >
+          <path
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth={2}
+            d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+          />
+        </svg>
+      </div>
+    )
+  }
+
   // Render cart icon component
   const CartIcon = () => (
     <NavLink
@@ -104,14 +146,6 @@ const Header = ({
       )}
     </NavLink>
   )
-  // Render order icon component
-
-  // create an Order icon component
-  // {orderCount > 0 && (
-  //     <span className='absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center'>
-  //       {orderCount > 9 ? '9+' : orderCount}
-  //     </span>
-  //   )}
 
   return (
     <header
@@ -175,22 +209,7 @@ const Header = ({
                   onClick={toggleDropdown}
                   className='flex items-center text-white hover:bg-indigo-600 p-1 sm:p-2 rounded-md transition'
                 >
-                  <div className='h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-indigo-500 flex items-center justify-center'>
-                    <svg
-                      className='h-4 w-4 sm:h-5 sm:w-5'
-                      xmlns='http://www.w3.org/2000/svg'
-                      fill='none'
-                      viewBox='0 0 24 24'
-                      stroke='currentColor'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                      />
-                    </svg>
-                  </div>
+                  <UserAvatar size='md' />
                 </button>
               </>
             ) : (
@@ -325,22 +344,7 @@ const Header = ({
                     onClick={toggleDropdown}
                     className='flex items-center space-x-2 text-white hover:bg-indigo-600 px-3 py-2 rounded-md transition'
                   >
-                    <div className='h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center'>
-                      <svg
-                        className='h-5 w-5'
-                        xmlns='http://www.w3.org/2000/svg'
-                        fill='none'
-                        viewBox='0 0 24 24'
-                        stroke='currentColor'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                        />
-                      </svg>
-                    </div>
+                    <UserAvatar size='lg' />
                     <span className='font-medium text-sm lg:text-base hidden lg:inline'>
                       {user.name || 'User'}
                     </span>
@@ -370,8 +374,15 @@ const Header = ({
           {user && isDropdownOpen && (
             <div className='absolute top-16 right-4 w-60 sm:w-64 bg-white rounded-md shadow-lg z-50 overflow-hidden md:hidden'>
               <div className='px-4 py-3 border-b border-gray-100'>
-                <p className='text-sm font-medium text-gray-900 truncate'>{user.name || 'User'}</p>
-                {user.email && <p className='text-xs text-gray-500 truncate'>{user.email}</p>}
+                <div className='flex items-center space-x-3'>
+                  <UserAvatar size='sm' />
+                  <div>
+                    <p className='text-sm font-medium text-gray-900 truncate'>
+                      {user.name || 'User'}
+                    </p>
+                    {user.email && <p className='text-xs text-gray-500 truncate'>{user.email}</p>}
+                  </div>
+                </div>
               </div>
               {user?.role === 'Seller' && (
                 <div
@@ -398,8 +409,13 @@ const Header = ({
           {user && isDropdownOpen && (
             <div className='absolute top-16 right-4 lg:right-8 w-56 lg:w-64 bg-white rounded-md shadow-lg z-50 overflow-hidden hidden md:block'>
               <div className='px-4 py-3 border-b border-gray-100'>
-                <p className='text-sm font-medium text-gray-900'>{user.name || 'User'}</p>
-                {user?.email && <p className='text-xs text-gray-500'>{user.email}</p>}
+                <div className='flex items-center space-x-3'>
+                  <UserAvatar size='sm' />
+                  <div>
+                    <p className='text-sm font-medium text-gray-900'>{user.name || 'User'}</p>
+                    {user?.email && <p className='text-xs text-gray-500'>{user.email}</p>}
+                  </div>
+                </div>
               </div>
               {user?.role === 'Seller' && (
                 <div className='px-4 py-2 border-b border-gray-100'>

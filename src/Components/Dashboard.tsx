@@ -51,8 +51,22 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           >
             <div className='p-4 border-b border-indigo-600'>
               <div className='flex items-center space-x-3'>
-                <div className='h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold'>
-                  {user?.name?.charAt(0).toUpperCase()}
+                <div className='relative h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold overflow-hidden border-2 border-white'>
+                  {user?.profileImage ? (
+                    <img
+                      src={user.profileImage}
+                      alt='Profile'
+                      className='h-full w-full object-cover'
+                      onError={e => {
+                        // Fallback to initial if image fails to load
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                      }}
+                    />
+                  ) : null}
+                  {!user?.profileImage && (
+                    <span className='text-lg'>{user?.name?.charAt(0).toUpperCase()}</span>
+                  )}
                 </div>
                 <div>
                   <p className='font-medium'>{user?.name}</p>

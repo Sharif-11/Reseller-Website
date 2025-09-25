@@ -160,8 +160,17 @@ class OrderApi {
   public confirmOrderBySeller(orderId: number) {
     return apiClient.post(`orders/seller/confirm/${orderId}`)
   }
-  public async reorderFailedOrder(orderId: number) {
+  public async reorderFailedOrderBySeller(orderId: number) {
     return apiClient.post(`orders/seller/re-order/${orderId}`)
+  }
+  public async reorderFailedOrderByCustomer({
+    orderId,
+    phoneNo,
+  }: {
+    orderId: number
+    phoneNo: string
+  }) {
+    return apiClient.post(`orders/customer/re-order/${orderId}`, { phoneNo })
   }
   public async fraudCheckByPhoneNo(phoneNo: string) {
     return apiClient.get(`orders/fraud-check/${phoneNo}`)

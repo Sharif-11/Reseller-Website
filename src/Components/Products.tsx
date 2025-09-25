@@ -93,7 +93,7 @@ interface SubCategory {
 
 const ProductList = ({ showShopInfo = true }: ProductListProps) => {
   const location = useLocation()
-  const { categoryId, shopId, categoryName } = location.state || {}
+  const { categoryId, shopId } = location.state || {}
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -102,7 +102,7 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
   )
   const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({})
   const [autoSlideIntervals] = useState<{ [key: number]: NodeJS.Timeout }>({})
-  const [totalProducts, setTotalProducts] = useState(0)
+  const [, setTotalProducts] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const { loadFavoriteCount } = useCartFavorite()

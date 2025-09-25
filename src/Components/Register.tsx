@@ -59,6 +59,33 @@ const UnifiedRegistration = () => {
       .oneOf([Yup.ref('password')], 'পাসওয়ার্ড মেলেনি')
       .required('পাসওয়ার্ড নিশ্চিত করুন'),
   })
+  const saveReferralCode = () => {
+    if (referralCode) {
+      try {
+        localStorage.setItem('referral_code', referralCode)
+      } catch (error) {
+        console.error('Error saving referral code:', error)
+      }
+    }
+  }
+  const loadReferralCode = (): string => {
+    try {
+      return localStorage.getItem('referral_code') || ''
+    } catch (error) {
+      console.error('Error loading referral code:', error)
+      return ''
+    }
+  }
+  const clearReferralCode = () => {
+    try {
+      localStorage.removeItem('referral_code')
+    } catch (error) {
+      console.error('Error clearing referral code:', error)
+    }
+  }
+  useEffect(() => {
+    saveReferralCode()
+  }, [referralCode])
 
   // Load draft on mount
   const loadDraft = (): FormValues => {
@@ -182,11 +209,12 @@ const UnifiedRegistration = () => {
   const handleRegistration = async (values: FormValues) => {
     try {
       const { confirmPassword, ...payload } = values
+      const loadedCode = referralCode && referralCode.length > 0 ? referralCode : loadReferralCode()
       // Add default shop name and referral code if present in URL
       const registrationData = {
         ...payload,
         shopName: `${payload.name}'s Shop`, // Default shop name based on user's name
-        ...(referralCode && { referralCode }),
+        ...(loadedCode && { referralCode: loadedCode }),
       }
 
       const cleanedData = omitEmptyStringKeys(registrationData) as RegisterInfo
@@ -194,6 +222,7 @@ const UnifiedRegistration = () => {
 
       if (success) {
         clearDraft() // Clear draft on successful registration
+        clearReferralCode() // Clear referral code after successful registration
         // From another component
         navigate('/login', {
           state: {
@@ -285,10 +314,12 @@ const UnifiedRegistration = () => {
             <p className='text-blue-100 mt-2 text-sm'>
               রেজিস্ট্রেশন সম্পন্ন করতে সকল তথ্য সঠিকভাবে পূরণ করুন
             </p>
-            {referralCode && (
+            {(referralCode || loadReferralCode().length > 0) && (
               <div className='mt-3 text-blue-100 text-sm'>
                 রেফারাল কোড:{' '}
-                <span className='font-mono bg-blue-500 px-2 py-1 rounded'>{referralCode}</span>
+                <span className='font-mono bg-blue-500 px-2 py-1 rounded'>
+                  {referralCode || loadReferralCode()}
+                </span>
               </div>
             )}
           </div>
