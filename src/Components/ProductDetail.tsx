@@ -28,7 +28,15 @@ export type CartItem = {
   imageUrl: string
   imageId: number
   selectedOptions: Record<string, string>
+  selectedAddOns: AddOn[]
   cartItemId: string
+}
+
+export type AddOn = {
+  id: string
+  name: string
+  price: number
+  imageUrl?: string
 }
 
 import axiosInstance from '../Axios/axiosInstance'
@@ -52,6 +60,7 @@ const ProductDetail = () => {
     null
   )
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
+  const [selectedAddOns, setSelectedAddOns] = useState<AddOn[]>([])
   const [quantity, setQuantity] = useState<string>('1')
   const [sellingPrice, setSellingPrice] = useState('')
   const [validationError, setValidationError] = useState<string | null>('একটি ছবি নির্বাচন করুন')
@@ -69,6 +78,22 @@ const ProductDetail = () => {
   const [shareLink, setShareLink] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
   const [linkGenerationError, setLinkGenerationError] = useState<string | null>(null)
+
+  // Parse add-ons from product data
+  const addOns: AddOn[] = product?.addOns ? JSON.parse(product.addOns) : []
+
+  // Calculate total add-ons price
+  const addOnsTotal = selectedAddOns.reduce((total, addOn) => total + Number(addOn.price), 0)
+
+  // Calculate minimum selling price (base product + selected add-ons)
+  const minSellingPrice = (Number(product?.basePrice) || 0) + addOnsTotal
+
+  // Calculate suggested max price (base suggested max + selected add-ons)
+  const suggestedMaxPrice = (Number(product?.suggestedMaxPrice) || 0) + addOnsTotal
+
+  // Base product price without add-ons (for sharing)
+  const baseProductPrice = Number(product?.basePrice) || 0
+  const customerPrice = (Number(product?.price) || 0) + addOnsTotal
 
   // Initialize product data
   useEffect(() => {
@@ -103,41 +128,64 @@ const ProductDetail = () => {
       // setSellingPrice(location.state.product.basePrice.toString())
     }
   }, [productId, location.state])
+  useEffect(() => {
+    setSellingPrice(user?.role === 'Seller' ? sellingPrice : customerPrice.toString())
+  }, [user, addOnsTotal, selectedAddOns])
 
   // Load favorites from localStorage
 
   // Handle price validation
   useEffect(() => {
-    if (sellingPrice) {
-      generateShareLink()
-    }
-  }, [sellingPrice])
-
-  useEffect(() => {
     if (!product) return
+
+    // Validate quantity
     if (parseInt(quantity) < 1 || isNaN(parseInt(quantity))) {
       setValidationError('কোয়ান্টিটি কমপক্ষে 1 হতে হবে')
-    } else if (parseFloat(sellingPrice) < product?.basePrice) {
-      setValidationError(`মূল্য কমপক্ষে ${product?.basePrice} টাকা হতে হবে`)
-      setPriceError(`মূল্য কমপক্ষে ${product?.basePrice} টাকা হতে হবে`)
-    } else if (!selectedImage) {
-      setValidationError('একটি ছবি সিলেক্ট করুন')
-    } else {
-      const variantKeys = [...new Set(product.ProductVariant?.map(v => v.name) || [])]
-      const absentOptions = variantKeys.filter(key => !selectedOptions[key])
-      if (absentOptions.length > 0) {
-        setValidationError(`${absentOptions[0]} সিলেক্ট করুন`)
+      return
+    }
+
+    // Validate seller selling price (base product + add-ons)
+    if (userType === 'seller') {
+      const sellerPrice = parseFloat(sellingPrice) || 0
+      if (sellerPrice < minSellingPrice) {
+        setValidationError(`মূল্য কমপক্ষে ${minSellingPrice} টাকা হতে হবে`)
+        setPriceError(`মূল্য কমপক্ষে ${minSellingPrice} টাকা হতে হবে`)
+        return
       } else {
-        setValidationError(null)
         setPriceError('')
       }
     }
-  }, [quantity, sellingPrice, product, selectedImage, selectedOptions])
+
+    // Validate image selection
+    if (!selectedImage) {
+      setValidationError('একটি ছবি সিলেক্ট করুন')
+      return
+    }
+
+    // Validate variant selections
+    const variantKeys = [...new Set(product.ProductVariant?.map(v => v.name) || [])]
+    const absentOptions = variantKeys.filter(key => !selectedOptions[key])
+    if (absentOptions.length > 0) {
+      setValidationError(`${absentOptions[0]} সিলেক্ট করুন`)
+      return
+    }
+
+    setValidationError(null)
+  }, [
+    quantity,
+    sellingPrice,
+    product,
+    selectedImage,
+    selectedOptions,
+    selectedAddOns,
+    userType,
+    user,
+    minSellingPrice,
+  ])
 
   // Handle image selection
   const handleImageSelect = ({ imageUrl, imageId }: { imageUrl: string; imageId: number }) => {
     setSelectedImage({ imageUrl, imageId })
-    // setValidationError(null) // Clear validation error when image is selected
   }
 
   // Handle variant selection
@@ -148,13 +196,19 @@ const ProductDetail = () => {
     }))
   }
 
+  // Handle add-on selection
+  const handleAddOnSelect = (addOn: AddOn) => {
+    setSelectedAddOns(prev => {
+      const isSelected = prev.some(item => item.id === addOn.id)
+      if (isSelected) {
+        return prev.filter(item => item.id !== addOn.id)
+      } else {
+        return [...prev, addOn]
+      }
+    })
+  }
+
   // Download single image
-  /**
-   * Downloads a file through your backend API
-   * @param fileUrl - Public URL of the file (e.g., 'https://media.example.com/ftp_dev/uuid.jpg')
-   * @param baseName - Base filename for the downloaded file
-   * @param setDownloading - State setter for loading indicator
-   */
   const downloadFileViaAPI = async (
     fileUrl: string,
     baseName: string,
@@ -163,25 +217,22 @@ const ProductDetail = () => {
     try {
       setDownloading?.(true)
 
-      // Hit your backend API endpoint
       const response = await axiosInstance.post(
         '/ftp/download',
         { url: fileUrl },
         {
           responseType: 'blob',
-          timeout: 0, // Disable timeout entirely for downloads
+          timeout: 0,
           headers: {
             Accept: 'application/octet-stream',
           },
         }
       )
 
-      // Extract filename from headers or generate one
       const contentDisposition = response.headers['content-disposition']
       const suggestedName =
         contentDisposition?.split('filename=')[1] || `${baseName.replace(/\s+/g, '_')}.jpg`
 
-      // Trigger browser download
       const blob = new Blob([response.data])
       const downloadUrl = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -191,7 +242,6 @@ const ProductDetail = () => {
       document.body.appendChild(link)
       link.click()
 
-      // Cleanup
       setTimeout(() => {
         document.body.removeChild(link)
         window.URL.revokeObjectURL(downloadUrl)
@@ -205,13 +255,6 @@ const ProductDetail = () => {
   }
 
   // Download all images
-  /**
-   * Downloads multiple files through your backend API
-   * @param fileUrls - Array of public file URLs
-   * @param baseNamePrefix - Prefix for downloaded files (e.g., 'product')
-   * @param setDownloading - State setter for loading indicator
-   * @param delayBetweenDownloads - Delay between requests (ms)
-   */
   const downloadAllFilesViaAPI = async (
     fileUrls: string[],
     baseNamePrefix: string,
@@ -223,17 +266,11 @@ const ProductDetail = () => {
 
       for (const [index, url] of fileUrls.entries()) {
         try {
-          await downloadFileViaAPI(
-            url,
-            `${baseNamePrefix}_${index + 1}`,
-            undefined // No individual loading states
-          )
+          await downloadFileViaAPI(url, `${baseNamePrefix}_${index + 1}`, undefined)
         } catch (error) {
           console.warn(`Failed to download file ${index + 1}:`, error)
-          // Continue with next file even if one fails
         }
 
-        // Add delay between requests (except after last file)
         if (index < fileUrls.length - 1) {
           await new Promise(resolve => setTimeout(resolve, delayBetweenDownloads))
         }
@@ -250,6 +287,7 @@ const ProductDetail = () => {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
   const checkIsFavorite = (product: Product): boolean => {
     const savedFavorites: Product[] = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
     return savedFavorites.some(fav => fav.productId === product.productId)
@@ -262,13 +300,11 @@ const ProductDetail = () => {
     const isFavorited = checkIsFavorite(product)
     const savedFavorites: Product[] = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
     if (isFavorited) {
-      // Remove from favorites
       const updatedFavorites = savedFavorites.filter(fav => fav.productId !== product.productId)
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites))
       setIsFavorite(false)
       loadFavoriteCount()
     } else {
-      // Add to favorites
       savedFavorites.push(product)
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(savedFavorites))
       setIsFavorite(true)
@@ -280,15 +316,12 @@ const ProductDetail = () => {
   const addToCart = () => {
     if (!product) return
 
-    // Validate selections
     if (!selectedImage) {
       setValidationError('একটি ছবি সিলেক্ট করুন')
       return
     }
 
-    // Check if all variant options are selected
     const variantKeys = [...new Set(product.ProductVariant?.map(v => v.name) || [])]
-    // const allOptionsSelected = variantKeys.every(key => selectedOptions[key])
     const absentOptions = variantKeys.filter(key => !selectedOptions[key])
 
     if (absentOptions.length > 0) {
@@ -296,48 +329,80 @@ const ProductDetail = () => {
       return
     }
 
-    // Validate price
     const price = parseFloat(sellingPrice) || 0
-    if (price < product.basePrice) {
-      setValidationError(`মূল্য কমপক্ষে ${product.basePrice} টাকা হতে হবে`)
+    if (price < minSellingPrice) {
+      setValidationError(`মূল্য কমপক্ষে ${minSellingPrice} টাকা হতে হবে`)
       return
     }
 
-    // Validate quantity
     if (parseInt(quantity) < 1 || isNaN(parseInt(quantity))) {
       setValidationError('কোয়ান্টিটি কমপক্ষে 1 হতে হবে')
       return
     }
-    console.log(selectedImage)
-    // Create cart item
+
     const cartItem: CartItem = {
       productId: product.productId,
       shopId: product.shopId,
       shopName: product.shop.shopName,
       shopLocation: product.shop.shopLocation,
       name: product.name,
-      basePrice: product.basePrice,
-      sellingPrice: price,
+      basePrice: minSellingPrice, // Base product price + add-ons
+      sellingPrice: parseFloat(sellingPrice) || 0, // Seller's input price (already includes add-ons)
       quantity: parseInt(quantity),
       imageUrl: selectedImage.imageUrl,
       imageId: selectedImage.imageId,
       selectedOptions: selectedOptions,
+      selectedAddOns: selectedAddOns,
       deliveryChargeInside: product.shop.deliveryChargeInside,
       deliveryChargeOutside: product.shop.deliveryChargeOutside,
       cartItemId: uuidv4(),
     }
 
-    // Get existing cart items from localStorage
     const existingCart = JSON.parse(localStorage.getItem(CART_ITEMS_KEY) || '[]')
-
     existingCart.push(cartItem)
-
-    // Save to localStorage
     localStorage.setItem(CART_ITEMS_KEY, JSON.stringify(existingCart))
     loadCartCount()
-    // Navigate to cart
     navigate('/cart')
   }
+
+  const generateShareLink = async () => {
+    if (!product) return
+
+    // Use the selling price but exclude add-ons for sharing
+    const sharePrice = Math.max(parseFloat(sellingPrice || '0') - addOnsTotal, baseProductPrice)
+
+    if (sharePrice < baseProductPrice) {
+      setLinkGenerationError(`মূল্য কমপক্ষে ${baseProductPrice} টাকা হতে হবে`)
+      return
+    }
+
+    const referralCode = user?.referralCode
+
+    if (!referralCode) {
+      setLinkGenerationError('রেফারেল কোড পাওয়া যায়নি')
+      return
+    }
+
+    const baseUrl = window.location.origin
+    const link = `${baseUrl}/products/${productId}/order?sellerPrice=${sharePrice}&referralCode=${referralCode}`
+    setShareLink(link)
+    setLinkGenerationError(null)
+  }
+
+  const copyShareLink = async () => {
+    if (!shareLink) return
+    const shortUrl = await shortenUrl(shareLink)
+    navigator.clipboard.writeText(shortUrl)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
+
+  // Generate share link when selling price changes
+  useEffect(() => {
+    if (userType === 'seller' && user?.isVerified && sellingPrice) {
+      generateShareLink()
+    }
+  }, [sellingPrice, selectedAddOns, userType, user])
 
   if (loading) {
     return (
@@ -374,36 +439,9 @@ const ProductDetail = () => {
       }
       return acc
     }, {}) || {}
-  const generateShareLink = async () => {
-    if (!product) return
 
-    const price = parseFloat(sellingPrice) || product.suggestedMaxPrice
-    if (price < product.basePrice) {
-      setLinkGenerationError(`মূল্য কমপক্ষে ${product.basePrice} টাকা হতে হবে`)
-      return
-    }
-
-    // Get referral code from localStorage or user data
-
-    const referralCode = user?.referralCode
-
-    if (!referralCode) {
-      setLinkGenerationError('রেফারেল কোড পাওয়া যায়নি')
-      return
-    }
-
-    const baseUrl = window.location.origin
-    const link = `${baseUrl}/products/${productId}/order?sellerPrice=${price}&referralCode=${referralCode}`
-    setShareLink(link)
-  }
-
-  const copyShareLink = async () => {
-    if (!shareLink) return
-    const shortUrl = await shortenUrl(shareLink)
-    navigator.clipboard.writeText(shortUrl)
-    setLinkCopied(true)
-    setTimeout(() => setLinkCopied(false), 2000)
-  }
+  // Calculate share price (selling price minus add-ons)
+  const sharePrice = Math.max(parseFloat(sellingPrice || '0') - addOnsTotal, baseProductPrice)
 
   return (
     <div className='bg-gray-50 min-h-screen pb-36'>
@@ -586,22 +624,111 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Price Info */}
+            {/* Add-ons Section */}
+            {addOns.length > 0 && (
+              <div className='bg-white rounded-lg shadow-sm p-4'>
+                <h2 className='text-lg font-semibold mb-3'>অতিরিক্ত সামগ্রী</h2>
+                <div className='space-y-2'>
+                  {addOns.map(addOn => (
+                    <div
+                      key={addOn.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedAddOns.some(item => item.id === addOn.id)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      onClick={() => handleAddOnSelect(addOn)}
+                    >
+                      <div className='flex items-center'>
+                        {addOn.imageUrl && (
+                          <img
+                            src={addOn.imageUrl}
+                            alt={addOn.name}
+                            className='w-10 h-10 object-cover rounded mr-3'
+                          />
+                        )}
+                        <span className='font-medium'>{addOn.name}</span>
+                      </div>
+                      <div className='flex items-center'>
+                        <span className='text-green-600 font-semibold mr-3'>
+                          ৳{Number(addOn.price).toLocaleString('bn-BD')}
+                        </span>
+                        <div
+                          className={`w-5 h-5 border rounded flex items-center justify-center ${
+                            selectedAddOns.some(item => item.id === addOn.id)
+                              ? 'bg-blue-500 border-blue-500'
+                              : 'border-gray-400'
+                          }`}
+                        >
+                          {selectedAddOns.some(item => item.id === addOn.id) && (
+                            <FiCheck className='text-white text-sm' />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {selectedAddOns.length > 0 && (
+                  <div className='mt-3 p-2 bg-gray-50 rounded'>
+                    <p className='text-sm text-gray-600'>
+                      নির্বাচিত অতিরিক্ত সামগ্রী:{' '}
+                      {selectedAddOns.map(addOn => addOn.name).join(', ')}
+                    </p>
+                    <p className='text-sm font-semibold mt-1'>
+                      অতিরিক্ত সামগ্রীর মূল্য: ৳{Number(addOnsTotal).toLocaleString('bn-BD')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
+            {/* Price Info */}
             <div className='bg-white rounded-lg shadow-sm p-4'>
               {userType === 'seller' ? (
-                <div className='space-y-2'>
+                <div className='space-y-3'>
                   <div className='flex items-center justify-between'>
                     <span className='text-gray-600'>পাইকারি মূল্য:</span>
                     <span className='text-lg font-bold text-blue-600'>
-                      ৳{product.basePrice.toLocaleString('bn-BD')}
+                      ৳{Number(product.basePrice || 0).toLocaleString('bn-BD')}
                     </span>
                   </div>
+
+                  {selectedAddOns.length > 0 && (
+                    <>
+                      <div className='flex items-center justify-between'>
+                        <span className='text-gray-600'>অতিরিক্ত সামগ্রীর মূল্য:</span>
+                        <span className='text-lg font-semibold text-green-600'>
+                          ৳{Number(addOnsTotal).toLocaleString('bn-BD')}
+                        </span>
+                      </div>
+                      <div className='flex items-center justify-between border-t pt-2'>
+                        <span className='text-gray-600 font-medium'>ন্যূনতম বিক্রয় মূল্য:</span>
+                        <span className='text-lg font-bold text-red-600'>
+                          ৳{Number(minSellingPrice).toLocaleString('bn-BD')}
+                        </span>
+                      </div>
+                    </>
+                  )}
+
                   <div className='flex items-center justify-between'>
-                    <span className='text-gray-600'>সর্বোচ্চ বিক্রয় মূল্য:</span>
+                    <span className='text-gray-600'>সুপারিশকৃত সর্বোচ্চ বিক্রয় মূল্য:</span>
                     <span className='text-lg text-[#e5307e] font-bold'>
-                      ৳{product.suggestedMaxPrice.toLocaleString('bn-BD')}
+                      ৳{Number(suggestedMaxPrice).toLocaleString('bn-BD')}
                     </span>
+                  </div>
+
+                  <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-2'>
+                    <p className='text-sm text-yellow-800'>
+                      <strong>দ্রষ্টব্য:</strong> আপনি সুপারিশকৃত মূল্যের চেয়ে বেশি মূল্যে পণ্য
+                      বিক্রি করতে পারবেন, তবে এটি সুপারিশকৃত নয়। বেশি মূল্য নির্ধারণ করলে গ্রাহকের
+                      আগ্রহ কমতে পারে।
+                    </p>
+                    {selectedAddOns.length > 0 && (
+                      <p className='text-sm text-yellow-800 mt-1'>
+                        <strong>মনে রাখবেন:</strong> আপনার ইনপুট মূল্য পণ্যের মূল মূল্য + নির্বাচিত
+                        অতিরিক্ত সামগ্রীর মূল্য অন্তর্ভুক্ত করতে হবে।
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -609,7 +736,7 @@ const ProductDetail = () => {
                   <div className='flex items-center justify-between'>
                     <span className='text-gray-600'>মূল্য:</span>
                     <span className='text-lg font-bold text-blue-600'>
-                      ৳{product.price!.toLocaleString('bn-BD')}
+                      ৳{Number(customerPrice).toLocaleString('bn-BD')}
                     </span>
                   </div>
                 </div>
@@ -645,7 +772,7 @@ const ProductDetail = () => {
             {/* Quantity and Price Input */}
             <div className='bg-white rounded-lg shadow-sm p-4'>
               <h2 className='text-lg font-semibold mb-3'>অর্ডার করুন</h2>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 gap-4'>
                 <div>
                   <label className='block text-sm font-medium mb-1'>পরিমাণ</label>
                   <input
@@ -654,7 +781,6 @@ const ProductDetail = () => {
                     value={quantity}
                     onChange={e => {
                       const value = e.target.value
-                      // Allow only numbers and empty string
                       if (value === '' || /^[1-9][0-9]*$/.test(value)) {
                         setQuantity(value)
                       }
@@ -662,10 +788,20 @@ const ProductDetail = () => {
                     className='w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
                   />
                 </div>
+
                 {userType === 'seller' && (
                   <div>
                     <label className='block text-sm font-medium mb-1'>
-                      আপনার মূল্য (ন্যূনতম ৳{product.basePrice})
+                      আপনার বিক্রয় মূল্য{' '}
+                      {selectedAddOns.length > 0 && '(পণ্য মূল্য + অতিরিক্ত সামগ্রী)'}
+                      {selectedAddOns.length > 0 ? (
+                        <span className='text-red-600'>
+                          {' '}
+                          (ন্যূনতম ৳{Number(minSellingPrice).toLocaleString('bn-BD')})
+                        </span>
+                      ) : (
+                        <span> (ন্যূনতম ৳{Number(minSellingPrice).toLocaleString('bn-BD')})</span>
+                      )}
                     </label>
                     <input
                       type='text'
@@ -673,7 +809,6 @@ const ProductDetail = () => {
                       value={sellingPrice}
                       onChange={e => {
                         const value = e.target.value
-                        // Allow only numbers and empty string
                         if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
                           setSellingPrice(value)
                         }
@@ -687,15 +822,20 @@ const ProductDetail = () => {
                 )}
               </div>
             </div>
+
             {user?.isVerified && userType === 'seller' && (
               <div className='bg-white rounded-lg shadow-sm p-3 md:p-4 '>
                 <div className='flex items-center mb-2'>
                   <FiShare2 className='text-blue-600 mr-2' />
                   <h2 className=' font-semibold text-xs'>
-                    {`কাস্টমারের কাছে প্রোডাক্টটি ${Math.max(
-                      parseFloat(sellingPrice) || product.basePrice,
-                      product.basePrice
+                    {`কাস্টমারের কাছে প্রোডাক্টটি ${sharePrice.toLocaleString(
+                      'bn-BD'
                     )} টাকায় বিক্রি করতে এই লিঙ্কটি তাদের সাথে শেয়ার করুন।`}
+                    {selectedAddOns.length > 0 && (
+                      <span className='text-gray-600 block mt-1'>
+                        (অতিরিক্ত সামগ্রী গ্রাহক অর্ডার পৃষ্ঠায় নির্বাচন করতে পারবে)
+                      </span>
+                    )}
                   </h2>
                 </div>
 
@@ -721,13 +861,11 @@ const ProductDetail = () => {
                       </button>
                     </div>
                   ) : (
-                    // link generation error ui
                     <p className='text-red-500 text-xs'>{linkGenerationError}</p>
                   )}
                 </div>
               </div>
             )}
-            {/* Image Selection Warning */}
 
             {/* Mobile Add to Cart Button */}
             <div className='lg:hidden fixed z-[100] bottom-0 left-0 right-0 bg-white shadow-lg p-3 border-t'>

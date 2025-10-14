@@ -41,6 +41,7 @@ export type Product = {
   createdAt: Date
   updatedAt: Date
   ProductVariant?: Record<string, any>[]
+  addOns?: string
   shop: {
     shopId: number
     shopName: string

@@ -12,9 +12,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { orderApi } from '../Api/order.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { useAuth } from '../Hooks/useAuth'
-import { CartItem } from '../types/cart.types'
+
 import calculateCustomerReliability from '../utils/reliabilty'
 import { CART_ITEMS_KEY } from '../utils/utils.variables'
+import { CartItem } from './ProductDetail'
 
 export type ShopCart = {
   shopId: number
@@ -331,7 +332,7 @@ const Cart = () => {
       </div>
     )
   }
-  console.log({ selectedShopId })
+
   return (
     <div className='container mx-auto px-2 sm:px-4 py-4 sm:py-8'>
       {/* Instruction Modal */}
@@ -510,26 +511,6 @@ const Cart = () => {
                 // Show error state with option to proceed anyway
                 <>
                   <div className='mb-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-red-100 shadow-sm'>
-                    {/* <div className='flex items-center mb-4'>
-                      <div className='bg-red-100 p-2 rounded-full mr-3'>
-                        <svg
-                          xmlns='http://www.w3.org/2000/svg'
-                          className='h-5 w-5 text-red-600'
-                          fill='none'
-                          viewBox='0 0 24 24'
-                          stroke='currentColor'
-                        >
-                          <path
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                            strokeWidth={2}
-                            d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
-                          />
-                        </svg>
-                      </div>
-                      <h4 className='font-bold text-red-800'>ফ্রড চেক ব্যর্থ</h4>
-                    </div> */}
-
                     <div className='bg-white p-3 rounded-lg border border-red-100 shadow-xs'>
                       <p className='text-sm text-red-700 mb-2'>{fraudCheckError}</p>
                       <p className='text-xs text-gray-600'>
@@ -628,6 +609,8 @@ const Cart = () => {
                     <h3 className='text-sm font-medium text-gray-900 line-clamp-2 sm:line-clamp-1'>
                       {item.name}
                     </h3>
+
+                    {/* Display selected options */}
                     {Object.entries(item.selectedOptions).length > 0 && (
                       <div className='mt-1 text-xs text-gray-500'>
                         {Object.entries(item.selectedOptions).map(([key, value]) => (
@@ -635,6 +618,15 @@ const Cart = () => {
                             {key}: {value}
                           </p>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Display selected add-ons */}
+                    {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                      <div className='mt-1 text-xs text-green-600'>
+                        <p className='truncate'>
+                          অতিরিক্ত: {item.selectedAddOns.map(addOn => addOn.name).join(', ')}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -645,6 +637,14 @@ const Cart = () => {
                   <p className='text-xs text-gray-900'>
                     ৳{item.sellingPrice.toLocaleString('bn-BD')}
                   </p>
+                  {/* {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                    <p className='text-xs text-green-600 mt-1'>
+                      +৳
+                      {item.selectedAddOns
+                        .reduce((sum, addOn) => sum + addOn.price, 0)
+                        .toLocaleString('bn-BD')}
+                    </p>
+                  )} */}
                 </div>
 
                 {/* Quantity */}
@@ -690,6 +690,14 @@ const Cart = () => {
                       <p className='text-xs text-gray-900'>
                         প্রতি পিস: ৳{item.sellingPrice.toLocaleString('bn-BD')}
                       </p>
+                      {/* {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                        <p className='text-xs text-green-600'>
+                          অতিরিক্ত: +৳
+                          {item.selectedAddOns
+                            .reduce((sum, addOn) => sum + addOn.price, 0)
+                            .toLocaleString('bn-BD')}
+                        </p>
+                      )} */}
                     </div>
                   </div>
                   <button

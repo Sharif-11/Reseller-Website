@@ -8,4 +8,5 @@ export interface CartItem {
   imageUrl: string
   imageId: number
   selectedOptions: Record<string, string>
+  selectedAddOns: string
 }
