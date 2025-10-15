@@ -3,6 +3,7 @@ import { FaHeart, FaRegHeart, FaSpinner } from 'react-icons/fa'
 import {
   FiCheck,
   FiChevronLeft,
+  FiChevronRight,
   FiCopy,
   FiDownload,
   FiShare2,
@@ -78,6 +79,7 @@ const ProductDetail = () => {
   const [shareLink, setShareLink] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
   const [linkGenerationError, setLinkGenerationError] = useState<string | null>(null)
+  const [thumbnailStartIndex, setThumbnailStartIndex] = useState(0)
 
   // Parse add-ons from product data
   const addOns: AddOn[] = product?.addOns ? JSON.parse(product.addOns) : []
@@ -94,6 +96,23 @@ const ProductDetail = () => {
   // Base product price without add-ons (for sharing)
   const baseProductPrice = Number(product?.basePrice) || 0
   const customerPrice = (Number(product?.price) || 0) + addOnsTotal
+
+  // Thumbnail navigation
+  const THUMBNAILS_PER_VIEW = 4
+  const totalThumbnails = product?.ProductImage?.length || 0
+  const maxThumbnailStartIndex = Math.max(0, totalThumbnails - THUMBNAILS_PER_VIEW)
+
+  const showPrevThumbnails = () => {
+    setThumbnailStartIndex(prev => Math.max(0, prev - 1))
+  }
+
+  const showNextThumbnails = () => {
+    setThumbnailStartIndex(prev => Math.min(maxThumbnailStartIndex, prev + 1))
+  }
+
+  const visibleThumbnails =
+    product?.ProductImage?.slice(thumbnailStartIndex, thumbnailStartIndex + THUMBNAILS_PER_VIEW) ||
+    []
 
   // Initialize product data
   useEffect(() => {
@@ -128,6 +147,7 @@ const ProductDetail = () => {
       // setSellingPrice(location.state.product.basePrice.toString())
     }
   }, [productId, location.state])
+
   useEffect(() => {
     setSellingPrice(user?.role === 'Seller' ? sellingPrice : customerPrice.toString())
   }, [user, addOnsTotal, selectedAddOns])
@@ -451,8 +471,7 @@ const ProductDetail = () => {
           <button onClick={() => navigate(-1)} className='mr-4 text-gray-700'>
             <FiChevronLeft className='text-xl' />
           </button>
-          <h1 className='text-lg font-semibold truncate flex-1'>{product.name}</h1>
-          <button onClick={toggleFavorite} className='text-xl text-red-500'>
+          <button onClick={toggleFavorite} className='text-xl text-red-500 ml-auto'>
             {isFavorite ? <FaHeart /> : <FaRegHeart />}
           </button>
         </div>
@@ -519,7 +538,7 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Thumbnail Images */}
+            {/* Thumbnail Images with Navigation */}
             <div className='p-3 border-t'>
               <div className='flex justify-between items-center mb-2'>
                 <h3 className='text-sm font-medium'>ছবিসমূহ</h3>
@@ -550,29 +569,59 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              <div className='grid grid-cols-4 gap-2'>
-                {product.ProductImage.map(image => (
+              <div className='relative'>
+                {thumbnailStartIndex > 0 && (
                   <button
-                    key={image.imageId}
-                    onClick={() =>
-                      handleImageSelect({
-                        imageUrl: image.imageUrl,
-                        imageId: image.imageId,
-                      })
-                    }
-                    className={`aspect-square border-2 rounded overflow-hidden ${
-                      selectedImage?.imageUrl === image.imageUrl
-                        ? 'border-blue-500'
-                        : 'border-transparent'
-                    }`}
+                    onClick={showPrevThumbnails}
+                    className='absolute left-0 top-1/2 transform -translate-y-1/2 bg-white shadow-md rounded-full p-1 z-10 hover:bg-gray-100'
                   >
-                    <img
-                      src={image.imageUrl}
-                      alt={`${product.name} - ${image.imageId}`}
-                      className='w-full h-full object-cover'
-                    />
+                    <FiChevronLeft className='text-gray-600' />
                   </button>
-                ))}
+                )}
+
+                <div className='grid grid-cols-4 gap-2 mx-6'>
+                  {visibleThumbnails.map(image => (
+                    <button
+                      key={image.imageId}
+                      onClick={() =>
+                        handleImageSelect({
+                          imageUrl: image.imageUrl,
+                          imageId: image.imageId,
+                        })
+                      }
+                      className={`aspect-square border-2 rounded overflow-hidden ${
+                        selectedImage?.imageUrl === image.imageUrl
+                          ? 'border-blue-500'
+                          : 'border-transparent'
+                      }`}
+                    >
+                      <img
+                        src={image.imageUrl}
+                        alt={`${product.name} - ${image.imageId}`}
+                        className='w-full h-full object-cover'
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {thumbnailStartIndex < maxThumbnailStartIndex && (
+                  <button
+                    onClick={showNextThumbnails}
+                    className='absolute right-0 top-1/2 transform -translate-y-1/2 bg-white shadow-md rounded-full p-1 z-10 hover:bg-gray-100'
+                  >
+                    <FiChevronRight className='text-gray-600' />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Product Title - Moved below thumbnails */}
+            <div className='p-4 border-t'>
+              <div className='flex justify-between items-start'>
+                <h1 className='text-xl font-bold text-gray-900 leading-tight'>{product.name}</h1>
+                <button onClick={toggleFavorite} className='text-2xl text-red-500 hidden lg:block'>
+                  {isFavorite ? <FaHeart /> : <FaRegHeart />}
+                </button>
               </div>
             </div>
 
@@ -594,13 +643,7 @@ const ProductDetail = () => {
 
           {/* Right Column - Product Info */}
           <div className='space-y-4'>
-            {/* Desktop Title and Favorite */}
-            <div className='hidden lg:flex justify-between items-start mb-2'>
-              <h1 className='text-2xl font-bold'>{product.name}</h1>
-              <button onClick={toggleFavorite} className='text-2xl text-red-500'>
-                {isFavorite ? <FaHeart /> : <FaRegHeart />}
-              </button>
-            </div>
+            {/* Desktop Title and Favorite - Now moved to left column */}
 
             {/* Shop Info */}
             <div className='bg-white rounded-lg shadow-sm p-4'>

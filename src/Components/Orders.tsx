@@ -31,6 +31,7 @@ interface Order {
     | 'REJECTED'
     | 'REFUNDED'
     | 'FAILED'
+    | 'PENDING'
   createdAt: string
   updatedAt: string
   cancelled: boolean
@@ -61,11 +62,12 @@ interface Order {
   sellerBalance: string
   cashOnAmount: number | null
   trackingUrl: string | null
+  finalOrderTotal: number
+  totalAddOnPrice: number
   Payment: {
     paymentId: string
     paymentDate: string
     paymentStatus: string
-
     processedAt: string | null
     userWalletName: string | null
     userWalletPhoneNo: string | null
@@ -79,7 +81,7 @@ interface Order {
     userPhoneNo: string | null
     remarks: string | null
     orderId: number | null
-  }
+  } | null
 }
 
 interface OrderProduct {
@@ -87,9 +89,13 @@ interface OrderProduct {
   productId: number
   productName: string
   productImage: string
+  productBasePrice: number
   productSellingPrice: number
   productQuantity: number
   productVariant: Record<string, string>
+  selectedAddOns: Array<{ id: string; name: string; price: number }>
+  totalAddOnPrice: number
+  finalProductPrice: number
 }
 
 interface SystemWallet {
@@ -139,10 +145,7 @@ const Orders = () => {
   const [cancelReason, setCancelReason] = useState('')
   const [error, setError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [savedWallets, setSavedWallets] = useState<SystemWallet[]>([
-    // These would come from your backend or local storage
-    // ... other saved wallets
-  ])
+  const [savedWallets, setSavedWallets] = useState<SystemWallet[]>([])
 
   const fetchOrders = async () => {
     try {
@@ -150,7 +153,7 @@ const Orders = () => {
       let statusParam = []
 
       if (activeTab === 'pending') {
-        statusParam = ['UNPAID', 'PAID', 'FAILED']
+        statusParam = ['UNPAID', 'PAID', 'FAILED', 'PENDING']
       } else if (activeTab === 'confirmed') {
         statusParam = ['CONFIRMED', 'DELIVERED']
       } else if (activeTab === 'completed') {
@@ -201,6 +204,7 @@ const Orders = () => {
       setWalletLoading(false)
     }
   }
+
   const fetchSellersWallets = async () => {
     try {
       setWalletLoading(true)
@@ -227,6 +231,7 @@ const Orders = () => {
       fetchSystemWallets()
     }
   }, [showPaymentModal])
+
   useEffect(() => {
     reloadUser()
     fetchSellersWallets()
@@ -298,7 +303,6 @@ const Orders = () => {
       }
 
       const response = await orderApi.orderPaymentBySeller(paymentData)
-      // await reloadUser() // Reload user data after payment
 
       if (response.success) {
         toast.success('পেমেন্ট সফল হয়েছে')
@@ -350,16 +354,18 @@ const Orders = () => {
         return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>আনপেইড</span>
       case 'PAID':
         return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>পেইড</span>
+      case 'PENDING':
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>পেন্ডিং</span>
       case 'CONFIRMED':
         return <span className={`${baseClasses} bg-green-100 text-green-800`}>কনফার্মড</span>
       case 'PROCESSING':
         return <span className={`${baseClasses} bg-indigo-100 text-indigo-800`}>প্রসেসিং</span>
       case 'DELIVERED':
-        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>ডেলিভারড</span>
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>শিপড</span>
       case 'COMPLETED':
         return <span className={`${baseClasses} bg-green-100 text-green-800`}>কমপ্লিটেড</span>
       case 'CANCELLED':
-        return <span className={`${baseClasses} bg-red-100 text-red-800`}>বাতিল</span>
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>ক্যানসেল্ড</span>
       case 'RETURNED':
         return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>ফেরত</span>
       case 'REJECTED':
@@ -371,6 +377,11 @@ const Orders = () => {
       default:
         return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{status}</span>
     }
+  }
+
+  // Check if order can be cancelled (UNPAID, PAID, PENDING)
+  const canCancelOrder = (order: Order) => {
+    return ['UNPAID', 'PAID', 'PENDING'].includes(order.orderStatus) && !order.cancelled
   }
 
   const renderActionButtons = (order: Order) => {
@@ -387,7 +398,7 @@ const Orders = () => {
           বিস্তারিত
         </button>
 
-        {['UNPAID', 'PAID'].includes(order.orderStatus) && !order.cancelled && (
+        {['UNPAID', 'PAID', 'PENDING'].includes(order.orderStatus) && !order.cancelled && (
           <>
             {order.orderStatus === 'UNPAID' && (
               <button
@@ -411,27 +422,29 @@ const Orders = () => {
                 )}
               </button>
             )}
-            <button
-              onClick={() => {
-                setSelectedOrder(order)
-                setShowCancelModal(true)
-              }}
-              disabled={
-                (actionLoading.type === 'cancel' && actionLoading.id === order.orderId) ||
-                order.cancelled
-              }
-              className={`px-3 py-1 rounded text-xs ${
-                order.cancelled
-                  ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-red-600 text-white hover:bg-red-700'
-              }`}
-            >
-              {order.cancelled
-                ? 'বাতিল করা হয়েছে'
-                : actionLoading.type === 'cancel' && actionLoading.id === order.orderId
-                ? 'প্রক্রিয়াধীন...'
-                : 'বাতিল করুন'}
-            </button>
+            {canCancelOrder(order) && (
+              <button
+                onClick={() => {
+                  setSelectedOrder(order)
+                  setShowCancelModal(true)
+                }}
+                disabled={
+                  (actionLoading.type === 'cancel' && actionLoading.id === order.orderId) ||
+                  order.cancelled
+                }
+                className={`px-3 py-1 rounded text-xs ${
+                  order.cancelled
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+              >
+                {order.cancelled
+                  ? 'বাতিল করা হয়েছে'
+                  : actionLoading.type === 'cancel' && actionLoading.id === order.orderId
+                  ? 'প্রক্রিয়াধীন...'
+                  : 'বাতিল করুন'}
+              </button>
+            )}
           </>
         )}
 
@@ -460,7 +473,6 @@ const Orders = () => {
       <h1 className='text-xl font-bold mb-6'>আমার অর্ডারসমূহ</h1>
 
       {/* সার্চ বার */}
-      {/* Search Section */}
       <div className='mb-4 sm:mb-6'>
         <div className='relative'>
           <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
@@ -488,7 +500,11 @@ const Orders = () => {
             onClick={() => setActiveTab('pending')}
           >
             পেন্ডিং (
-            {orders.filter(o => ['UNPAID', 'PAID', 'FAILED'].includes(o.orderStatus)).length})
+            {
+              orders.filter(o => ['UNPAID', 'PAID', 'FAILED', 'PENDING'].includes(o.orderStatus))
+                .length
+            }
+            )
           </button>
           <button
             className={`px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap transition-colors flex-shrink-0 ${
@@ -561,7 +577,12 @@ const Orders = () => {
                 <div className='flex justify-between items-start'>
                   <div>
                     <p className='text-xs text-gray-500'>{formatDate(order.createdAt)}</p>
-                    <h3 className='font-medium'>অর্ডার #{order.orderId}</h3>
+                    <h3 className='font-medium'>
+                      অর্ডার #{order.orderId}{' '}
+                      <span className='text-red-500 text-xs'>
+                        {order.cancelled ? '(ক্যানসেল করা হয়েছে)' : ''}
+                      </span>
+                    </h3>
                     <p className='text-sm text-gray-600'>{order.customerName}</p>
                     <p className='text-xs text-gray-500'>{order.customerPhoneNo}</p>
                   </div>
@@ -571,7 +592,7 @@ const Orders = () => {
                 <div className='mt-3 grid grid-cols-2 gap-2 text-sm'>
                   <div>
                     <p className='text-gray-500'>মোট মূল্য:</p>
-                    <p className='font-medium'>{order.totalProductSellingPrice}৳</p>
+                    <p className='font-medium'>{order.finalOrderTotal}৳</p>
                   </div>
                   <div>
                     <p className='text-gray-500'>ডেলিভারি চার্জ:</p>
@@ -583,7 +604,9 @@ const Orders = () => {
                   </div>
                   <div>
                     <p className='text-gray-500'>কমিশন:</p>
-                    <p className='font-medium'>{order.totalCommission}৳</p>
+                    <p className='font-medium'>
+                      {order.actualCommission || order.totalCommission}৳
+                    </p>
                   </div>
                 </div>
 
@@ -623,14 +646,17 @@ const Orders = () => {
                     {formatDate(order.createdAt)}
                   </td>
                   <td className='px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900'>
-                    #{order.orderId}
+                    #{order.orderId}{' '}
+                    <span className='text-red-500 text-xs'>
+                      {order.cancelled ? '(ক্যানসেল করা হয়েছে)' : ''}
+                    </span>
                   </td>
                   <td className='px-4 py-3 whitespace-nowrap text-sm text-gray-900'>
                     <div>{order.customerName}</div>
                     <div className='text-gray-500'>{order.customerPhoneNo}</div>
                   </td>
                   <td className='px-4 py-3 whitespace-nowrap text-sm text-gray-900'>
-                    {order.totalProductSellingPrice}৳
+                    {order.finalOrderTotal}৳
                   </td>
                   <td className='px-4 py-3 whitespace-nowrap'>
                     {getStatusBadge(order.orderStatus)}
@@ -1357,6 +1383,8 @@ const Orders = () => {
                           <p className='text-xs sm:text-sm text-gray-600'>
                             {product.productSellingPrice}৳ × {product.productQuantity} টি
                           </p>
+
+                          {/* Display selected variants */}
                           {product.productVariant &&
                             Object.entries(product.productVariant).length > 0 && (
                               <div className='mt-1'>
@@ -1367,10 +1395,33 @@ const Orders = () => {
                                 ))}
                               </div>
                             )}
+
+                          {/* Display selected add-ons */}
+                          {product.selectedAddOns && product.selectedAddOns.length > 0 && (
+                            <div className='mt-1'>
+                              <p className='text-2xs sm:text-xs text-blue-600 font-medium'>
+                                অতিরিক্ত সামগ্রী:
+                              </p>
+                              {product.selectedAddOns.map((addOn, index) => (
+                                <p key={addOn.id} className='text-2xs sm:text-xs text-blue-600'>
+                                  • {addOn.name} (+৳{addOn.price})
+                                </p>
+                              ))}
+                              <p className='text-2xs sm:text-xs text-blue-600 font-medium mt-1'>
+                                মোট অতিরিক্ত: +৳{product.totalAddOnPrice}
+                              </p>
+                            </div>
+                          )}
                         </div>
                         <div className='text-right'>
                           <p className='font-medium text-sm sm:text-base'>
-                            {product.productSellingPrice * product.productQuantity}৳
+                            {product.finalProductPrice}৳
+                          </p>
+                          <p className='text-2xs sm:text-xs text-gray-500'>
+                            (পণ্য: {product.productSellingPrice * product.productQuantity}৳
+                            {product.totalAddOnPrice > 0 &&
+                              ` + অতিরিক্ত: ${product.totalAddOnPrice}৳`}
+                            )
                           </p>
                         </div>
                       </div>
@@ -1378,6 +1429,23 @@ const Orders = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Add-ons Summary */}
+              {selectedOrder.totalAddOnPrice > 0 && (
+                <div className='bg-blue-50 p-3 sm:p-4 rounded-lg'>
+                  <h3 className='font-medium text-base sm:text-lg mb-2 sm:mb-3 text-blue-800'>
+                    অতিরিক্ত সামগ্রী সারাংশ
+                  </h3>
+                  <div className='flex justify-between items-center'>
+                    <p className='text-sm sm:text-base text-blue-700'>
+                      মোট অতিরিক্ত সামগ্রীর মূল্য
+                    </p>
+                    <p className='text-lg sm:text-xl font-bold text-blue-800'>
+                      +৳{selectedOrder.totalAddOnPrice}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {selectedOrder.paymentType === 'BALANCE' && (
                 <div className='flex gap-2 text-xs sm:text-sm'>
@@ -1465,6 +1533,14 @@ const Orders = () => {
                       <p className='text-gray-600'>পণ্যের মূল্য</p>
                       <p className='font-medium'>{selectedOrder.totalProductSellingPrice}৳</p>
                     </div>
+                    {selectedOrder.totalAddOnPrice > 0 && (
+                      <div className='flex justify-between text-xs sm:text-sm'>
+                        <p className='text-gray-600'>অতিরিক্ত সামগ্রী</p>
+                        <p className='font-medium text-blue-600'>
+                          +{selectedOrder.totalAddOnPrice}৳
+                        </p>
+                      </div>
+                    )}
                     <div className='flex justify-between text-xs sm:text-sm'>
                       <p className='text-gray-600'>ডেলিভারি চার্জ</p>
                       <p className='font-medium'>{selectedOrder.deliveryCharge}৳</p>

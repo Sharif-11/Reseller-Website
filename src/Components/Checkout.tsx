@@ -218,6 +218,13 @@ const Checkout = () => {
           quantity: item.quantity,
           sellingPrice: item.sellingPrice,
           selectedVariants: item.selectedOptions,
+          selectedAddOns: JSON.stringify(
+            item.selectedAddOns?.map(addOn => ({
+              id: addOn.id,
+              name: addOn.name,
+              price: addOn.price,
+            })) || []
+          ),
         })),
       }
 
@@ -531,6 +538,8 @@ const Checkout = () => {
                     কমিশন: ৳
                     {((item.sellingPrice - item.basePrice) * item.quantity).toLocaleString('bn-BD')}
                   </p>
+
+                  {/* Display selected options */}
                   {Object.entries(item.selectedOptions).length > 0 && (
                     <div className='mt-1 text-xs text-gray-500'>
                       {Object.entries(item.selectedOptions).map(([key, value]) => (
@@ -538,6 +547,24 @@ const Checkout = () => {
                           {key}: {value}
                         </p>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Display selected add-ons */}
+                  {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                    <div className='mt-1 text-xs text-blue-600'>
+                      <p className='font-medium'>অতিরিক্ত সামগ্রী:</p>
+                      {item.selectedAddOns.map(addOn => (
+                        <p key={addOn.id}>
+                          • {addOn.name} (+৳{addOn.price.toLocaleString('bn-BD')})
+                        </p>
+                      ))}
+                      <p className='mt-1 font-medium'>
+                        মোট অতিরিক্ত: +৳
+                        {item.selectedAddOns
+                          .reduce((sum, addOn) => sum + addOn.price, 0)
+                          .toLocaleString('bn-BD')}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -821,6 +848,22 @@ const Checkout = () => {
                               {key}: {value}
                             </p>
                           ))}
+                        </div>
+                      )}
+                      {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                        <div className='mt-1 text-xs text-blue-600'>
+                          <p className='font-medium'>অতিরিক্ত সামগ্রী:</p>
+                          {item.selectedAddOns.map(addOn => (
+                            <p key={addOn.id}>
+                              • {addOn.name} (+৳{addOn.price.toLocaleString('bn-BD')})
+                            </p>
+                          ))}
+                          <p className='mt-1 font-medium'>
+                            মোট অতিরিক্ত: +৳
+                            {item.selectedAddOns
+                              .reduce((sum, addOn) => sum + addOn.price, 0)
+                              .toLocaleString('bn-BD')}
+                          </p>
                         </div>
                       )}
                     </div>

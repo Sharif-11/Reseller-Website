@@ -632,6 +632,15 @@ const ProductList = ({ showShopInfo = true }: ProductListProps) => {
                         </div>
                       </div>
                     )}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation()
+                        handleNavigate(product.productId)
+                      }}
+                      className='w-full mt-2 bg-green-600 hover:bg-green-700 text-white py-1.5 px-2 rounded text-xs font-medium transition-colors'
+                    >
+                      অর্ডার করুন
+                    </button>
                   </div>
                 </div>
               )
