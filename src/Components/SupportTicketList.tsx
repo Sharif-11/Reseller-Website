@@ -1,7 +1,24 @@
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { FaPlus, FaSearch, FaTicketAlt } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import supportTicketApi, { SupportTicket } from '../Api/support-ticket.api'
 import { useAuth } from '../Hooks/useAuth'
+import { TicketPriorityBadge, TicketStatusBadge } from './SupportTicketBadges'
+
+// Animation variants
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+}
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+  },
+}
 
 const SupportTicketsPage = () => {
   const { user } = useAuth()
@@ -64,43 +81,6 @@ const SupportTicketsPage = () => {
     setPagination(prev => ({ ...prev, page: 1 }))
   }
 
-  const TicketStatusBadge = ({ status }: { status: string }) => {
-    const statusClasses: Record<string, string> = {
-      OPEN: 'bg-blue-100 text-blue-800',
-      IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
-      WAITING_RESPONSE: 'bg-purple-100 text-purple-800',
-      RESOLVED: 'bg-green-100 text-green-800',
-      CLOSED: 'bg-gray-100 text-gray-800',
-    }
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          statusClasses[status] || 'bg-gray-200 text-gray-700'
-        }`}
-      >
-        {status.replace('_', ' ').toLowerCase()}
-      </span>
-    )
-  }
-
-  const TicketPriorityBadge = ({ priority }: { priority: string }) => {
-    const priorityClasses: Record<string, string> = {
-      LOW: 'bg-green-100 text-green-800',
-      MEDIUM: 'bg-yellow-100 text-yellow-800',
-      HIGH: 'bg-red-100 text-red-800',
-      CRITICAL: 'bg-purple-100 text-purple-800',
-    }
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          priorityClasses[priority] || 'bg-gray-200 text-gray-700'
-        }`}
-      >
-        {priority.toLowerCase()}
-      </span>
-    )
-  }
-
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -109,268 +89,257 @@ const SupportTicketsPage = () => {
     })
   }
 
-  return (
-    <div className='container mx-auto px-4 py-6'>
-      <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4'>
-        <h1 className='text-2xl font-bold text-gray-800'>Support Tickets</h1>
-        <Link
-          to='/support-tickets/new'
-          className='bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-sm transition-colors text-sm md:text-base'
-        >
-          Create New Ticket
-        </Link>
-      </div>
+  const statusFilters = [
+    { value: '', label: 'সব', color: 'gray' },
+    { value: 'OPEN', label: 'খোলা', color: 'blue' },
+    { value: 'IN_PROGRESS', label: 'প্রক্রিয়াধীন', color: 'yellow' },
+    { value: 'WAITING_RESPONSE', label: 'অপেক্ষমান', color: 'purple' },
+    { value: 'RESOLVED', label: 'সমাধানকৃত', color: 'green' },
+    { value: 'CLOSED', label: 'বন্ধ', color: 'gray' },
+  ]
 
-      <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
-        <div className='p-4 border-b border-gray-200'>
-          <div className='flex flex-col gap-4'>
-            <div className='relative w-full'>
-              <input
-                type='text'
-                placeholder='Search tickets...'
-                className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm md:text-base'
-                value={filters.search}
-                onChange={handleSearch}
-              />
-              <div className='absolute left-3 top-2.5 text-gray-400'>
-                <svg
-                  xmlns='http://www.w3.org/2000/svg'
-                  className='h-5 w-5'
-                  fill='none'
-                  viewBox='0 0 24 24'
-                  stroke='currentColor'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
-                  />
-                </svg>
+  return (
+    <div className='min-h-screen bg-[#f7f6f3] py-6 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-6xl mx-auto'>
+        {/* Header */}
+        <motion.div initial='hidden' animate='visible' variants={staggerContainer} className='mb-6'>
+          <motion.div
+            variants={fadeUp}
+            className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'
+          >
+            <div>
+              <div className='flex items-center gap-2 mb-1'>
+                <div className='h-8 w-1 rounded-full bg-rose-500' />
+                <span className='text-rose-500 text-sm font-semibold uppercase tracking-wider'>
+                  সাপোর্ট
+                </span>
+              </div>
+              <h1 className='text-2xl md:text-3xl font-bold text-[#1a1a2e] flex items-center gap-2'>
+                <FaTicketAlt className='text-rose-500 h-6 w-6 md:h-7 md:w-7' />
+                সাপোর্ট টিকেট
+              </h1>
+              <p className='text-gray-500 text-sm mt-1'>আপনার সকল টিকেট এখানে দেখুন</p>
+            </div>
+            <Link
+              to='/support-tickets/new'
+              className='inline-flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-rose-500/20 font-medium text-sm'
+            >
+              <FaPlus className='h-3.5 w-3.5' />
+              নতুন টিকেট তৈরি করুন
+            </Link>
+          </motion.div>
+        </motion.div>
+
+        {/* Main Card */}
+        <motion.div
+          variants={fadeUp}
+          initial='hidden'
+          animate='visible'
+          className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden'
+        >
+          {/* Search and Filter Header */}
+          <div className='p-5 border-b border-gray-100'>
+            <div className='flex flex-col lg:flex-row lg:items-center gap-4'>
+              <div className='relative flex-1'>
+                <FaSearch className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
+                <input
+                  type='text'
+                  placeholder='টিকেট আইডি বা বিষয় দিয়ে খুঁজুন...'
+                  className='w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all'
+                  value={filters.search}
+                  onChange={handleSearch}
+                />
               </div>
             </div>
 
-            <div className='flex flex-wrap gap-2 overflow-x-auto pb-2'>
-              <button
-                onClick={() => handleStatusFilter('')}
-                className={`px-3 py-1 rounded-full text-xs md:text-sm ${
-                  filters.status === ''
-                    ? 'bg-indigo-100 text-indigo-800'
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => handleStatusFilter('OPEN')}
-                className={`px-3 py-1 rounded-full text-xs md:text-sm ${
-                  filters.status === 'OPEN'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-              >
-                Open
-              </button>
-              <button
-                onClick={() => handleStatusFilter('IN_PROGRESS')}
-                className={`px-3 py-1 rounded-full text-xs md:text-sm ${
-                  filters.status === 'IN_PROGRESS'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-              >
-                In Progress
-              </button>
-              <button
-                onClick={() => handleStatusFilter('WAITING_RESPONSE')}
-                className={`px-3 py-1 rounded-full text-xs md:text-sm ${
-                  filters.status === 'WAITING_RESPONSE'
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-              >
-                Waiting
-              </button>
-              <button
-                onClick={() => handleStatusFilter('RESOLVED')}
-                className={`px-3 py-1 rounded-full text-xs md:text-sm ${
-                  filters.status === 'RESOLVED'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-              >
-                Resolved
-              </button>
-              <button
-                onClick={() => handleStatusFilter('CLOSED')}
-                className={`px-3 py-1 rounded-full text-xs md:text-sm ${
-                  filters.status === 'CLOSED'
-                    ? 'bg-gray-100 text-gray-800'
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-              >
-                Closed
-              </button>
+            {/* Status Filters */}
+            <div className='flex flex-wrap gap-2 mt-4'>
+              {statusFilters.map(filter => (
+                <button
+                  key={filter.value}
+                  onClick={() => handleStatusFilter(filter.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    filters.status === filter.value
+                      ? 'bg-rose-500 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
 
-        {loading ? (
-          <div className='p-8 text-center'>
-            <div className='inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600'></div>
-            <p className='mt-2 text-gray-600'>Loading tickets...</p>
-          </div>
-        ) : error ? (
-          <div className='p-8 text-center text-red-600'>{error}</div>
-        ) : tickets?.length === 0 ? (
-          <div className='p-8 text-center text-gray-600'>
-            No tickets found. Create a new ticket to get started.
-          </div>
-        ) : (
-          <>
-            {/* Mobile view - Cards */}
-            <div className='md:hidden'>
-              {tickets.map(ticket => (
-                <div key={ticket.ticketId} className='p-4 border-b border-gray-200'>
-                  <div className='flex justify-between items-start'>
-                    <div>
+          {/* Loading State */}
+          {loading ? (
+            <div className='flex justify-center items-center py-12'>
+              <div className='animate-spin rounded-full h-8 w-8 border-2 border-rose-500 border-t-transparent' />
+            </div>
+          ) : error ? (
+            <div className='p-8 text-center text-rose-500'>{error}</div>
+          ) : tickets.length === 0 ? (
+            <div className='text-center py-12'>
+              <div className='w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+                <FaTicketAlt className='h-7 w-7 text-gray-400' />
+              </div>
+              <p className='text-gray-500 text-sm'>কোনো টিকেট পাওয়া যায়নি</p>
+              <p className='text-xs text-gray-400 mt-1'>একটি নতুন টিকেট তৈরি করে শুরু করুন</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className='md:hidden divide-y divide-gray-100'>
+                {tickets.map(ticket => (
+                  <div key={ticket.ticketId} className='p-4 hover:bg-gray-50/50 transition-colors'>
+                    <div className='flex justify-between items-start mb-2'>
                       <Link
                         to={`/support-tickets/${ticket.ticketId}`}
-                        className='text-indigo-600 hover:text-indigo-900 font-medium'
+                        className='text-rose-500 font-medium text-sm hover:text-rose-600'
                       >
                         #{ticket.ticketId.slice(0, 8)}
                       </Link>
-                      <h3 className='text-sm font-medium text-gray-900 mt-1'>{ticket.subject}</h3>
+                      <TicketStatusBadge status={ticket.status} />
                     </div>
-                    <TicketStatusBadge status={ticket.status} />
+                    <h3 className='font-semibold text-gray-800 text-sm mb-2'>{ticket.subject}</h3>
+                    <div className='flex flex-wrap items-center gap-2 text-xs'>
+                      <TicketPriorityBadge priority={ticket.priority} />
+                      <span className='text-gray-400'>{formatDate(ticket.createdAt)}</span>
+                    </div>
+                    <div className='mt-3'>
+                      <Link
+                        to={`/support-tickets/${ticket.ticketId}`}
+                        className='text-rose-500 text-sm font-medium hover:text-rose-600'
+                      >
+                        বিস্তারিত দেখুন →
+                      </Link>
+                    </div>
                   </div>
+                ))}
+              </div>
 
-                  <div className='mt-2 flex items-center gap-2 text-sm'>
-                    <TicketPriorityBadge priority={ticket.priority} />
-                    <span className='text-gray-500'>{formatDate(ticket.createdAt)}</span>
+              {/* Desktop Table View */}
+              <div className='hidden md:block overflow-x-auto'>
+                <table className='w-full'>
+                  <thead className='bg-gray-50 border-b border-gray-100'>
+                    <tr>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        টিকেট আইডি
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        বিষয়
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        স্ট্যাটাস
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        প্রায়োরিটি
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        তারিখ
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        অ্যাকশন
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-gray-100'>
+                    {tickets.map(ticket => (
+                      <tr key={ticket.ticketId} className='hover:bg-gray-50/50 transition-colors'>
+                        <td className='px-5 py-3 text-sm font-medium text-gray-700'>
+                          #{ticket.ticketId.slice(0, 8)}
+                        </td>
+                        <td className='px-5 py-3 text-sm text-gray-800 max-w-xs truncate'>
+                          <Link
+                            to={`/support-tickets/${ticket.ticketId}`}
+                            className='hover:text-rose-500 transition-colors'
+                          >
+                            {ticket.subject}
+                          </Link>
+                        </td>
+                        <td className='px-5 py-3'>
+                          <TicketStatusBadge status={ticket.status} />
+                        </td>
+                        <td className='px-5 py-3'>
+                          <TicketPriorityBadge priority={ticket.priority} />
+                        </td>
+                        <td className='px-5 py-3 text-sm text-gray-500 whitespace-nowrap'>
+                          {formatDate(ticket.createdAt)}
+                        </td>
+                        <td className='px-5 py-3'>
+                          <Link
+                            to={`/support-tickets/${ticket.ticketId}`}
+                            className='text-rose-500 hover:text-rose-600 text-sm font-medium'
+                          >
+                            বিস্তারিত
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className='px-5 py-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                  <div className='text-xs text-gray-400'>
+                    {(pagination.page - 1) * pagination.limit + 1} -{' '}
+                    {Math.min(pagination.page * pagination.limit, pagination.total)} /{' '}
+                    {pagination.total} টি টিকেট
                   </div>
-
-                  <div className='mt-3'>
-                    <Link
-                      to={`/support-tickets/${ticket.ticketId}`}
-                      className='text-indigo-600 hover:text-indigo-900 text-sm'
+                  <div className='flex gap-1'>
+                    <button
+                      onClick={() =>
+                        setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))
+                      }
+                      disabled={pagination.page === 1}
+                      className='px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all'
                     >
-                      View Details
-                    </Link>
+                      পূর্ববর্তী
+                    </button>
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      let pageNum
+                      if (pagination.totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (pagination.page <= 3) {
+                        pageNum = i + 1
+                      } else if (pagination.page >= pagination.totalPages - 2) {
+                        pageNum = pagination.totalPages - 4 + i
+                      } else {
+                        pageNum = pagination.page - 2 + i
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setPagination(prev => ({ ...prev, page: pageNum }))}
+                          className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                            pageNum === pagination.page
+                              ? 'bg-rose-500 text-white'
+                              : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    })}
+                    <button
+                      onClick={() =>
+                        setPagination(prev => ({
+                          ...prev,
+                          page: Math.min(pagination.totalPages, prev.page + 1),
+                        }))
+                      }
+                      disabled={pagination.page === pagination.totalPages}
+                      className='px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all'
+                    >
+                      পরবর্তী
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Desktop view - Table */}
-            <div className='hidden md:block overflow-x-auto'>
-              <table className='min-w-full divide-y divide-gray-200'>
-                <thead className='bg-gray-50'>
-                  <tr>
-                    <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                      Ticket ID
-                    </th>
-                    <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                      Subject
-                    </th>
-                    <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                      Status
-                    </th>
-                    <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                      Priority
-                    </th>
-                    <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                      Date
-                    </th>
-                    <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className='bg-white divide-y divide-gray-200'>
-                  {tickets.map(ticket => (
-                    <tr key={ticket.ticketId} className='hover:bg-gray-50'>
-                      <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
-                        #{ticket.ticketId.slice(0, 8)}
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                        <Link
-                          to={`/support-tickets/${ticket.ticketId}`}
-                          className='text-indigo-600 hover:text-indigo-900 hover:underline'
-                        >
-                          {ticket.subject}
-                        </Link>
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap'>
-                        <TicketStatusBadge status={ticket.status} />
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap'>
-                        <TicketPriorityBadge priority={ticket.priority} />
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                        {formatDate(ticket.createdAt)}
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
-                        <Link
-                          to={`/support-tickets/${ticket.ticketId}`}
-                          className='text-indigo-600 hover:text-indigo-900'
-                        >
-                          Details
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className='px-4 md:px-6 py-4 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4'>
-              <div className='text-sm text-gray-700'>
-                Showing{' '}
-                <span className='font-medium'>{(pagination.page - 1) * pagination.limit + 1}</span>{' '}
-                to{' '}
-                <span className='font-medium'>
-                  {Math.min(pagination.page * pagination.limit, pagination.total)}
-                </span>{' '}
-                of <span className='font-medium'>{pagination.total}</span> tickets
-              </div>
-              <div className='flex gap-2'>
-                <button
-                  onClick={() =>
-                    setPagination(prev => ({
-                      ...prev,
-                      page: Math.max(1, prev.page - 1),
-                    }))
-                  }
-                  disabled={pagination.page === 1}
-                  className={`px-3 py-1 rounded-md text-sm ${
-                    pagination.page === 1
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() =>
-                    setPagination(prev => ({
-                      ...prev,
-                      page: Math.min(pagination.totalPages, prev.page + 1),
-                    }))
-                  }
-                  disabled={pagination.page === pagination.totalPages}
-                  className={`px-3 py-1 rounded-md text-sm ${
-                    pagination.page === pagination.totalPages
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+              )}
+            </>
+          )}
+        </motion.div>
       </div>
     </div>
   )

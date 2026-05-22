@@ -1,9 +1,17 @@
+// Cart.tsx — BazaarHub Design System Redesign
+// Design tokens: --navy: #1a1a2e  --rose: #e94560  --cream: #f7f6f3
+
 import { useEffect, useState } from 'react'
 import { useCookies } from 'react-cookie'
+import { FaStore } from 'react-icons/fa'
 import {
+  FiAlertCircle,
   FiArrowLeft,
+  FiCheckCircle,
   FiChevronLeft,
   FiChevronRight,
+  FiPhone,
+  FiShield,
   FiShoppingCart,
   FiTrash2,
   FiX,
@@ -12,7 +20,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { orderApi } from '../Api/order.api'
 import { useCartFavorite } from '../Context/cartContext'
 import { useAuth } from '../Hooks/useAuth'
-
 import calculateCustomerReliability from '../utils/reliabilty'
 import { CART_ITEMS_KEY } from '../utils/utils.variables'
 import { CartItem } from './ProductDetail'
@@ -28,22 +35,18 @@ export type ShopCart = {
   items: CartItem[]
 }
 
-// Define types for fraud check response
 interface FraudCheckApiData {
   courier_name: string
   total_parcels: number
   total_delivered_parcels: number
   total_cancelled_parcels: number
 }
-
 interface FraudCheckResponse {
   mobile_number: string
   total_parcels: number
   total_delivered: number
   total_cancel: number
-  apis: {
-    [key: string]: FraudCheckApiData
-  }
+  apis: { [key: string]: FraudCheckApiData }
 }
 
 const Cart = () => {
@@ -62,40 +65,28 @@ const Cart = () => {
   const [fraudCheckError, setFraudCheckError] = useState('')
   const { loadCartCount } = useCartFavorite()
 
-  // Calculate delivery charges for a shop
   const calculateDeliveryCharges = (shopCart: ShopCart) => {
     const totalItems = calculateShopTotalItems(shopCart.items)
     let insideCharge = Number(shopCart.deliveryChargeInside) || 0
     let outsideCharge = Number(shopCart.deliveryChargeOutside) || 0
-
-    // Add 10 tk for each additional item beyond 3
     if (totalItems > 3) {
       const additionalItems = totalItems - 3
       insideCharge += additionalItems * 10
       outsideCharge += additionalItems * 10
     }
-
-    return {
-      totalDeliveryChargeInside: insideCharge,
-      totalDeliveryChargeOutside: outsideCharge,
-    }
+    return { totalDeliveryChargeInside: insideCharge, totalDeliveryChargeOutside: outsideCharge }
   }
 
-  // Load cart items from localStorage and group by shop
   useEffect(() => {
     const loadCartItems = () => {
       try {
         const savedCart = localStorage.getItem(CART_ITEMS_KEY)
-
         if (savedCart) {
           const parsed = JSON.parse(savedCart)
-
           if (Array.isArray(parsed)) {
-            // Group items by shop
             const shopMap = new Map<number, ShopCart>()
-
             parsed.forEach(item => {
-              if (!shopMap.has(item.shopId)) {
+              if (!shopMap.has(item.shopId))
                 shopMap.set(item.shopId, {
                   shopId: item.shopId,
                   shopName: item.shopName,
@@ -104,39 +95,29 @@ const Cart = () => {
                   deliveryChargeOutside: item.deliveryChargeOutside,
                   items: [],
                 })
-              }
               shopMap.get(item.shopId)?.items.push({
                 ...item,
                 cartItemId:
                   item.cartItemId || `${item.productId}-${JSON.stringify(item.selectedOptions)}`,
               })
             })
-
-            // Calculate delivery charges for each shop
-            const shopCartsWithDelivery = Array.from(shopMap.values()).map(shopCart => {
-              const deliveryCharges = calculateDeliveryCharges(shopCart)
-              return {
-                ...shopCart,
-                ...deliveryCharges,
-              }
-            })
-
+            const shopCartsWithDelivery = Array.from(shopMap.values()).map(shopCart => ({
+              ...shopCart,
+              ...calculateDeliveryCharges(shopCart),
+            }))
             setShopCarts(shopCartsWithDelivery)
           } else {
-            console.error('Invalid cart format - resetting')
             localStorage.removeItem(CART_ITEMS_KEY)
             setShopCarts([])
           }
         }
-      } catch (err) {
-        console.error('Error loading cart:', err)
+      } catch {
         localStorage.removeItem(CART_ITEMS_KEY)
         setShopCarts([])
       } finally {
         setIsLoading(false)
       }
     }
-
     loadCartItems()
   }, [])
 
@@ -150,20 +131,17 @@ const Cart = () => {
         if (shopCart.shopId === shopId) {
           const filteredItems = shopCart.items.filter(item => item.cartItemId !== cartItemId)
           const updatedShopCart = { ...shopCart, items: filteredItems }
-          const deliveryCharges = calculateDeliveryCharges(updatedShopCart)
-          return { ...updatedShopCart, ...deliveryCharges }
+          return { ...updatedShopCart, ...calculateDeliveryCharges(updatedShopCart) }
         }
         return shopCart
       })
-      .filter(shopCart => shopCart.items.length > 0) // Remove empty shop carts
-
+      .filter(shopCart => shopCart.items.length > 0)
     setShopCarts(updatedShopCarts)
     saveCartToLocalStorage(updatedShopCarts)
   }
 
   const updateQuantity = (shopId: number, cartItemId: string, newQuantity: number) => {
     if (newQuantity < 1) return
-
     setIsUpdating(parseInt(cartItemId.split('-')[0]))
     const updatedShopCarts = shopCarts.map(shopCart => {
       if (shopCart.shopId === shopId) {
@@ -171,12 +149,10 @@ const Cart = () => {
           item.cartItemId === cartItemId ? { ...item, quantity: newQuantity } : item
         )
         const updatedShopCart = { ...shopCart, items: updatedItems }
-        const deliveryCharges = calculateDeliveryCharges(updatedShopCart)
-        return { ...updatedShopCart, ...deliveryCharges }
+        return { ...updatedShopCart, ...calculateDeliveryCharges(updatedShopCart) }
       }
       return shopCart
     })
-
     setShopCarts(updatedShopCarts)
     saveCartToLocalStorage(updatedShopCarts)
     setTimeout(() => setIsUpdating(null), 300)
@@ -194,71 +170,47 @@ const Cart = () => {
 
   const handleConfirmOrder = () => {
     setShowInstructionModal(false)
-
-    // Check if customer mode is enabled
     if (cookies.customerMode) {
-      // Skip fraud check completely for customer mode and proceed directly to checkout
       if (!selectedShopId) return
-
       const selectedShopCart = shopCarts.find(cart => cart.shopId === selectedShopId)
-
       if (selectedShopCart) {
-        if (user) {
+        if (user)
           navigate('/checkout', {
             state: {
               shopCart: selectedShopCart,
               totalDeliveryChargeInside: selectedShopCart.totalDeliveryChargeInside,
               totalDeliveryChargeOutside: selectedShopCart.totalDeliveryChargeOutside,
-              mobileNumber: '', // Empty for customer mode
+              mobileNumber: '',
             },
           })
-        } else {
+        else
           navigate('/customer-checkout', {
-            state: {
-              shopCart: selectedShopCart,
-              mobileNumber: '', // Empty for customer mode
-            },
+            state: { shopCart: selectedShopCart, mobileNumber: '' },
           })
-        }
       }
     } else {
-      // For regular users, show mobile number modal for fraud check
-      if (user) {
-        setShowMobileModal(true)
-      } else {
+      if (user) setShowMobileModal(true)
+      else {
         if (!selectedShopId) return
-
         const selectedShopCart = shopCarts.find(cart => cart.shopId === selectedShopId)
-        navigate('/customer-checkout', {
-          state: {
-            shopCart: selectedShopCart,
-            mobileNumber: '', // Empty for customer mode
-          },
-        })
+        navigate('/customer-checkout', { state: { shopCart: selectedShopCart, mobileNumber: '' } })
       }
     }
   }
 
   const handleMobileNumberSubmit = async () => {
     if (!mobileNumber || mobileNumber.length < 11) {
-      setFraudCheckError('Please enter a valid mobile number')
+      setFraudCheckError('সঠিক মোবাইল নম্বর দিন')
       return
     }
-
     setIsCheckingFraud(true)
     setFraudCheckError('')
-
     try {
       const response = await orderApi.fraudCheckByPhoneNo(mobileNumber)
-
-      if (response.success) {
-        setFraudCheckData(response.data)
-      } else {
-        setFraudCheckError(response.message || 'Failed to check fraud data')
-      }
-    } catch (error) {
-      console.error('Error checking fraud data:', error)
-      setFraudCheckError('An error occurred while checking fraud data')
+      if (response.success) setFraudCheckData(response.data)
+      else setFraudCheckError(response.message || 'ফ্রড চেক ব্যর্থ হয়েছে')
+    } catch {
+      setFraudCheckError('একটি ত্রুটি ঘটেছে')
     } finally {
       setIsCheckingFraud(false)
     }
@@ -266,264 +218,237 @@ const Cart = () => {
 
   const proceedToCheckout = () => {
     if (!selectedShopId) return
-
     setShowMobileModal(false)
     const selectedShopCart = shopCarts.find(cart => cart.shopId === selectedShopId)
-
     if (selectedShopCart) {
-      if (user) {
-        console.log('Navigating to checkout for user:', user)
+      if (user)
         navigate('/checkout', {
           state: {
             shopCart: selectedShopCart,
             totalDeliveryChargeInside: selectedShopCart.totalDeliveryChargeInside,
             totalDeliveryChargeOutside: selectedShopCart.totalDeliveryChargeOutside,
-            mobileNumber, // Pass the mobile number to checkout
+            mobileNumber,
           },
         })
-      } else {
-        console.log('Navigating to checkout for guest user')
-        navigate('/customer-checkout', {
-          state: {
-            shopCart: selectedShopCart,
-            mobileNumber: mobileNumber, // Pass the mobile number to checkout
-          },
-        })
-      }
+      else navigate('/customer-checkout', { state: { shopCart: selectedShopCart, mobileNumber } })
     }
   }
 
-  // Calculation functions for a specific shop
   const calculateShopSubtotal = (items: CartItem[]) =>
     items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
-
   const calculateShopTotalItems = (items: CartItem[]) =>
     items.reduce((sum, item) => sum + item.quantity, 0)
-
-  // Calculation for all items (used in header)
   const calculateTotalItems = () =>
     shopCarts.reduce((sum, shopCart) => sum + calculateShopTotalItems(shopCart.items), 0)
 
-  if (isLoading) {
+  /* ── Loading ── */
+  if (isLoading)
     return (
-      <div className='flex justify-center items-center min-h-screen'>
-        <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500'></div>
+      <div className='flex min-h-screen items-center justify-center bg-[#f7f6f3]'>
+        <div className='relative h-10 w-10'>
+          <div className='absolute inset-0 rounded-full border-2 border-gray-200' />
+          <div className='absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#e94560]' />
+        </div>
       </div>
     )
-  }
 
-  if (shopCarts.length === 0) {
+  /* ── Empty ── */
+  if (shopCarts.length === 0)
     return (
-      <div className='container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center'>
-        <div className='bg-white rounded-lg shadow-md p-8 max-w-md w-full text-center'>
-          <div className='flex justify-center mb-6'>
-            <FiShoppingCart className='text-gray-400 text-5xl' />
+      <div className='flex min-h-screen flex-col items-center justify-center bg-[#f7f6f3] p-4'>
+        <div className='w-full max-w-sm text-center'>
+          <div className='mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-[#1a1a2e]'>
+            <FiShoppingCart className='h-10 w-10 text-white/30' />
           </div>
-          <h2 className='text-2xl font-bold text-gray-800 mb-2'>আপনার কার্ট খালি</h2>
-          <p className='text-gray-600 mb-6'>কার্টে পণ্য যোগ করুন অর্ডার দেওয়ার জন্য</p>
+          <h2 className='mb-2 font-serif text-2xl font-bold text-[#1a1a2e]'>কার্ট খালি</h2>
+          <p className='mb-8 text-sm text-gray-500'>কার্টে পণ্য যোগ করুন অর্ডার দেওয়ার জন্য</p>
           <Link
             to='/products#products'
-            className='inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors'
+            className='inline-flex items-center gap-2 rounded-xl bg-[#e94560] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_20px_rgba(233,69,96,0.3)] transition hover:bg-[#c73652]'
           >
-            <FiArrowLeft className='mr-2' />
+            <FiArrowLeft className='h-4 w-4' />
             পণ্য ব্রাউজ করুন
           </Link>
         </div>
       </div>
     )
-  }
 
   return (
-    <div className='container mx-auto px-2 sm:px-4 py-4 sm:py-8'>
-      {/* Instruction Modal */}
+    <div className='min-h-screen bg-[#f7f6f3] pt-16'>
+      {/* ════ INSTRUCTION MODAL ════ */}
       {showInstructionModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 mt-5 overflow-y-auto'>
-          <div className='bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto'>
-            <div className='p-4 border-b flex justify-between items-center sticky top-0 bg-white'>
-              <h3 className='text-lg font-bold'>অর্ডার নির্দেশনা</h3>
+        <div className='fixed inset-0 z-50 flex items-end justify-center bg-[#1a1a2e]/70 backdrop-blur-sm sm:items-center sm:p-4'>
+          <div className='w-full max-w-md overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl'>
+            <div className='flex items-center justify-between border-b border-gray-100 px-6 py-4'>
+              <h3 className='text-base font-bold text-[#1a1a2e]'>অর্ডার নির্দেশনা</h3>
               <button
                 onClick={() => setShowInstructionModal(false)}
-                className='text-gray-500 hover:text-gray-700'
+                className='flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200'
               >
-                <FiX size={24} />
+                <FiX className='h-4 w-4' />
               </button>
             </div>
-
-            <div className='p-4 text-sm space-y-3'>
-              <p>
-                ১. ডেলিভারি কর্মী উপস্থিত থাকা অবস্থাতেই পণ্য পরীক্ষা করে নিতে হবে - কোনো ত্রুটি
-                পাওয়া গেলে সাথে সাথে রিটার্ন করতে হবে।
-              </p>
-              <p>
-                ২. ডেলিভারি কর্মী চলে যাওয়ার পর পণ্য ফেরত বা বদল করতে চাইলে অতিরিক্ত ডেলিভারি চার্জ
-                দিতে হবে।
-              </p>
-              <p>৩. ৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ</p>
-              <p>৪. ৩টির বেশি পণ্য হলে অতিরিক্ত চার্জ প্রযোজ্য হবে।</p>
-              <p>
-                ৫. পণ্য সম্পর্কে কোন অভিযোগ থাকলে ও পার্সেল রিসেন্ট ও এক্সচেঞ্জ করতে চাইলে আনবক্সিং
-                ভিডিও দিতে হবে ও ভিডিওতে প্যাকেটের উপরের কুরিয়ার স্টিকার স্পষ্টভাবে দেখাবেন, তারপর
-                প্যাকেট খুলে সমস্যার কথা বলবেন।
-              </p>
+            <div className='max-h-[60vh] overflow-y-auto px-6 py-4'>
+              <div className='space-y-3'>
+                {[
+                  'ডেলিভারি কর্মী উপস্থিত থাকা অবস্থাতেই পণ্য পরীক্ষা করে নিতে হবে — কোনো ত্রুটি পাওয়া গেলে সাথে সাথে রিটার্ন করতে হবে।',
+                  'ডেলিভারি কর্মী চলে যাওয়ার পর পণ্য ফেরত বা বদল করতে চাইলে অতিরিক্ত ডেলিভারি চার্জ দিতে হবে।',
+                  '৩টি পণ্য পর্যন্ত সাধারণ ডেলিভারি চার্জ।',
+                  '৩টির বেশি পণ্য হলে অতিরিক্ত চার্জ প্রযোজ্য হবে।',
+                  'পণ্য সম্পর্কে কোনো অভিযোগ থাকলে আনবক্সিং ভিডিও দিতে হবে। ভিডিওতে কুরিয়ার স্টিকার স্পষ্টভাবে দেখাতে হবে।',
+                ].map((text, i) => (
+                  <div key={i} className='flex items-start gap-3'>
+                    <span className='flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e94560]/10 text-[11px] font-bold text-[#e94560]'>
+                      {i + 1}
+                    </span>
+                    <p className='text-[13px] leading-relaxed text-gray-600'>{text}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <div className='p-4 border-t flex justify-end space-x-3 sticky bottom-0 bg-white text-xs'>
+            <div className='flex gap-3 border-t border-gray-100 px-6 py-4'>
               <button
                 onClick={() => setShowInstructionModal(false)}
-                className='px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50'
+                className='flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-medium text-gray-600 transition hover:bg-gray-50'
               >
                 বাতিল
               </button>
               <button
                 onClick={handleConfirmOrder}
-                className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700'
+                className='flex-1 rounded-xl bg-[#e94560] py-3 text-[13px] font-semibold text-white transition hover:bg-[#c73652]'
               >
-                শর্তে রাজি হয়ে অর্ডার কনফার্ম করুন
+                শর্তে রাজি হয়ে এগিয়ে যান
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Mobile Number Modal */}
+      {/* ════ FRAUD CHECK MODAL ════ */}
       {showMobileModal && !cookies.customerMode && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-          <div className='bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto'>
-            <div className='p-4 border-b flex justify-between items-center sticky top-0 bg-white'>
-              <h3 className='text-lg font-bold'>ফ্রড চেক করতে কাস্টমারের মোবাইল নম্বর দিন</h3>
+        <div className='fixed inset-0 z-50 flex items-end justify-center bg-[#1a1a2e]/70 backdrop-blur-sm sm:items-center sm:p-4'>
+          <div className='w-full max-w-md overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl'>
+            <div className='flex items-center justify-between border-b border-gray-100 px-6 py-4'>
+              <div className='flex items-center gap-2'>
+                <FiShield className='h-4 w-4 text-[#e94560]' />
+                <h3 className='text-base font-bold text-[#1a1a2e]'>ফ্রড চেক</h3>
+              </div>
               <button
                 onClick={() => {
                   setShowMobileModal(false)
                   setFraudCheckData(null)
                   setFraudCheckError('')
                 }}
-                className='text-gray-500 hover:text-gray-700'
+                className='flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200'
               >
-                <FiX size={24} />
+                <FiX className='h-4 w-4' />
               </button>
             </div>
 
-            <div className='p-4'>
+            <div className='max-h-[70vh] overflow-y-auto px-6 py-5'>
               {!fraudCheckData && !fraudCheckError ? (
-                <>
-                  <div className='mb-4'>
-                    <label
-                      htmlFor='mobile'
-                      className='block text-sm font-medium text-gray-700 mb-1'
-                    >
+                <div className='space-y-4'>
+                  <p className='text-[13px] text-gray-500'>
+                    কাস্টমারের মোবাইল নম্বর দিয়ে ফ্রড চেক করুন
+                  </p>
+                  <div>
+                    <label className='mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-gray-400'>
                       মোবাইল নম্বর
                     </label>
-                    <input
-                      type='tel'
-                      id='mobile'
-                      value={mobileNumber}
-                      onChange={e => setMobileNumber(e.target.value)}
-                      placeholder='01XXXXXXXXX'
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    />
+                    <div className='relative'>
+                      <FiPhone className='absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
+                      <input
+                        type='tel'
+                        value={mobileNumber}
+                        onChange={e => setMobileNumber(e.target.value)}
+                        placeholder='01XXXXXXXXX'
+                        className='w-full rounded-xl border border-gray-200 py-3 pl-10 pr-4 text-sm text-[#1a1a2e] outline-none transition focus:border-[#e94560]/40 focus:ring-2 focus:ring-[#e94560]/15'
+                      />
+                    </div>
                     {fraudCheckError && (
-                      <p className='text-red-500 text-sm mt-1'>{fraudCheckError}</p>
+                      <p className='mt-1.5 text-[12px] text-[#e94560]'>{fraudCheckError}</p>
                     )}
                   </div>
-
                   <button
                     onClick={handleMobileNumberSubmit}
                     disabled={isCheckingFraud}
-                    className='w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300'
+                    className='w-full rounded-xl bg-[#1a1a2e] py-3 text-[13px] font-semibold text-white transition hover:bg-[#16213e] disabled:opacity-50'
                   >
-                    {isCheckingFraud ? 'চেক করা হচ্ছে...' : 'চেক করুন এবং অর্ডার দিন'}
+                    {isCheckingFraud ? (
+                      <span className='flex items-center justify-center gap-2'>
+                        <span className='h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white' />
+                        চেক করা হচ্ছে...
+                      </span>
+                    ) : (
+                      'চেক করুন'
+                    )}
                   </button>
-                </>
+                </div>
               ) : fraudCheckData ? (
-                <>
-                  <div className='mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 shadow-sm'>
-                    <div className='flex items-center mb-4'>
-                      <div className='bg-blue-100 p-2 rounded-full mr-3'>
-                        <svg
-                          xmlns='http://www.w3.org/2000/svg'
-                          className='h-5 w-5 text-blue-600'
-                          fill='none'
-                          viewBox='0 0 24 24'
-                          stroke='currentColor'
-                        >
-                          <path
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                            strokeWidth={2}
-                            d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'
-                          />
-                        </svg>
-                      </div>
-                      <h4 className='font-bold text-blue-800'>ফ্রড চেক রিপোর্ট</h4>
+                <div className='space-y-4'>
+                  <div className='rounded-2xl border border-gray-100 bg-gray-50 p-4'>
+                    <p className='mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400'>
+                      ফ্রড চেক রিপোর্ট
+                    </p>
+                    <div className='grid grid-cols-2 gap-3'>
+                      {[
+                        {
+                          label: 'মোবাইল নম্বর',
+                          value: fraudCheckData.mobile_number,
+                          color: 'text-[#1a1a2e]',
+                        },
+                        {
+                          label: 'মোট অর্ডার',
+                          value: fraudCheckData.total_parcels,
+                          color: 'text-[#1a1a2e]',
+                        },
+                        {
+                          label: 'সফল ডেলিভারি',
+                          value: fraudCheckData.total_delivered,
+                          color: 'text-emerald-600',
+                        },
+                        {
+                          label: 'ক্যান্সেল্ড',
+                          value: fraudCheckData.total_cancel,
+                          color: 'text-[#e94560]',
+                        },
+                      ].map(({ label, value, color }, i) => (
+                        <div key={i} className='rounded-xl border border-gray-100 bg-white p-3'>
+                          <p className='mb-1 text-[11px] text-gray-400'>{label}</p>
+                          <p className={`text-sm font-bold ${color}`}>{value}</p>
+                        </div>
+                      ))}
                     </div>
-
-                    <div className='grid grid-cols-2 gap-4 mb-3'>
-                      <div className='bg-white p-3 rounded-lg border border-blue-100 shadow-xs'>
-                        <p className='text-xs text-gray-500 mb-1'>মোবাইল নম্বর</p>
-                        <p className='font-medium text-blue-700 text-xs'>
-                          {fraudCheckData.mobile_number}
-                        </p>
-                      </div>
-
-                      <div className='bg-white p-3 rounded-lg border border-blue-100 shadow-xs'>
-                        <p className='text-xs text-gray-500 mb-1'>মোট অর্ডার</p>
-                        <p className='font-medium text-indigo-700'>
-                          {fraudCheckData.total_parcels}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className='grid grid-cols-2 gap-4'>
-                      <div className='bg-white p-3 rounded-lg border border-green-100 shadow-xs'>
-                        <p className='text-xs text-gray-500 mb-1'>সফল ডেলিভারি</p>
-                        <p className='font-medium text-green-700'>
-                          {fraudCheckData.total_delivered}
-                        </p>
-                      </div>
-
-                      <div className='bg-white p-3 rounded-lg border border-red-100 shadow-xs'>
-                        <p className='text-xs text-gray-500 mb-1'>ক্যান্সেল্ড অর্ডার</p>
-                        <p className='font-medium text-red-700'>{fraudCheckData.total_cancel}</p>
-                      </div>
-                    </div>
-
                     <div
-                      className={`mt-4 p-3 rounded-lg text-center ${
-                        fraudCheckData.total_cancel === 0
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
+                      className={`mt-3 rounded-xl p-3 text-center text-[13px] font-medium ${fraudCheckData.total_cancel === 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}
                     >
-                      <p className='text-sm font-medium'>
-                        {calculateCustomerReliability(fraudCheckData).suggestion}
-                      </p>
+                      {calculateCustomerReliability(fraudCheckData).suggestion}
                     </div>
                   </div>
-
                   <button
                     onClick={proceedToCheckout}
-                    className='w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700'
+                    className='w-full rounded-xl bg-[#e94560] py-3 text-[13px] font-semibold text-white transition hover:bg-[#c73652]'
                   >
                     অর্ডার করুন
                   </button>
-                </>
+                </div>
               ) : (
-                // Show error state with option to proceed anyway
-                <>
-                  <div className='mb-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-red-100 shadow-sm'>
-                    <div className='bg-white p-3 rounded-lg border border-red-100 shadow-xs'>
-                      <p className='text-sm text-red-700 mb-2'>{fraudCheckError}</p>
-                      <p className='text-xs text-gray-600'>
-                        আপনি চাইলে সরাসরি চেকআউটে এগিয়ে যেতে পারেন, তবে ফ্রড চেক ছাড়াই অর্ডার
-                        সম্পূর্ণ হবে।
-                      </p>
+                <div className='space-y-4'>
+                  <div className='rounded-2xl border border-red-100 bg-red-50 p-4'>
+                    <div className='flex items-start gap-3'>
+                      <FiAlertCircle className='mt-0.5 h-4 w-4 shrink-0 text-red-500' />
+                      <div>
+                        <p className='text-[13px] font-medium text-red-700'>{fraudCheckError}</p>
+                        <p className='mt-1 text-[12px] text-red-500'>
+                          ফ্রড চেক ছাড়াও অর্ডার সম্পূর্ণ করতে পারবেন।
+                        </p>
+                      </div>
                     </div>
                   </div>
-
                   <div className='flex flex-col gap-2'>
                     <button
                       onClick={proceedToCheckout}
-                      className='w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700'
+                      className='w-full rounded-xl bg-[#e94560] py-3 text-[13px] font-semibold text-white transition hover:bg-[#c73652]'
                     >
                       অর্ডার করুন
                     </button>
@@ -532,243 +457,251 @@ const Cart = () => {
                         setFraudCheckError('')
                         setFraudCheckData(null)
                       }}
-                      className='w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300'
+                      className='w-full rounded-xl border border-gray-200 py-3 text-[13px] font-medium text-gray-600 transition hover:bg-gray-50'
                     >
                       আবার চেষ্টা করুন
                     </button>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Rest of the cart UI remains the same */}
-      <div className='flex items-center mb-4 sm:mb-6'>
-        <h1 className='text-xl sm:text-2xl font-bold text-gray-900 ml-2 sm:ml-4'>আপনার কার্ট</h1>
-      </div>
-
-      {/* Shop Cart Sections */}
-      {shopCarts.map(shopCart => (
-        <div key={shopCart.shopId} className='mb-8 border rounded-lg overflow-hidden'>
-          {/* Shop Header */}
-          <div className='bg-gray-100 p-3 sm:p-4 border-b'>
-            <div className='flex justify-between items-center'>
-              <div>
-                <h2 className='font-medium text-gray-900'>{shopCart.shopName}</h2>
-                {shopCart.shopLocation && (
-                  <p className='text-xs text-gray-600 mt-1'>{shopCart.shopLocation}</p>
-                )}
-              </div>
-              <div className='text-right'>
-                <p className='text-xs text-gray-600'>
-                  {shopCart.shopLocation && (
-                    <>
-                      <span>ডেলিভারি চার্জ: </span>
-                      <span>
-                        শহরে ({shopCart.shopLocation}): ৳{shopCart.totalDeliveryChargeInside}
-                      </span>
-                      <span>, বাইরে: ৳{shopCart.totalDeliveryChargeOutside}</span>
-                    </>
-                  )}
-                </p>
-              </div>
-            </div>
+      {/* ════ PAGE CONTENT ════ */}
+      <div className='mx-auto max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8'>
+        {/* Page header */}
+        <div className='mb-6 flex items-center justify-between'>
+          <div>
+            <h1 className='font-serif text-2xl font-bold text-[#1a1a2e]'>আপনার কার্ট</h1>
           </div>
+          <Link
+            to='/products#products'
+            className='flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-[13px] font-medium text-gray-600 transition hover:bg-gray-50 hover:text-[#1a1a2e]'
+          >
+            <FiArrowLeft className='h-3.5 w-3.5' />
+            আরও পণ্য যোগ করুন
+          </Link>
+        </div>
 
-          {/* Cart Items for this Shop */}
-          <div className='bg-white'>
-            {/* Desktop cart header */}
-            <div className='hidden md:grid grid-cols-12 bg-gray-50 p-3 sm:p-4 border-b'>
-              <div className='col-span-5 font-medium text-gray-700'>পণ্য</div>
-              <div className='col-span-2 font-medium text-gray-700 text-center'>দাম</div>
-              <div className='col-span-3 font-medium text-gray-700 text-center'>পরিমাণ</div>
-              <div className='col-span-2 font-medium text-gray-700 text-right'>মোট</div>
-            </div>
-
-            {/* Cart items */}
-            {shopCart.items.map(item => (
+        <div className='grid gap-6 lg:grid-cols-3'>
+          {/* ── Cart Items ── */}
+          <div className='space-y-4 lg:col-span-2'>
+            {shopCarts.map(shopCart => (
               <div
-                key={item.cartItemId}
-                className='grid grid-cols-1 sm:grid-cols-12 p-3 sm:p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors'
+                key={shopCart.shopId}
+                className='overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm'
               >
-                {/* Product info */}
-                <div className='col-span-6 md:col-span-5 flex items-start sm:items-center mb-2 sm:mb-0'>
-                  <div className='relative h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200'>
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className='h-full w-full object-cover object-center'
-                      onError={e => {
-                        ;(e.target as HTMLImageElement).src = '/placeholder-product.jpg'
-                      }}
-                    />
-                  </div>
-                  <div className='ml-3 sm:ml-4 flex-1 min-w-0'>
-                    <h3 className='text-sm font-medium text-gray-900 line-clamp-2 sm:line-clamp-1'>
-                      {item.name}
-                    </h3>
-
-                    {/* Display selected options */}
-                    {Object.entries(item.selectedOptions).length > 0 && (
-                      <div className='mt-1 text-xs text-gray-500'>
-                        {Object.entries(item.selectedOptions).map(([key, value]) => (
-                          <p key={key} className='truncate'>
-                            {key}: {value}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Display selected add-ons */}
-                    {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                      <div className='mt-1 text-xs text-green-600'>
-                        <p className='truncate'>
-                          অতিরিক্ত: {item.selectedAddOns.map(addOn => addOn.name).join(', ')}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Price */}
-                <div className='hidden md:flex flex-col items-center justify-center col-span-2'>
-                  <p className='text-xs text-gray-900'>
-                    ৳{item.sellingPrice.toLocaleString('bn-BD')}
-                  </p>
-                  {/* {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                    <p className='text-xs text-green-600 mt-1'>
-                      +৳
-                      {item.selectedAddOns
-                        .reduce((sum, addOn) => sum + addOn.price, 0)
-                        .toLocaleString('bn-BD')}
-                    </p>
-                  )} */}
-                </div>
-
-                {/* Quantity */}
-                <div className='col-span-4 md:col-span-3 flex items-center justify-start sm:justify-center mt-2 sm:mt-0'>
-                  <span className='text-[10px] text-gray-500 mr-1 md:hidden'>পরিমাণ:</span>
-                  <div className='flex items-center border rounded-md'>
-                    <button
-                      onClick={() =>
-                        updateQuantity(shopCart.shopId, item.cartItemId, item.quantity - 1)
-                      }
-                      className='px-2 py-1 text-gray-600 hover:bg-gray-100'
-                      disabled={isUpdating === item.productId}
-                    >
-                      <FiChevronLeft size={8} />
-                    </button>
-                    <span className='px-1 sm:px-2 py-0.5 sm:py-1 text-center text-xs sm:text-sm max-w-[16px] sm:max-w-[20px] min-w-[16px] sm:min-w-[20px]'>
-                      {isUpdating === item.productId ? (
-                        <div className='inline-block h-1 w-1 sm:h-1.5 sm:w-1.5 animate-spin rounded-full border border-solid sm:border-2 border-blue-500 border-r-transparent'></div>
-                      ) : (
-                        <span className='text-xs sm:text-sm'>{item.quantity}</span>
-                      )}
-                    </span>
-                    <button
-                      onClick={() =>
-                        updateQuantity(shopCart.shopId, item.cartItemId, item.quantity + 1)
-                      }
-                      className='px-2 py-1 text-gray-600 hover:bg-gray-100'
-                      disabled={isUpdating === item.productId}
-                    >
-                      <FiChevronRight size={8} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Total and remove */}
-                <div className='col-span-2 flex flex-col sm:items-end justify-between sm:justify-center mt-3 sm:mt-0'>
-                  <div className='flex flex-col sm:block text-right'>
-                    <p className='text-gray-900 text-sm pb-1'>
-                      মোট: ৳{(item.sellingPrice * item.quantity).toLocaleString('bn-BD')}
-                    </p>
-                    {/* Mobile price info */}
-                    <div className='md:hidden'>
-                      <p className='text-xs text-gray-900'>
-                        প্রতি পিস: ৳{item.sellingPrice.toLocaleString('bn-BD')}
+                {/* Shop Header */}
+                <div className='flex items-center justify-between border-b border-gray-50 bg-[#f7f6f3] px-5 py-4'>
+                  <div className='flex items-center gap-3'>
+                    <div className='flex h-9 w-9 items-center justify-center rounded-xl bg-[#1a1a2e]'>
+                      <FaStore className='h-3.5 w-3.5 text-white/60' />
+                    </div>
+                    <div>
+                      <p className='text-[14px] font-semibold text-[#1a1a2e]'>
+                        {shopCart.shopName}
                       </p>
-                      {/* {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                        <p className='text-xs text-green-600'>
-                          অতিরিক্ত: +৳
-                          {item.selectedAddOns
-                            .reduce((sum, addOn) => sum + addOn.price, 0)
-                            .toLocaleString('bn-BD')}
-                        </p>
-                      )} */}
+                      {shopCart.shopLocation && (
+                        <p className='text-[11px] text-gray-400'>{shopCart.shopLocation}</p>
+                      )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => removeItem(shopCart.shopId, item.cartItemId)}
-                    className='mt-1 text-xs text-red-600 hover:text-red-800 flex items-center justify-end sm:justify-start'
-                  >
-                    <FiTrash2 className='mr-1' size={12} />
-                    সরান
-                  </button>
+                  {shopCart.shopLocation && (
+                    <div className='hidden text-right sm:block'>
+                      <p className='text-[11px] text-gray-400'>
+                        ডেলিভারি: ভিতরে ৳{shopCart.totalDeliveryChargeInside} / বাইরে ৳
+                        {shopCart.totalDeliveryChargeOutside}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cart Items */}
+                <div className='divide-y divide-gray-50'>
+                  {shopCart.items.map(item => (
+                    <div
+                      key={item.cartItemId}
+                      className='flex items-start gap-4 p-5 transition hover:bg-gray-50/50'
+                    >
+                      {/* Image */}
+                      <div className='h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-gray-100'>
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className='h-full w-full object-cover'
+                          onError={e => {
+                            ;(e.target as HTMLImageElement).src = '/placeholder-product.jpg'
+                          }}
+                        />
+                      </div>
+
+                      {/* Info */}
+                      <div className='flex min-w-0 flex-1 flex-col gap-2'>
+                        <h3 className='line-clamp-2 text-[13px] font-semibold text-[#1a1a2e]'>
+                          {item.name}
+                        </h3>
+
+                        {Object.entries(item.selectedOptions).length > 0 && (
+                          <div className='flex flex-wrap gap-1.5'>
+                            {Object.entries(item.selectedOptions).map(([key, value]) => (
+                              <span
+                                key={key}
+                                className='rounded-full border border-gray-100 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500'
+                              >
+                                {key}: {value}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                          <p className='text-[11px] text-emerald-600'>
+                            অতিরিক্ত: {item.selectedAddOns.map(a => a.name).join(', ')}
+                          </p>
+                        )}
+
+                        <div className='flex items-center justify-between'>
+                          {/* Quantity */}
+                          <div className='flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white'>
+                            <button
+                              onClick={() =>
+                                updateQuantity(shopCart.shopId, item.cartItemId, item.quantity - 1)
+                              }
+                              disabled={isUpdating === item.productId}
+                              className='flex h-8 w-8 items-center justify-center text-gray-400 transition hover:bg-gray-50 hover:text-gray-900'
+                            >
+                              <FiChevronLeft className='h-3.5 w-3.5' />
+                            </button>
+                            <span className='flex w-8 items-center justify-center text-[13px] font-bold text-[#1a1a2e]'>
+                              {isUpdating === item.productId ? (
+                                <span className='h-3 w-3 animate-spin rounded-full border border-gray-300 border-t-[#e94560]' />
+                              ) : (
+                                item.quantity
+                              )}
+                            </span>
+                            <button
+                              onClick={() =>
+                                updateQuantity(shopCart.shopId, item.cartItemId, item.quantity + 1)
+                              }
+                              disabled={isUpdating === item.productId}
+                              className='flex h-8 w-8 items-center justify-center text-gray-400 transition hover:bg-gray-50 hover:text-gray-900'
+                            >
+                              <FiChevronRight className='h-3.5 w-3.5' />
+                            </button>
+                          </div>
+
+                          {/* Price & remove */}
+                          <div className='flex items-center gap-3'>
+                            <div className='text-right'>
+                              <p className='text-[14px] font-bold text-[#1a1a2e]'>
+                                ৳{(item.sellingPrice * item.quantity).toLocaleString('bn-BD')}
+                              </p>
+                              <p className='text-[11px] text-gray-400'>
+                                ৳{item.sellingPrice.toLocaleString('bn-BD')} × {item.quantity}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => removeItem(shopCart.shopId, item.cartItemId)}
+                              className='flex h-8 w-8 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-400 transition hover:bg-red-100 hover:text-red-600'
+                            >
+                              <FiTrash2 className='h-3.5 w-3.5' />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Shop Footer */}
+                <div className='border-t border-gray-50 bg-[#f7f6f3]/60 px-5 py-4'>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <p className='text-[12px] text-gray-400'>
+                        {calculateShopTotalItems(shopCart.items)} টি পণ্য
+                      </p>
+                      <p className='text-[14px] font-bold text-[#1a1a2e]'>
+                        মোট: ৳{calculateShopSubtotal(shopCart.items).toLocaleString('bn-BD')}
+                      </p>
+                      {shopCart.shopLocation && (
+                        <p className='text-[11px] text-gray-400'>
+                          ডেলিভারি (ভিতরে): ৳{shopCart.totalDeliveryChargeInside}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleOrderClick(shopCart.shopId)}
+                      className='flex items-center gap-2 rounded-xl bg-[#e94560] px-5 py-3 text-[13px] font-semibold text-white shadow-[0_4px_16px_rgba(233,69,96,0.25)] transition hover:bg-[#c73652] active:scale-[0.97]'
+                    >
+                      <FiShoppingCart className='h-4 w-4' />
+                      অর্ডার করুন
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
+          </div>
 
-            {/* Shop Cart Summary */}
-            <div className='p-4 border-t'>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
-                <div>
-                  <p className='text-sm text-gray-600'>
-                    মোট পণ্য: {calculateShopTotalItems(shopCart.items)} টি
-                  </p>
-                  <p className='text-sm font-medium text-gray-900'>
-                    মোট মূল্য: ৳{calculateShopSubtotal(shopCart.items).toLocaleString('bn-BD')}
-                  </p>
-                </div>
-                <div className='text-right'>
-                  {shopCart.shopLocation && (
-                    <>
-                      <p className='text-sm text-gray-600'>
-                        ডেলিভারি চার্জ (শহরে - {shopCart.shopLocation}): ৳
-                        {shopCart.totalDeliveryChargeInside}
-                      </p>
-                      <p className='text-sm text-gray-600'>
-                        ডেলিভারি চার্জ (বাইরে): ৳{shopCart.totalDeliveryChargeOutside}
-                      </p>
-                    </>
-                  )}
-                </div>
+          {/* ── Order Summary Sidebar ── */}
+          <div className='lg:col-span-1'>
+            <div className='sticky top-20 overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm'>
+              {/* Header */}
+              <div className='border-b border-gray-50 px-5 py-4'>
+                <h2 className='text-[14px] font-bold text-[#1a1a2e]'>অর্ডার সারাংশ</h2>
               </div>
-              <div className='flex justify-end'>
-                <button
-                  onClick={() => handleOrderClick(shopCart.shopId)}
-                  className='px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm'
-                >
-                  এই দোকান থেকে অর্ডার করুন
-                </button>
+
+              <div className='space-y-3 p-5'>
+                {/* Stats */}
+                {[
+                  { label: 'মোট দোকান', value: `${shopCarts.length} টি` },
+                  { label: 'মোট পণ্য', value: `${calculateTotalItems()} টি` },
+                ].map(({ label, value }) => (
+                  <div key={label} className='flex items-center justify-between'>
+                    <span className='text-[13px] text-gray-500'>{label}</span>
+                    <span className='text-[13px] font-medium text-[#1a1a2e]'>{value}</span>
+                  </div>
+                ))}
+
+                <div className='my-1 border-t border-gray-100' />
+
+                <div className='flex items-center justify-between'>
+                  <span className='text-[14px] font-semibold text-[#1a1a2e]'>সর্বমোট মূল্য</span>
+                  <span className='text-lg font-bold text-[#e94560]'>
+                    ৳
+                    {shopCarts
+                      .reduce((sum, shop) => sum + calculateShopSubtotal(shop.items), 0)
+                      .toLocaleString('bn-BD')}
+                  </span>
+                </div>
+
+                <p className='text-[11px] text-gray-400'>* ডেলিভারি চার্জ আলাদাভাবে যোগ হবে</p>
+              </div>
+
+              {/* Trust badges */}
+              <div className='border-t border-gray-50 bg-[#f7f6f3]/60 px-5 py-4'>
+                <div className='space-y-2'>
+                  {[
+                    {
+                      icon: FiCheckCircle,
+                      text: 'নিরাপদ অর্ডার প্রক্রিয়া',
+                      color: 'text-emerald-500',
+                    },
+                    {
+                      icon: FiShield,
+                      text: 'ডেলিভারিতে পণ্য পরীক্ষা করুন',
+                      color: 'text-blue-500',
+                    },
+                  ].map(({ icon: Icon, text, color }, i) => (
+                    <div key={i} className='flex items-center gap-2'>
+                      <Icon className={`h-3.5 w-3.5 shrink-0 ${color}`} />
+                      <p className='text-[11px] text-gray-500'>{text}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      ))}
-
-      {/* Global Cart Summary */}
-      <div className='bg-white rounded-lg shadow-md p-4 mt-6'>
-        <h2 className='text-lg font-medium mb-4'>সর্বমোট অর্ডার সারাংশ</h2>
-        <div className='space-y-3'>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>মোট দোকান:</span>
-            <span className='font-medium'>{shopCarts.length} টি</span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>মোট পণ্য:</span>
-            <span className='font-medium'>{calculateTotalItems()} টি</span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>সর্বমোট মূল্য:</span>
-            <span className='font-medium'>
-              ৳
-              {shopCarts
-                .reduce((sum, shop) => sum + calculateShopSubtotal(shop.items), 0)
-                .toLocaleString('bn-BD')}
-            </span>
           </div>
         </div>
       </div>

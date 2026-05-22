@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import {
   FaBook,
@@ -12,216 +13,294 @@ import {
   FaQuestionCircle,
   FaShieldAlt,
   FaTicketAlt,
+  FaWallet,
 } from 'react-icons/fa'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { getAllAnnouncements } from '../Api/announcements.api'
 import { useAuth } from '../Hooks/useAuth'
 
+// Animation variants
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+}
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+  },
+}
+
 const SellerHomeDashboard = () => {
   const navigate = useNavigate()
-  // Sample balance data (negative for demo)
-  const [announcements, setAnnouncements] = useState<string[]>()
+  const [announcements, setAnnouncements] = useState<string[]>([])
   const { user } = useAuth()
-  const currentBalance = user?.balance || 0 // Example balance, replace with actual data
+  const currentBalance = user?.balance || 0
 
   const fetchAnnouncements = async () => {
     const { success, data } = await getAllAnnouncements()
-    // const test = await transactionApi.getIncomeStatisticsOfAUser()
-
     if (success) {
       setAnnouncements(data || [])
     } else {
       console.error('Failed to fetch announcements')
     }
   }
+
   useEffect(() => {
     fetchAnnouncements()
   }, [])
 
+  // All links blended together – no separation between active and upcoming
   const quickLinks: { title: string; icon: JSX.Element; url: string; upcoming?: boolean }[] = [
     {
       title: 'সকল প্রোডাক্টস',
-      icon: <FaBoxOpen className='text-3xl text-blue-600' />,
+      icon: <FaBoxOpen />,
       url: '/products#products',
     },
     {
       title: 'সকল ক্যাটাগরি',
-      icon: <FaListAlt className='text-3xl text-blue-600' />,
+      icon: <FaListAlt />,
       url: '/categories',
     },
     {
       title: 'সেলস গাইডলাইন',
-      icon: <FaBook className='text-3xl text-green-600' />,
+      icon: <FaBook />,
       url: '/selling-guide',
     },
     {
       title: 'ব্যালেন্স স্টেটমেন্ট',
-      icon: <FaMoneyBillWave className='text-3xl text-purple-600' />,
+      icon: <FaMoneyBillWave />,
       url: '/balance-statement',
     },
     {
       title: 'সাপোর্ট সেন্টার',
-      icon: <FaHeadset className='text-3xl text-red-600' />,
+      icon: <FaHeadset />,
       url: '/support',
     },
-
     {
       title: 'সাধারণ প্রশ্ন',
-      icon: <FaQuestionCircle className='text-3xl text-indigo-600' />,
+      icon: <FaQuestionCircle />,
       url: '/faq',
     },
     {
       title: 'প্যাসিভ ইনকাম',
-      icon: <FaCoins className='text-3xl text-yellow-600' />,
+      icon: <FaCoins />,
       url: '/passive-income',
-      // upcoming: true
+      upcoming: true,
     },
     {
       title: 'সেলার ইনকাম',
-      icon: <FaBoxOpen className='text-3xl text-blue-600' />,
+      icon: <FaBoxOpen />,
       url: '/seller-income',
-      // upcoming: true,
+      upcoming: true,
     },
     {
       title: 'ফ্রড চেকার',
-      icon: <FaShieldAlt className='text-3xl text-teal-600' />,
+      icon: <FaShieldAlt />,
       url: '/check-fraud',
     },
     {
       title: 'পার্সেল ট্র্যাকিং',
-      icon: <FaMapMarkerAlt className='text-3xl text-pink-600' />,
+      icon: <FaMapMarkerAlt />,
       url: '/track-parcel',
       upcoming: true,
     },
     {
       title: 'সাপোর্ট টিকেট',
-      icon: <FaTicketAlt className='text-3xl text-orange-600' />,
+      icon: <FaTicketAlt />,
       url: '/support-tickets',
-      // upcoming: true,
     },
   ]
 
   return (
-    <div className='min-h-screen bg-gray-50 p-4 md:p-8'>
-      <div className='max-w-6xl mx-auto'>
-        {/* Announcement Bar with Moving Text */}
-        {/* Announcement Section - Beautiful Static Display */}
-        {announcements?.length! > 0 && (
-          <div className='bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg mb-4 p-3 shadow-md w-full'>
-            <div className='flex items-center mb-2'>
-              <FaBullhorn className='text-lg mr-2 flex-shrink-0' />
-              <h3 className='font-semibold text-sm'>নোটিশ বোর্ড</h3>
-            </div>
-            <div className='w-full max-h-40 overflow-y-auto'>
-              {announcements?.map((announcement, index) => (
-                <div
-                  key={index}
-                  className='py-2 flex items-start text-sm border-b border-indigo-400 border-opacity-30 last:border-b-0'
-                >
-                  <span className='w-2 h-2 bg-white rounded-full mt-2 mr-3 flex-shrink-0'></span>
-                  <p className='flex-1'>{announcement}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+    <div className='min-h-screen bg-[#f7f6f3]'>
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8'>
+        {/* Welcome Section with Balance Card */}
+        <motion.div initial='hidden' animate='visible' variants={staggerContainer} className='mb-8'>
+          <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
+            <motion.div variants={fadeUp}>
+              <h1 className='text-2xl md:text-3xl font-bold text-[#1a1a2e]'>
+                স্বাগতম, {user?.name?.split(' ')[0] || 'সেলার'}!
+              </h1>
+              <p className='text-gray-500 text-sm mt-1'>
+                আপনার ড্যাশবোর্ডে স্বাগতম। আজকের আপডেট ও কার্যক্রম দেখুন।
+              </p>
+            </motion.div>
 
-        {/* Pay Due Alert (if balance is negative) */}
-        {currentBalance < 0 && (
-          <div className='bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg'>
-            <div className='flex items-start'>
-              <div className='flex-shrink-0'>
-                <FaExclamationTriangle className='h-5 w-5 text-red-600' />
-              </div>
-              <div className='ml-3 flex-1'>
-                <div className='flex justify-between items-center'>
-                  <p className='text-sm text-red-700 font-medium'>
-                    আপনার অ্যাকাউন্টে {Math.abs(currentBalance)} টাকা বকেয়া রয়েছে
+            {/* Balance Card */}
+            <motion.div
+              variants={fadeUp}
+              className='bg-gradient-to-r from-[#1a1a2e] to-[#16213e] rounded-2xl p-4 shadow-lg'
+            >
+              <div className='flex items-center gap-3'>
+                <div className='h-10 w-10 rounded-xl bg-rose-500/20 flex items-center justify-center'>
+                  <FaWallet className='h-5 w-5 text-rose-400' />
+                </div>
+                <div>
+                  <p className='text-white/50 text-xs uppercase tracking-wider'>
+                    বর্তমান ব্যালেন্স
                   </p>
-                  <NavLink
-                    to='/pay-due'
-                    className='px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors'
-                  >
-                    পেমেন্ট করুন
-                  </NavLink>
+                  <p className='text-white text-xl font-bold'>
+                    ৳{currentBalance.toLocaleString('bn-BD')}
+                  </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
+        </motion.div>
+
+        {/* Announcements Section */}
+        {announcements.length > 0 && (
+          <motion.div initial='hidden' animate='visible' variants={fadeUp} className='mb-8'>
+            <div className='bg-gradient-to-r from-rose-50 to-amber-50 rounded-2xl border border-rose-100 overflow-hidden shadow-sm'>
+              <div className='px-5 py-3 border-b border-rose-100 bg-white/50 flex items-center gap-2'>
+                <FaBullhorn className='h-4 w-4 text-rose-500' />
+                <h3 className='font-semibold text-[#1a1a2e] text-sm uppercase tracking-wider'>
+                  নোটিশ বোর্ড
+                </h3>
+              </div>
+              <div className='max-h-48 overflow-y-auto divide-y divide-rose-100'>
+                {announcements.map((announcement, index) => (
+                  <div key={index} className='px-5 py-3 hover:bg-white/50 transition-colors'>
+                    <div className='flex items-start gap-3'>
+                      <div className='h-1.5 w-1.5 rounded-full bg-rose-400 mt-2 flex-shrink-0' />
+                      <p className='text-sm text-gray-700 flex-1'>{announcement}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
         )}
-        {/* Fraud Check Warning */}
-        <div className='bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-r-lg'>
-          <div className='flex items-start'>
-            <div className='flex-shrink-0'>
-              <FaExclamationTriangle className='h-5 w-5 text-yellow-600' />
-            </div>
-            <div className='ml-3 flex-1'>
-              <div className='flex justify-between items-center'>
-                <p className='text-xs text-yellow-700 font-medium'>
-                  অর্ডার প্লেস করার আগে জালিয়াতি এড়াতে অনুগ্রহ করে গ্রাহকের অর্ডার ইতিহাস যাচাই
-                  করুন।
-                </p>
-                <button
-                  onClick={() => navigate('/check-fraud')}
-                  className='px-3 py-1 bg-yellow-600 text-white text-xs rounded-md hover:bg-yellow-700 transition-colors'
-                >
-                  ফ্রড চেক করুন
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Quick Links Grid - Updated to show 3 columns on mobile */}
-        <div className='grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2 md:gap-4'>
-          {quickLinks.map((link, index) =>
-            link.upcoming ? (
-              // Upcoming feature (not clickable)
-              <div
-                key={index}
-                className='bg-white rounded-lg shadow-sm p-2 md:p-4 flex flex-col items-center text-center border border-gray-100 relative opacity-80'
-              >
-                <span className='absolute top-1 right-1 bg-yellow-100 text-yellow-800 text-[8px] px-1 py-0.5 rounded-full'>
-                  শীঘ্রই আসছে
-                </span>
-                <div className='mb-2 p-2 bg-gray-100 rounded-full'>{link.icon}</div>
-                <h3 className='text-xs font-semibold text-gray-800 mb-1 line-clamp-2'>
-                  {link.title}
-                </h3>
-                <span className='mt-1 text-gray-500 text-[10px] font-medium'>শীঘ্রই আসছে</span>
-              </div>
-            ) : (
-              // Available feature (entire box is clickable)
-              <NavLink
-                key={index}
-                to={link.url}
-                className='bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 p-2 md:p-4 flex flex-col items-center text-center border border-gray-100 hover:border-blue-200 relative group'
-              >
-                <div className='mb-2 p-2 bg-blue-50 rounded-full group-hover:bg-blue-100 transition-colors'>
-                  {link.icon}
+        {/* Alerts Section */}
+        <motion.div
+          initial='hidden'
+          animate='visible'
+          variants={staggerContainer}
+          className='space-y-4 mb-8'
+        >
+          {/* Due Payment Alert */}
+          {currentBalance < 0 && (
+            <motion.div
+              variants={fadeUp}
+              className='bg-red-50 border-l-4 border-red-500 rounded-r-xl p-4 shadow-sm'
+            >
+              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                <div className='flex items-start gap-3'>
+                  <FaExclamationTriangle className='h-5 w-5 text-red-500 flex-shrink-0 mt-0.5' />
+                  <div>
+                    <p className='text-sm font-semibold text-red-700'>
+                      আপনার অ্যাকাউন্টে বকেয়া রয়েছে
+                    </p>
+                    <p className='text-xs text-red-600 mt-0.5'>
+                      পরিমাণ: ৳{Math.abs(currentBalance).toLocaleString('bn-BD')}
+                    </p>
+                  </div>
                 </div>
-                <h3 className='text-xs font-semibold text-gray-800 mb-1 line-clamp-2'>
-                  {link.title}
-                </h3>
-              </NavLink>
-            )
+                <NavLink
+                  to='/pay-due'
+                  className='px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-xl hover:bg-red-600 transition-all text-center shadow-sm'
+                >
+                  পেমেন্ট করুন
+                </NavLink>
+              </div>
+            </motion.div>
           )}
-        </div>
 
-        {/* Add your other sections here if needed */}
+          {/* Fraud Check Warning */}
+          <motion.div
+            variants={fadeUp}
+            className='bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-4 shadow-sm'
+          >
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+              <div className='flex items-start gap-3'>
+                <FaShieldAlt className='h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5' />
+                <div>
+                  <p className='text-sm font-semibold text-amber-700'>
+                    জালিয়াতি এড়াতে সতর্ক থাকুন
+                  </p>
+                  <p className='text-xs text-amber-600 mt-0.5'>
+                    অর্ডার প্লেস করার আগে গ্রাহকের অর্ডার ইতিহাস যাচাই করুন
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/check-fraud')}
+                className='px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-xl hover:bg-amber-600 transition-all text-center shadow-sm'
+              >
+                ফ্রড চেক করুন
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Quick Links Grid – No heading, all links blended */}
+        <motion.div
+          initial='hidden'
+          animate='visible'
+          variants={staggerContainer}
+          className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4'
+        >
+          {quickLinks.map((link, index) => (
+            <motion.div
+              key={index}
+              variants={fadeUp}
+              whileHover={{ y: -4 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+              className='relative'
+            >
+              {link.upcoming ? (
+                // Upcoming link – non-clickable, with badge
+                <div className='bg-white/70 rounded-2xl p-4 text-center border border-gray-100 opacity-80 cursor-default'>
+                  <span className='absolute -top-2 -right-2 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm'>
+                    শীঘ্রই
+                  </span>
+                  <div className='flex justify-center mb-3'>
+                    <div className='h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400'>
+                      {link.icon}
+                    </div>
+                  </div>
+                  <h3 className='text-xs font-medium text-gray-500'>{link.title}</h3>
+                </div>
+              ) : (
+                // Active link – clickable
+                <NavLink
+                  to={link.url}
+                  className='group block bg-white rounded-2xl p-4 text-center border border-gray-100 hover:border-rose-200 hover:shadow-lg transition-all duration-300'
+                >
+                  <div className='flex justify-center mb-3'>
+                    <div className='h-12 w-12 rounded-xl bg-gradient-to-br from-rose-50 to-rose-100 flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform duration-300'>
+                      {link.icon}
+                    </div>
+                  </div>
+                  <h3 className='text-xs font-medium text-gray-800 group-hover:text-rose-600 transition-colors'>
+                    {link.title}
+                  </h3>
+                </NavLink>
+              )}
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Additional Info Section */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className='mt-10 pt-6 border-t border-gray-200 text-center'
+        >
+          <p className='text-xs text-gray-400'>
+            কোনো সমস্যা হলে আমাদের{' '}
+            <NavLink to='/support-tickets' className='text-rose-500 hover:underline'>
+              সাপোর্ট সেন্টার
+            </NavLink>{' '}
+            এ যোগাযোগ করুন
+          </p>
+        </motion.div>
       </div>
-
-      {/* CSS for marquee animation */}
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          animation: marquee 20s linear infinite;
-          display: inline-block;
-        }
-      `}</style>
     </div>
   )
 }

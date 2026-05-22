@@ -13,7 +13,7 @@ const axiosInstance = axios.create({
 // Optional: Adding request interceptors
 axiosInstance.interceptors.request.use(
   config => {
-    // 1. Add Authorization Header if token exists (for JWT in localStorage)
+    // 1. Add Authorization Header if token exists (for JWT in localStorage) or you can manage tokens in cookies as well
     const token = localStorage.getItem('token')
     if (token && localStorageAvailable) {
       config.headers.Authorization = `Bearer ${token}`

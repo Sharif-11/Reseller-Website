@@ -18,5 +18,27 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Fetch data from the API and create the mapping
+fetch('https://bdapis.com/api/v1.2/districts')
+  .then(response => response.json())
+  .then(data => {
+    // Create the mapping object
+    const bengaliToEnglishMap = {};
+    
+    data.data.forEach(district => {
+      bengaliToEnglishMap[district.districtbn] = district.district;
+    });
+    
+    console.log(bengaliToEnglishMap);
+    
+    // Example usage:
+    console.log(bengaliToEnglishMap['ঢাকা']); // Output: Dhaka
+    console.log(bengaliToEnglishMap['চট্টগ্রাম']); // Output: Chattogram
+  })
+  .catch(error => {
+    console.error('Error fetching data:', error);
+  });
+    </script>
   </body>
 </html>

@@ -1,4 +1,7 @@
+// ReferredCustomers.tsx — BazaarHub design system
+// Tokens: navy #1a1a2e · rose #e94560 · cream #f7f6f3
 import { useEffect, useState } from 'react'
+import { FiChevronLeft, FiChevronRight, FiPhone, FiSearch, FiUsers, FiX } from 'react-icons/fi'
 import { userApi } from '../Api/user.api'
 
 export interface Customer {
@@ -8,13 +11,85 @@ export interface Customer {
   createdAt: string
 }
 
-export interface ReferredCustomersResponse {
-  customers: Customer[]
-  totalCount: number
-  totalPages: number
-  currentPage: number
+/* ─── Pagination ─── */
+const Pagination = ({
+  current,
+  total,
+  onChange,
+}: {
+  current: number
+  total: number
+  onChange: (p: number) => void
+}) => {
+  if (total <= 1) return null
+
+  const maxVisible = 3
+  let start = Math.max(1, current - 1)
+  let end = Math.min(total, start + maxVisible - 1)
+  if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1)
+
+  const pages: number[] = []
+  for (let i = start; i <= end; i++) pages.push(i)
+
+  const btnBase =
+    'flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-medium transition'
+
+  return (
+    <div className='flex items-center justify-center gap-1.5 px-4 py-3'>
+      <button
+        onClick={() => onChange(current - 1)}
+        disabled={current === 1}
+        className={`${btnBase} border border-gray-100 bg-white text-gray-500 hover:border-gray-200 disabled:opacity-30`}
+      >
+        <FiChevronLeft className='h-3.5 w-3.5' />
+      </button>
+
+      {start > 1 && (
+        <>
+          <button
+            onClick={() => onChange(1)}
+            className={`${btnBase} border border-gray-100 bg-white text-gray-600 hover:border-gray-200`}
+          >
+            1
+          </button>
+          {start > 2 && <span className='px-1 text-[12px] text-gray-300'>···</span>}
+        </>
+      )}
+
+      {pages.map(p => (
+        <button
+          key={p}
+          onClick={() => onChange(p)}
+          className={`${btnBase} ${p === current ? 'bg-[#e94560] text-white shadow-sm' : 'border border-gray-100 bg-white text-gray-600 hover:border-gray-200'}`}
+        >
+          {p}
+        </button>
+      ))}
+
+      {end < total && (
+        <>
+          {end < total - 1 && <span className='px-1 text-[12px] text-gray-300'>···</span>}
+          <button
+            onClick={() => onChange(total)}
+            className={`${btnBase} border border-gray-100 bg-white text-gray-600 hover:border-gray-200`}
+          >
+            {total}
+          </button>
+        </>
+      )}
+
+      <button
+        onClick={() => onChange(current + 1)}
+        disabled={current === total}
+        className={`${btnBase} border border-gray-100 bg-white text-gray-500 hover:border-gray-200 disabled:opacity-30`}
+      >
+        <FiChevronRight className='h-3.5 w-3.5' />
+      </button>
+    </div>
+  )
 }
 
+/* ════════════════════════════════════════════ */
 const ReferredCustomers = () => {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
@@ -22,33 +97,33 @@ const ReferredCustomers = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-
+  const [totalCount, setTotalCount] = useState(0)
   const limit = 5
-
-  useEffect(() => {
-    fetchReferredCustomers()
-  }, [currentPage])
 
   const fetchReferredCustomers = async () => {
     try {
       setLoading(true)
+      setError('')
       const response = await userApi.getReferredCustomersBySeller({
         page: currentPage,
         limit,
         search: searchTerm,
       })
-
       if (response.data) {
         setCustomers(response.data.customers)
         setTotalPages(response.data.totalPages)
+        setTotalCount(response.data.totalCount)
       }
-    } catch (err) {
+    } catch {
       setError('ডেটা লোড করতে সমস্যা হয়েছে')
-      console.error(err)
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchReferredCustomers()
+  }, [currentPage])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,242 +138,138 @@ const ReferredCustomers = () => {
     }
   }
 
-  const renderCompactPagination = () => {
-    const pages = []
-    const maxVisible = 3
-
-    let startPage = Math.max(1, currentPage - 1)
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1)
-
-    if (endPage - startPage + 1 < maxVisible) {
-      startPage = Math.max(1, endPage - maxVisible + 1)
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`w-8 h-8 text-sm rounded-lg transition-all ${
-            currentPage === i
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          {i}
-        </button>
-      )
-    }
-
-    return (
-      <div className='flex items-center justify-center space-x-2 mt-4 px-4'>
-        <button
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className='p-2 text-gray-600 disabled:opacity-40 hover:bg-gray-100 rounded-lg transition-colors'
-        >
-          <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-            <path
-              strokeLinecap='round'
-              strokeLinejoin='round'
-              strokeWidth={2}
-              d='M15 19l-7-7 7-7'
-            />
-          </svg>
-        </button>
-
-        <div className='flex space-x-1'>
-          {startPage > 1 && (
-            <>
-              <button
-                onClick={() => handlePageChange(1)}
-                className='w-8 h-8 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200'
-              >
-                1
-              </button>
-              {startPage > 2 && <span className='px-1 text-gray-400 text-sm'>...</span>}
-            </>
-          )}
-
-          {pages}
-
-          {endPage < totalPages && (
-            <>
-              {endPage < totalPages - 1 && <span className='px-1 text-gray-400 text-sm'>...</span>}
-              <button
-                onClick={() => handlePageChange(totalPages)}
-                className='w-8 h-8 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200'
-              >
-                {totalPages}
-              </button>
-            </>
-          )}
-        </div>
-
-        <button
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className='p-2 text-gray-600 disabled:opacity-40 hover:bg-gray-100 rounded-lg transition-colors'
-        >
-          <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
-          </svg>
-        </button>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className='flex justify-center items-center h-40 px-4'>
-        <div className='animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent'></div>
-      </div>
-    )
-  }
-
   return (
-    <div className='min-h-screen bg-gray-50 p-3 sm:p-4'>
-      <div className='max-w-4xl mx-auto'>
-        {/* Header Section */}
-        <div className='bg-white rounded-2xl shadow-sm p-4 mb-4'>
-          <div className='flex flex-col space-y-4'>
-            {/* Title & Count */}
-            <div className='flex items-center justify-between'>
-              <div>
-                <h1 className='text-xl font-bold text-gray-900'>রেফার্ড কাস্টমার</h1>
-                <p className='text-sm text-gray-500'>মোট {customers.length} জন</p>
-              </div>
-            </div>
-
-            {/* Search Control */}
-            <div className='flex flex-col sm:flex-row gap-3'>
-              <form onSubmit={handleSearch} className='flex flex-1'>
-                <input
-                  type='text'
-                  placeholder='ফোন নম্বর খুঁজুন...'
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className='flex-1 px-3 py-2.5 text-sm border border-gray-200 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
-                />
-                <button
-                  type='submit'
-                  className='bg-indigo-600 text-white px-4 py-2.5 rounded-r-xl hover:bg-indigo-700 transition-colors flex items-center justify-center'
-                >
-                  <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
-                    />
-                  </svg>
-                </button>
-              </form>
-            </div>
+    <div className='min-h-screen bg-[#f7f6f3] px-4 py-6 sm:px-6'>
+      <div className='mx-auto max-w-2xl'>
+        {/* ── Page header ── */}
+        <div className='mb-5 flex items-center justify-between'>
+          <div>
+            <h1 className='font-serif text-[22px] font-bold text-[#1a1a2e]'>রেফার্ড কাস্টমার</h1>
+            <p className='mt-0.5 text-[13px] text-gray-400'>
+              {loading ? 'লোড হচ্ছে...' : `মোট ${totalCount} জন কাস্টমার`}
+            </p>
+          </div>
+          <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-[#1a1a2e]'>
+            <FiUsers className='h-4 w-4 text-white' />
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className='bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex items-center text-sm'>
-            <svg
-              className='h-4 w-4 mr-2 flex-shrink-0'
-              fill='none'
-              stroke='currentColor'
-              viewBox='0 0 24 24'
+        {/* ── Search ── */}
+        <form onSubmit={handleSearch} className='mb-4'>
+          <div className='flex items-center gap-2 rounded-2xl border border-gray-100 bg-white px-4 py-2.5 shadow-sm transition focus-within:border-[#e94560]/30 focus-within:ring-2 focus-within:ring-[#e94560]/10'>
+            <FiSearch className='h-4 w-4 shrink-0 text-gray-300' />
+            <input
+              type='text'
+              placeholder='ফোন নম্বর বা নাম খুঁজুন...'
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className='flex-1 bg-transparent text-[13px] text-[#1a1a2e] outline-none placeholder:text-gray-300'
+            />
+            {searchTerm && (
+              <button
+                type='button'
+                onClick={() => {
+                  setSearchTerm('')
+                  setCurrentPage(1)
+                }}
+                className='text-gray-300 transition hover:text-gray-500'
+              >
+                <FiX className='h-3.5 w-3.5' />
+              </button>
+            )}
+            <button
+              type='submit'
+              className='shrink-0 rounded-xl bg-[#e94560] px-4 py-1.5 text-[12px] font-semibold text-white transition hover:bg-[#c73652]'
             >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-              />
-            </svg>
-            {error}
+              খুঁজুন
+            </button>
+          </div>
+        </form>
+
+        {/* ── Error ── */}
+        {error && (
+          <div className='mb-4 flex items-center gap-3 rounded-2xl border border-[#e94560]/20 bg-[#e94560]/8 px-4 py-3'>
+            <div className='flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#e94560]'>
+              <span className='text-[9px] font-bold text-white'>!</span>
+            </div>
+            <p className='text-[13px] text-[#e94560]'>{error}</p>
           </div>
         )}
 
-        {/* Content */}
-        {customers.length === 0 ? (
-          <div className='bg-white rounded-2xl shadow-sm p-8 text-center'>
-            <div className='w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center'>
-              <svg
-                className='w-8 h-8 text-gray-400'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'
-                />
-              </svg>
+        {/* ── Loading ── */}
+        {loading ? (
+          <div className='flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white py-16'>
+            <div className='relative h-10 w-10'>
+              <div className='absolute inset-0 rounded-full border-2 border-[#1a1a2e]/10' />
+              <div className='absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#e94560]' />
             </div>
-            <h3 className='text-lg font-medium text-gray-900 mb-2'>কোন কাস্টমার পাওয়া যায়নি</h3>
-            <p className='text-gray-500 text-sm mb-4'>
+            <p className='mt-3 text-[12px] text-gray-400'>লোড হচ্ছে...</p>
+          </div>
+        ) : customers.length === 0 ? (
+          /* ── Empty ── */
+          <div className='flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white py-14 text-center'>
+            <div className='mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1a1a2e]/5'>
+              <FiUsers className='h-6 w-6 text-[#1a1a2e]/25' />
+            </div>
+            <h3 className='mb-1 text-[15px] font-semibold text-[#1a1a2e]'>
+              কোন কাস্টমার পাওয়া যায়নি
+            </h3>
+            <p className='text-[13px] text-gray-400'>
               {searchTerm ? 'অনুসন্ধানের সাথে কিছু মেলেনি' : 'কোন কাস্টমার রেফার করেননি'}
             </p>
           </div>
         ) : (
-          <div className='space-y-3'>
-            {/* Customers List */}
-            {customers.map(customer => (
-              <div
-                key={customer.customerId}
-                className='bg-white rounded-xl shadow-sm p-4 transition-all hover:shadow-md'
-              >
-                <div className='flex items-start space-x-3'>
+          /* ── List ── */
+          <div className='overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm'>
+            <div className='divide-y divide-gray-50'>
+              {customers.map((customer, idx) => (
+                <div
+                  key={customer.customerId}
+                  className='flex items-center gap-4 px-5 py-4 transition hover:bg-[#f7f6f3]'
+                >
                   {/* Avatar */}
-                  <div className='w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0'>
-                    <span className='text-white font-semibold text-sm'>
-                      {customer.customerName
-                        ? customer.customerName.charAt(0).toUpperCase()
-                        : customer.customerPhoneNo.charAt(0)}
+                  <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a1a2e] to-[#2d2d4e]'>
+                    <span className='font-serif text-[15px] font-bold text-white'>
+                      {(customer.customerName || customer.customerPhoneNo).charAt(0).toUpperCase()}
                     </span>
                   </div>
 
-                  {/* Content */}
+                  {/* Info */}
                   <div className='flex-1 min-w-0'>
-                    <div className='flex items-start justify-between mb-2'>
-                      <div className='flex-1 min-w-0'>
-                        {customer.customerName && (
-                          <h3 className='font-semibold text-gray-900 text-sm truncate'>
-                            {customer.customerName || 'নাম উল্লেখ নেই'}
-                          </h3>
-                        )}
-                        <p className='text-xs text-gray-600'>{customer.customerPhoneNo}</p>
-                      </div>
-                    </div>
-
-                    {/* Date */}
-                    <div className='flex items-center text-xs text-gray-400'>
-                      <svg
-                        className='w-3 h-3 mr-1.5 flex-shrink-0'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
-                        />
-                      </svg>
-                      <span>
-                        যোগদান: {new Date(customer.createdAt).toLocaleDateString('bn-BD')}
-                      </span>
+                    {customer.customerName && (
+                      <p className='truncate text-[14px] font-semibold text-[#1a1a2e]'>
+                        {customer.customerName}
+                      </p>
+                    )}
+                    <div className='flex items-center gap-1.5'>
+                      <FiPhone className='h-3 w-3 shrink-0 text-gray-300' />
+                      <p className='text-[12px] text-gray-500'>{customer.customerPhoneNo}</p>
                     </div>
                   </div>
+
+                  {/* Date */}
+                  <div className='shrink-0 text-right'>
+                    <p className='text-[10px] text-gray-400'>যোগদান</p>
+                    <p className='text-[12px] font-medium text-gray-600'>
+                      {new Date(customer.createdAt).toLocaleDateString('bn-BD')}
+                    </p>
+                  </div>
+
+                  {/* Index badge */}
+                  <div className='hidden shrink-0 sm:flex h-7 w-7 items-center justify-center rounded-lg bg-[#f7f6f3]'>
+                    <span className='text-[11px] font-bold text-gray-400'>
+                      {(currentPage - 1) * limit + idx + 1}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className='bg-white rounded-2xl shadow-sm py-3'>{renderCompactPagination()}</div>
+              <div className='border-t border-gray-50'>
+                <Pagination current={currentPage} total={totalPages} onChange={handlePageChange} />
+              </div>
             )}
           </div>
         )}

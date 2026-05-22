@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { AlertTriangle, CheckCircle, Package, Search, Shield, Truck, XCircle } from 'lucide-react'
 import { useState } from 'react'
 import { orderApi } from '../Api/order.api'
@@ -21,12 +22,26 @@ interface FraudData {
   }
 }
 
+// Animation variants
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+}
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+  },
+}
+
 // Circular Progress Component
 const CircularProgress = ({
   percentage,
   size = 60,
   strokeWidth = 4,
-  color = '#3b82f6',
+  color = '#e94560',
 }: {
   percentage: number
   size?: number
@@ -61,7 +76,7 @@ const CircularProgress = ({
           className='transition-all duration-500 ease-out'
         />
       </svg>
-      <span className='absolute inset-0 flex items-center justify-center text-xs font-semibold text-gray-700'>
+      <span className='absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700'>
         {percentage}%
       </span>
     </div>
@@ -74,7 +89,6 @@ const FraudCheckComponent = () => {
   const [fraudData, setFraudData] = useState<FraudData | null>(null)
   const [error, setError] = useState<string>('')
 
-  // API call function - replace with your actual API endpoint
   const handleFraudCheck = async (): Promise<void> => {
     if (!mobileNumber.trim()) {
       setError('মোবাইল নম্বর দিন')
@@ -91,7 +105,6 @@ const FraudCheckComponent = () => {
     setFraudData(null)
 
     try {
-      // Replace this with your actual API call
       const { success, data } = await orderApi.fraudCheckByPhoneNo(mobileNumber)
 
       if (success) {
@@ -99,47 +112,6 @@ const FraudCheckComponent = () => {
       } else {
         setError(data.message || 'কিছু ভুল হয়েছে। আবার চেষ্টা করুন।')
       }
-      // setFraudData(response.data)
-      // Mock API call for demonstration
-      // await new Promise(resolve => setTimeout(resolve, 1500))
-      // const mockResponse: FraudResponse = {
-      //   statusCode: 200,
-      //   message: 'Fraud check completed successfully',
-      //   success: true,
-      //   data: {
-      //     mobile_number: mobileNumber,
-      //     total_parcels: 5,
-      //     total_delivered: 4,
-      //     total_cancel: 1,
-      //     apis: {
-      //       Pathao: {
-      //         courier_name: 'Pathao',
-      //         total_parcels: 2,
-      //         total_delivered_parcels: 2,
-      //         total_cancelled_parcels: 0,
-      //       },
-      //       Steadfast: {
-      //         courier_name: 'Steadfast',
-      //         total_parcels: 1,
-      //         total_delivered_parcels: 0,
-      //         total_cancelled_parcels: 1,
-      //       },
-      //       Paperfly: {
-      //         courier_name: 'PaperFly',
-      //         total_parcels: 1,
-      //         total_delivered_parcels: 1,
-      //         total_cancelled_parcels: 0,
-      //       },
-      //       Redex: {
-      //         courier_name: 'Redx',
-      //         total_parcels: 1,
-      //         total_delivered_parcels: 1,
-      //         total_cancelled_parcels: 0,
-      //       },
-      //     },
-      //   },
-      // }
-      // setFraudData(mockResponse)
     } catch (err) {
       setError('কিছু ভুল হয়েছে। আবার চেষ্টা করুন।')
       console.error('Fraud check error:', err)
@@ -152,10 +124,11 @@ const FraudCheckComponent = () => {
     if (reliabilityScore >= 90) {
       return {
         level: 'নিরাপদ',
-        color: 'text-green-600',
-        bg: 'bg-green-50',
+        color: 'text-emerald-600',
+        bg: 'bg-emerald-50',
         icon: CheckCircle,
-        borderColor: 'border-green-200',
+        borderColor: 'border-emerald-200',
+        gradient: 'from-emerald-500 to-emerald-600',
       }
     }
     if (reliabilityScore >= 75) {
@@ -165,52 +138,62 @@ const FraudCheckComponent = () => {
         bg: 'bg-blue-50',
         icon: Shield,
         borderColor: 'border-blue-200',
+        gradient: 'from-blue-500 to-blue-600',
       }
     }
     if (reliabilityScore >= 50) {
       return {
         level: 'মাঝারি ঝুঁকি',
-        color: 'text-yellow-600',
-        bg: 'bg-yellow-50',
+        color: 'text-amber-600',
+        bg: 'bg-amber-50',
         icon: AlertTriangle,
-        borderColor: 'border-yellow-200',
+        borderColor: 'border-amber-200',
+        gradient: 'from-amber-500 to-amber-600',
       }
     }
     return {
       level: 'উচ্চ ঝুঁকি',
-      color: 'text-red-600',
-      bg: 'bg-red-50',
+      color: 'text-rose-600',
+      bg: 'bg-rose-50',
       icon: XCircle,
-      borderColor: 'border-red-200',
+      borderColor: 'border-rose-200',
+      gradient: 'from-rose-500 to-rose-600',
     }
   }
 
   const getProgressColor = (percentage: number): string => {
-    if (percentage >= 80) return '#10b981' // green
-    if (percentage >= 60) return '#3b82f6' // blue
-    if (percentage >= 40) return '#f59e0b' // yellow
-    return '#ef4444' // red
+    if (percentage >= 80) return '#10b981'
+    if (percentage >= 60) return '#3b82f6'
+    if (percentage >= 40) return '#f59e0b'
+    return '#e94560'
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 px-3 py-4 sm:px-4 sm:py-6'>
-      <div className='max-w-4xl mx-auto space-y-4 sm:space-y-6'>
+    <div className='min-h-screen bg-[#f7f6f3] py-6 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-4xl mx-auto'>
         {/* Header */}
-        <div className='text-center space-y-2 px-2'>
-          <div className='flex items-center justify-center space-x-2 text-indigo-600'>
-            <Shield className='w-6 h-6 sm:w-8 sm:h-8' />
-            <h1 className='text-xl sm:text-2xl md:text-3xl font-bold'>কাস্টমার ফ্রড চেকার</h1>
-          </div>
-          <p className='text-gray-600 text-xs sm:text-sm md:text-base'>
-            কাস্টমারের মোবাইল নম্বর দিয়ে ফ্রড চেক করুন
-          </p>
-        </div>
+        <motion.div initial='hidden' animate='visible' variants={staggerContainer} className='mb-8'>
+          <motion.div variants={fadeUp} className='text-center'>
+            <div className='inline-flex h-16 w-16 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 items-center justify-center shadow-lg mb-4'>
+              <Shield className='h-8 w-8 text-white' />
+            </div>
+            <h1 className='text-2xl md:text-3xl font-bold text-[#1a1a2e]'>কাস্টমার ফ্রড চেকার</h1>
+            <p className='text-gray-500 text-sm mt-1'>
+              কাস্টমারের মোবাইল নম্বর দিয়ে ফ্রড চেক করুন
+            </p>
+          </motion.div>
+        </motion.div>
 
-        {/* Search Section */}
-        <div className='bg-white rounded-lg sm:rounded-xl shadow-lg p-4 sm:p-6 border border-gray-100'>
-          <div className='space-y-3 sm:space-y-4'>
-            <label className='block text-sm font-semibold text-gray-700'>মোবাইল নম্বর</label>
-            <div className='space-y-3'>
+        {/* Search Card */}
+        <motion.div
+          variants={fadeUp}
+          initial='hidden'
+          animate='visible'
+          className='bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6'
+        >
+          <div className='space-y-4'>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1.5'>মোবাইল নম্বর</label>
               <div className='relative'>
                 <input
                   type='tel'
@@ -220,107 +203,130 @@ const FraudCheckComponent = () => {
                     setError('')
                   }}
                   placeholder='01XXXXXXXXX'
-                  className='w-full px-4 py-3 text-center sm:text-left border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-lg sm:text-base'
+                  className='w-full px-4 py-3 rounded-xl border border-gray-200 text-center sm:text-left text-base focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all'
                   maxLength={11}
                 />
               </div>
-              {error && <p className='text-red-600 text-sm text-center sm:text-left'>{error}</p>}
-              <button
-                type='submit'
-                onClick={handleFraudCheck}
-                disabled={isLoading || !mobileNumber.trim()}
-                className='w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2'
-              >
-                {isLoading ? (
-                  <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin' />
-                ) : (
-                  <>
-                    <Search className='w-5 h-5' />
-                    <span>চেক করুন</span>
-                  </>
-                )}
-              </button>
+              {error && <p className='text-rose-500 text-sm mt-1'>{error}</p>}
             </div>
+
+            <button
+              onClick={handleFraudCheck}
+              disabled={isLoading || !mobileNumber.trim()}
+              className='w-full bg-rose-500 hover:bg-rose-600 text-white font-medium py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-rose-500/20'
+            >
+              {isLoading ? (
+                <>
+                  <div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent' />
+                  চেক করা হচ্ছে...
+                </>
+              ) : (
+                <>
+                  <Search className='h-4 w-4' />
+                  চেক করুন
+                </>
+              )}
+            </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Results Section */}
         {fraudData && (
-          <div className='space-y-4 sm:space-y-6'>
+          <motion.div
+            variants={staggerContainer}
+            initial='hidden'
+            animate='visible'
+            className='space-y-6'
+          >
             {/* Summary Cards */}
-            <div className='grid grid-cols-3 gap-2 sm:gap-3'>
-              {/* Total Parcels */}
-              <div className='bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex flex-col items-center'>
-                <div className='p-2 bg-blue-50 rounded-full mb-1'>
-                  <Package className='w-5 h-5 text-blue-500' />
+            <div className='grid grid-cols-3 gap-3'>
+              <motion.div
+                variants={fadeUp}
+                className='bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm'
+              >
+                <div className='h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center mx-auto mb-2'>
+                  <Package className='h-5 w-5 text-blue-500' />
                 </div>
-                <p className='text-xs text-gray-500 mb-1'>পার্সেল</p>
-                <p className='text-md font-bold text-gray-800'>{fraudData.total_parcels}</p>
-              </div>
+                <p className='text-xs text-gray-500 mb-1'>মোট পার্সেল</p>
+                <p className='text-xl font-bold text-gray-800'>{fraudData.total_parcels}</p>
+              </motion.div>
 
-              {/* Delivered */}
-              <div className='bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex flex-col items-center'>
-                <div className='p-2 bg-green-50 rounded-full mb-1'>
-                  <CheckCircle className='w-5 h-5 text-green-500' />
+              <motion.div
+                variants={fadeUp}
+                className='bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm'
+              >
+                <div className='h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center mx-auto mb-2'>
+                  <CheckCircle className='h-5 w-5 text-emerald-500' />
                 </div>
                 <p className='text-xs text-gray-500 mb-1'>ডেলিভার্ড</p>
-                <p className='text-md font-bold text-gray-800'>{fraudData.total_delivered}</p>
-              </div>
+                <p className='text-xl font-bold text-emerald-600'>{fraudData.total_delivered}</p>
+              </motion.div>
 
-              {/* Cancelled */}
-              <div className='bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex flex-col items-center'>
-                <div className='p-2 bg-red-50 rounded-full mb-1'>
-                  <XCircle className='w-5 h-5 text-red-500' />
+              <motion.div
+                variants={fadeUp}
+                className='bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm'
+              >
+                <div className='h-10 w-10 rounded-xl bg-rose-100 flex items-center justify-center mx-auto mb-2'>
+                  <XCircle className='h-5 w-5 text-rose-500' />
                 </div>
                 <p className='text-xs text-gray-500 mb-1'>ক্যান্সেল্ড</p>
-                <p className='text-md font-bold text-gray-800'>{fraudData.total_cancel}</p>
-              </div>
+                <p className='text-xl font-bold text-rose-600'>{fraudData.total_cancel}</p>
+              </motion.div>
             </div>
 
-            {/* Risk Assessment with Circular Progress */}
-            <div className='bg-white rounded-lg sm:rounded-xl shadow-lg p-4 sm:p-6 border border-gray-100'>
+            {/* Risk Assessment */}
+            <motion.div variants={fadeUp}>
               {(() => {
                 const reliability = calculateCustomerReliability(fraudData)
                 const riskLevel = getRiskLevel(reliability.score)
 
                 return (
-                  <div className={`p-4 rounded-lg ${riskLevel.bg} border ${riskLevel.borderColor}`}>
-                    <div className='flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6'>
-                      <div className='flex flex-col items-center space-y-2'>
+                  <div
+                    className={`bg-white rounded-2xl p-6 border ${riskLevel.borderColor} shadow-sm`}
+                  >
+                    <div className='flex flex-col sm:flex-row items-center gap-6'>
+                      <div className='flex flex-col items-center'>
                         <CircularProgress
                           percentage={reliability.score}
-                          size={80}
-                          strokeWidth={6}
+                          size={100}
+                          strokeWidth={8}
                           color={getProgressColor(reliability.score)}
                         />
-                        <span className='text-xs text-gray-600'>নির্ভরযোগ্যতা স্কোর</span>
+                        <span className='text-xs text-gray-500 mt-2'>নির্ভরযোগ্যতা স্কোর</span>
                       </div>
-
                       <div className='flex-1 text-center sm:text-left'>
-                        {/* <div className='flex items-center justify-center sm:justify-start space-x-3 mb-2'>
-                          <RiskIcon className={`w-6 h-6 ${riskLevel.color}`} />
-                        </div> */}
-                        <div className='text-sm text-gray-700 space-y-1'>
-                          <p className={`font-medium mt-2 ${riskLevel.color}`}>
-                            {reliability.suggestion}
-                          </p>
+                        <div
+                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${riskLevel.bg} mb-3`}
+                        >
+                          <riskLevel.icon className={`h-4 w-4 ${riskLevel.color}`} />
+                          <span className={`text-sm font-semibold ${riskLevel.color}`}>
+                            {riskLevel.level}
+                          </span>
                         </div>
+                        <p className='text-gray-700 text-sm leading-relaxed'>
+                          {reliability.suggestion}
+                        </p>
                       </div>
                     </div>
                   </div>
                 )
               })()}
-            </div>
+            </motion.div>
 
             {/* Courier Details */}
-            <div className='bg-white rounded-lg shadow-sm p-4 border border-gray-100'>
-              <h3 className='text-md font-semibold text-gray-800 mb-3 flex items-center space-x-2'>
-                <Truck className='w-4 h-4 text-indigo-500' />
-                <span>কুরিয়ার সার্ভিস বিস্তারিত</span>
-              </h3>
+            <motion.div
+              variants={fadeUp}
+              className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden'
+            >
+              <div className='bg-gradient-to-r from-[#1a1a2e] to-[#16213e] px-5 py-3'>
+                <div className='flex items-center gap-2'>
+                  <Truck className='h-4 w-4 text-rose-400' />
+                  <h3 className='text-white font-semibold'>কুরিয়ার সার্ভিস বিস্তারিত</h3>
+                </div>
+              </div>
 
-              {/* Mobile View (Cards) */}
-              <div className='sm:hidden space-y-2'>
+              {/* Mobile Card View */}
+              <div className='sm:hidden divide-y divide-gray-100'>
                 {Object.entries(fraudData.apis).map(([key, courier]) => {
                   const totalParcels = Number(courier.total_parcels)
                   const deliveredParcels = Number(courier.total_delivered_parcels)
@@ -329,34 +335,33 @@ const FraudCheckComponent = () => {
                     totalParcels > 0 ? Math.round((deliveredParcels / totalParcels) * 100) : 0
 
                   return (
-                    <div key={key} className='border border-gray-100 rounded-md p-3'>
-                      <div className='flex justify-between items-center mb-1'>
-                        <h4 className='font-medium text-gray-800'>{courier.courier_name}</h4>
+                    <div key={key} className='p-4'>
+                      <div className='flex justify-between items-center mb-3'>
+                        <h4 className='font-semibold text-gray-800'>{courier.courier_name}</h4>
                         <span
                           className={`text-xs px-2 py-1 rounded-full ${
                             totalParcels > 0
                               ? successRate >= 50
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-700'
+                              : 'bg-gray-100 text-gray-500'
                           }`}
                         >
-                          {totalParcels > 0 ? `${successRate}%` : 'N/A'}
+                          {totalParcels > 0 ? `${successRate}% সফল` : 'কোনো ডাটা নেই'}
                         </span>
                       </div>
-
-                      <div className='grid grid-cols-3 gap-1 text-xs'>
-                        <div className='flex flex-col'>
-                          <span className='text-gray-500'>মোট</span>
-                          <span className='font-semibold'>{totalParcels}</span>
+                      <div className='grid grid-cols-3 gap-2 text-center'>
+                        <div className='bg-gray-50 rounded-lg p-2'>
+                          <p className='text-xs text-gray-500'>মোট</p>
+                          <p className='font-semibold'>{totalParcels}</p>
                         </div>
-                        <div className='flex flex-col'>
-                          <span className='text-green-500'>ডেলিভার্ড</span>
-                          <span className='font-semibold text-green-600'>{deliveredParcels}</span>
+                        <div className='bg-emerald-50 rounded-lg p-2'>
+                          <p className='text-xs text-emerald-600'>ডেলিভার্ড</p>
+                          <p className='font-semibold text-emerald-700'>{deliveredParcels}</p>
                         </div>
-                        <div className='flex flex-col'>
-                          <span className='text-red-500'>ক্যান্সেল্ড</span>
-                          <span className='font-semibold text-red-600'>{cancelledParcels}</span>
+                        <div className='bg-rose-50 rounded-lg p-2'>
+                          <p className='text-xs text-rose-600'>ক্যান্সেল্ড</p>
+                          <p className='font-semibold text-rose-700'>{cancelledParcels}</p>
                         </div>
                       </div>
                     </div>
@@ -364,44 +369,29 @@ const FraudCheckComponent = () => {
                 })}
               </div>
 
-              {/* Desktop View (Table) */}
+              {/* Desktop Table View */}
               <div className='hidden sm:block overflow-x-auto'>
-                <table className='min-w-full divide-y divide-gray-200'>
-                  <thead className='bg-gray-50'>
+                <table className='w-full'>
+                  <thead className='bg-gray-50 border-b border-gray-100'>
                     <tr>
-                      <th
-                        scope='col'
-                        className='px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
-                      >
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         কুরিয়ার
                       </th>
-                      <th
-                        scope='col'
-                        className='px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'
-                      >
+                      <th className='px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         মোট পার্সেল
                       </th>
-                      <th
-                        scope='col'
-                        className='px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'
-                      >
+                      <th className='px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         ডেলিভার্ড
                       </th>
-                      <th
-                        scope='col'
-                        className='px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'
-                      >
+                      <th className='px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         ক্যান্সেল্ড
                       </th>
-                      <th
-                        scope='col'
-                        className='px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'
-                      >
+                      <th className='px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         সফলতার হার
                       </th>
                     </tr>
                   </thead>
-                  <tbody className='bg-white divide-y divide-gray-200'>
+                  <tbody className='divide-y divide-gray-100'>
                     {Object.entries(fraudData.apis).map(([key, courier]) => {
                       const totalParcels = Number(courier.total_parcels)
                       const deliveredParcels = Number(courier.total_delivered_parcels)
@@ -410,27 +400,27 @@ const FraudCheckComponent = () => {
                         totalParcels > 0 ? Math.round((deliveredParcels / totalParcels) * 100) : 0
 
                       return (
-                        <tr key={key} className='hover:bg-gray-50'>
-                          <td className='px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900'>
+                        <tr key={key} className='hover:bg-gray-50/50 transition-colors'>
+                          <td className='px-5 py-3 text-sm font-medium text-gray-800'>
                             {courier.courier_name}
                           </td>
-                          <td className='px-4 py-2 whitespace-nowrap text-sm text-center text-gray-500'>
+                          <td className='px-5 py-3 text-sm text-center text-gray-600'>
                             {totalParcels}
                           </td>
-                          <td className='px-4 py-2 whitespace-nowrap text-sm text-center text-green-600 font-medium'>
+                          <td className='px-5 py-3 text-sm text-center text-emerald-600 font-medium'>
                             {deliveredParcels}
                           </td>
-                          <td className='px-4 py-2 whitespace-nowrap text-sm text-center text-red-600 font-medium'>
+                          <td className='px-5 py-3 text-sm text-center text-rose-600 font-medium'>
                             {cancelledParcels}
                           </td>
-                          <td className='px-4 py-2 whitespace-nowrap text-sm text-center'>
+                          <td className='px-5 py-3 text-sm text-center'>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs ${
+                              className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                                 totalParcels > 0
                                   ? successRate >= 50
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-amber-100 text-amber-700'
+                                  : 'bg-gray-100 text-gray-500'
                               }`}
                             >
                               {totalParcels > 0 ? `${successRate}%` : 'N/A'}
@@ -442,32 +432,38 @@ const FraudCheckComponent = () => {
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
 
-        {/* No Data State */}
+        {/* Empty State */}
         {!fraudData && !error && (
-          <div className='text-center py-12'>
-            <Shield className='w-16 h-16 text-gray-300 mx-auto mb-4' />
-            <p className='text-gray-500 text-sm sm:text-base px-4'>
-              ফ্রড চেক করতে একটি মোবাইল নম্বর দিন
-            </p>
-          </div>
+          <motion.div
+            variants={fadeUp}
+            initial='hidden'
+            animate='visible'
+            className='text-center py-12 bg-white rounded-2xl border border-gray-100'
+          >
+            <div className='w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+              <Shield className='h-10 w-10 text-gray-400' />
+            </div>
+            <p className='text-gray-500'>ফ্রড চেক করতে একটি মোবাইল নম্বর দিন</p>
+          </motion.div>
         )}
 
         {/* Error State */}
-        {error && (
-          <div className='bg-red-50 border-l-4 border-red-500 p-4 rounded-lg'>
-            <div className='flex items-start'>
-              <div className='flex-shrink-0'>
-                <XCircle className='w-5 h-5 text-red-600' />
-              </div>
-              <div className='ml-3 flex-1'>
-                <p className='text-sm text-red-700'>{error}</p>
-              </div>
+        {error && !fraudData && (
+          <motion.div
+            variants={fadeUp}
+            initial='hidden'
+            animate='visible'
+            className='bg-rose-50 border-l-4 border-rose-500 rounded-xl p-4'
+          >
+            <div className='flex items-start gap-3'>
+              <XCircle className='h-5 w-5 text-rose-500 flex-shrink-0 mt-0.5' />
+              <p className='text-rose-700 text-sm'>{error}</p>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

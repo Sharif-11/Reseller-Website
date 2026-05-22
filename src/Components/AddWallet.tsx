@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { FiPlus, FiX } from 'react-icons/fi'
+import { FaCreditCard, FaMobileAlt, FaPlus, FaTimes, FaWallet } from 'react-icons/fa'
+import { toast } from 'react-toastify'
 import { walletApi } from '../Api/wallet.api'
 import { useAuth } from '../Hooks/useAuth'
 
@@ -7,6 +9,20 @@ interface Wallet {
   id: string
   walletName: 'bKash' | 'Nagad'
   walletPhoneNo: string
+}
+
+// Animation variants
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+}
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+  },
 }
 
 const AddWallet = () => {
@@ -31,7 +47,6 @@ const AddWallet = () => {
   const [countdown, setCountdown] = useState(0)
   const [otpExpiry, setOtpExpiry] = useState<Date | null>(null)
 
-  // Countdown timer for OTP resend
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
@@ -39,7 +54,6 @@ const AddWallet = () => {
     }
   }, [countdown])
 
-  // Check OTP expiry periodically
   useEffect(() => {
     if (!otpExpiry) return
 
@@ -55,7 +69,6 @@ const AddWallet = () => {
     return () => clearInterval(checkExpiry)
   }, [otpExpiry])
 
-  // Fetch wallets on component mount
   useEffect(() => {
     const fetchWallets = async () => {
       if (!user?.phoneNo) return
@@ -66,10 +79,7 @@ const AddWallet = () => {
         setWallets(response.data || [])
         localStorage.setItem(`wallets-${user.phoneNo}`, JSON.stringify(response.data || []))
       } catch (error) {
-        setErrors(prev => ({
-          ...prev,
-          form: 'Failed to load wallets',
-        }))
+        setErrors(prev => ({ ...prev, form: 'ওয়ালেট লোড করতে ব্যর্থ হয়েছে' }))
         console.error('Error fetching wallets:', error)
       } finally {
         setIsFetching(false)
@@ -81,11 +91,7 @@ const AddWallet = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }))
-    // Clear error when typing
+    setFormData(prev => ({ ...prev, [name]: value }))
     if (name === 'number') {
       setErrors(prev => ({ ...prev, number: '' }))
     }
@@ -93,17 +99,11 @@ const AddWallet = () => {
 
   const validatePhoneNumber = (number: string) => {
     if (!number.trim()) {
-      setErrors(prev => ({
-        ...prev,
-        number: 'মোবাইল নাম্বার দিন',
-      }))
+      setErrors(prev => ({ ...prev, number: 'মোবাইল নাম্বার দিন' }))
       return false
     }
     if (!/^01[3-9]\d{8}$/.test(number)) {
-      setErrors(prev => ({
-        ...prev,
-        number: 'সঠিক মোবাইল নাম্বার দিন (01XXXXXXXXX)',
-      }))
+      setErrors(prev => ({ ...prev, number: 'সঠিক মোবাইল নাম্বার দিন (01XXXXXXXXX)' }))
       return false
     }
     return true
@@ -122,28 +122,19 @@ const AddWallet = () => {
 
       if (success && data?.alreadyVerified) {
         setIsAlreadyVerified(true)
-        await addNewWallet() // Add directly if already verified
+        await addNewWallet()
       } else if (!success) {
-        setErrors(prev => ({
-          ...prev,
-          form: message || 'OTP পাঠাতে ব্যর্থ',
-        }))
-        console.error('Error sending OTP:', message)
+        setErrors(prev => ({ ...prev, form: message || 'OTP পাঠাতে ব্যর্থ' }))
         return
       } else {
         setIsOtpSent(true)
-        setCountdown(300) // 5 minutes countdown (300 seconds)
-        // Set OTP expiry time (current time + 5 minutes)
+        setCountdown(300)
         const expiryTime = new Date()
         expiryTime.setMinutes(expiryTime.getMinutes() + 5)
         setOtpExpiry(expiryTime)
       }
     } catch (error: any) {
-      setErrors(prev => ({
-        ...prev,
-        form: error.response?.data?.message || 'OTP পাঠাতে ব্যর্থ',
-      }))
-      console.error('Error sending OTP:', error)
+      setErrors(prev => ({ ...prev, form: error.response?.data?.message || 'OTP পাঠাতে ব্যর্থ' }))
     } finally {
       setIsLoading(false)
     }
@@ -167,17 +158,13 @@ const AddWallet = () => {
       if (success && (data?.isVerified || data?.alreadyVerified)) {
         await addNewWallet()
       } else {
-        setErrors(prev => ({
-          ...prev,
-          otp: message || 'OTP ভেরিফিকেশন ব্যর্থ',
-        }))
+        setErrors(prev => ({ ...prev, otp: message || 'OTP ভেরিফিকেশন ব্যর্থ' }))
       }
     } catch (error: any) {
       setErrors(prev => ({
         ...prev,
         otp: error.response?.data?.message || 'OTP ভেরিফিকেশন ব্যর্থ',
       }))
-      console.error('Error verifying OTP:', error)
     } finally {
       setIsVerifying(false)
     }
@@ -195,28 +182,23 @@ const AddWallet = () => {
         if (user?.phoneNo) {
           localStorage.setItem(`wallets-${user.phoneNo}`, JSON.stringify([...wallets, data]))
         }
+        toast.success(
+          `${formData.type === 'bKash' ? 'bKash' : 'Nagad'} ওয়ালেট সফলভাবে যুক্ত হয়েছে`
+        )
         resetForm()
       } else {
-        setErrors(prev => ({
-          ...prev,
-          form: message || 'ওয়ালেট যোগ করতে ব্যর্থ',
-        }))
-        console.error('Error adding wallet:', message)
+        setErrors(prev => ({ ...prev, form: message || 'ওয়ালেট যোগ করতে ব্যর্থ' }))
       }
     } catch (error: any) {
       setErrors(prev => ({
         ...prev,
-        form: error.response?.data?.message || 'ওয়ালেট যোগ করতে ব্যর্থ',
+        form: error.response?.data?.message || 'ওয়ালেট যোগ করতে ব্যর্থ',
       }))
-      console.error('Error adding wallet:', error)
     }
   }
 
   const resetForm = () => {
-    setFormData({
-      type: 'bKash',
-      number: '',
-    })
+    setFormData({ type: 'bKash', number: '' })
     setOtp('')
     setErrors({ form: '', number: '', otp: '' })
     setIsFormOpen(false)
@@ -236,274 +218,307 @@ const AddWallet = () => {
         walletPhoneNo: formData.number,
       })
       if (success && data.sendOTP) {
-        setCountdown(300) // Reset 5 minutes countdown
-        // Set new OTP expiry time
+        setCountdown(300)
         const expiryTime = new Date()
         expiryTime.setMinutes(expiryTime.getMinutes() + 5)
         setOtpExpiry(expiryTime)
       } else {
-        setErrors(prev => ({
-          ...prev,
-          form: message || 'OTP পুনরায় পাঠাতে ব্যর্থ',
-        }))
+        setErrors(prev => ({ ...prev, form: message || 'OTP পুনরায় পাঠাতে ব্যর্থ' }))
       }
     } catch (error: any) {
       setErrors(prev => ({
         ...prev,
         form: error.response?.data?.message || 'OTP পুনরায় পাঠাতে ব্যর্থ',
       }))
-      console.error('Error resending OTP:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
+  const WalletIcon = ({ type }: { type: 'bKash' | 'Nagad' }) => {
+    if (type === 'bKash') {
+      return (
+        <div className='flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600'>
+          <FaMobileAlt className='h-4 w-4' />
+        </div>
+      )
+    }
+    return (
+      <div className='flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 text-purple-600'>
+        <FaCreditCard className='h-4 w-4' />
+      </div>
+    )
+  }
+
   return (
-    <div className='container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-3xl'>
-      <div className='flex justify-between items-center mb-4 sm:mb-6'>
-        <h1 className='text-xl sm:text-2xl font-bold'>আমার ওয়ালেট</h1>
-        {wallets?.length < 2 && (
-          <button
+    <div className='min-h-screen bg-[#f7f6f3] py-6 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-3xl mx-auto'>
+        {/* Header */}
+        <motion.div initial='hidden' animate='visible' variants={staggerContainer} className='mb-6'>
+          <motion.div variants={fadeUp}>
+            <h1 className='text-2xl md:text-3xl font-bold text-[#1a1a2e]'>আমার ওয়ালেট</h1>
+            <p className='text-gray-500 text-sm mt-1'>পেমেন্ট গ্রহণের জন্য ওয়ালেট যুক্ত করুন</p>
+          </motion.div>
+        </motion.div>
+
+        {/* Add Wallet Button */}
+        {wallets?.length < 2 && !isFormOpen && (
+          <motion.button
+            variants={fadeUp}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setIsFormOpen(true)}
-            className='flex items-center gap-1 sm:gap-2 bg-blue-500 text-white px-3 sm:px-4 py-1 sm:py-2 rounded hover:bg-blue-600 transition-colors text-sm sm:text-base'
+            className='w-full sm:w-auto mb-6 flex items-center justify-center gap-2 bg-rose-500 text-white px-5 py-3 rounded-xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-500/20 font-medium'
             disabled={isFetching}
           >
-            <FiPlus className='text-sm sm:text-base' />
-            <span>ওয়ালেট যোগ করুন</span>
-          </button>
+            <FaPlus className='h-4 w-4' />
+            <span>নতুন ওয়ালেট যোগ করুন</span>
+          </motion.button>
         )}
-      </div>
 
-      {/* Error message for form */}
-      {errors.form && (
-        <div className='mb-3 sm:mb-4 p-2 sm:p-3 bg-red-100 text-red-700 rounded text-sm sm:text-base'>
-          {errors.form}
-        </div>
-      )}
-
-      {/* Add Wallet Form */}
-      {isFormOpen && (
-        <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-8 relative'>
-          <button
-            onClick={resetForm}
-            className='absolute top-2 right-2 text-gray-500 hover:text-gray-700'
+        {/* Add Wallet Form */}
+        {isFormOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6'
           >
-            <FiX className='text-lg' />
-          </button>
-
-          <h2 className='text-lg sm:text-xl font-semibold mb-3 sm:mb-4'>নতুন ওয়ালেট যোগ করুন</h2>
-
-          {isAlreadyVerified && (
-            <div className='mb-3 p-2 bg-green-100 text-green-700 rounded text-sm'>
-              এই মোবাইল নাম্বারটি ইতিমধ্যে যাচাইকৃত, ওয়ালেট যোগ করা হচ্ছে...
-            </div>
-          )}
-
-          {otpExpiry && new Date() >= otpExpiry && (
-            <div className='mb-3 p-2 bg-red-100 text-red-700 rounded text-sm'>
-              OTP এর মেয়াদ শেষ হয়ে গেছে। নতুন OTP পাঠান
-            </div>
-          )}
-
-          <div className='grid grid-cols-1 gap-3 sm:gap-4 mb-3 sm:mb-4'>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>ওয়ালেট টাইপ</label>
-              <select
-                name='type'
-                value={formData.type}
-                onChange={handleInputChange}
-                className='w-full p-2 text-sm sm:text-base border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500'
-                disabled={isOtpSent || isAlreadyVerified}
-                required
+            <div className='bg-gradient-to-r from-[#1a1a2e] to-[#16213e] px-5 py-4 flex justify-between items-center'>
+              <h2 className='text-white font-semibold text-lg'>নতুন ওয়ালেট যোগ করুন</h2>
+              <button
+                onClick={resetForm}
+                className='text-white/50 hover:text-white transition-colors'
               >
-                <option value='bKash'>bKash</option>
-                <option value='Nagad'>Nagad</option>
-              </select>
+                <FaTimes className='h-5 w-5' />
+              </button>
             </div>
 
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>মোবাইল নাম্বার</label>
-              <input
-                type='text'
-                name='number'
-                value={formData.number}
-                onChange={handleInputChange}
-                placeholder='01XXXXXXXXX'
-                className={`w-full p-2 text-sm sm:text-base border rounded focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.number ? 'border-red-500' : 'border-gray-300'
-                }`}
-                disabled={isOtpSent || isAlreadyVerified}
-                required
-              />
-              {errors.number && (
-                <p className='mt-1 text-xs sm:text-sm text-red-600'>{errors.number}</p>
+            <div className='p-5'>
+              {errors.form && (
+                <div className='mb-4 p-3 bg-rose-50 rounded-xl border border-rose-100'>
+                  <p className='text-rose-600 text-sm'>{errors.form}</p>
+                </div>
               )}
-            </div>
 
-            {isOtpSent && !isAlreadyVerified && otpExpiry && new Date() < otpExpiry && (
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>OTP কোড</label>
-                <input
-                  type='text'
-                  value={otp}
-                  onChange={e => {
-                    setOtp(e.target.value)
-                    setErrors(prev => ({ ...prev, otp: '' }))
-                  }}
-                  placeholder='6-digit OTP'
-                  className={`w-full p-2 text-sm sm:text-base border rounded focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.otp ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  required
-                />
-                {errors.otp && <p className='mt-1 text-xs sm:text-sm text-red-600'>{errors.otp}</p>}
-                <div className='mt-1 text-xs sm:text-sm text-gray-600'>
-                  {countdown > 0 ? (
-                    <span>
-                      OTP এর মেয়াদ শেষ হতে {Math.floor(countdown / 60)}:
-                      {String(countdown % 60).padStart(2, '0')} মিনিট বাকি
-                    </span>
-                  ) : (
+              {isAlreadyVerified && (
+                <div className='mb-4 p-3 bg-emerald-50 rounded-xl border border-emerald-100'>
+                  <p className='text-emerald-600 text-sm'>
+                    এই মোবাইল নাম্বারটি ইতিমধ্যে যাচাইকৃত, ওয়ালেট যোগ করা হচ্ছে...
+                  </p>
+                </div>
+              )}
+
+              {otpExpiry && new Date() >= otpExpiry && (
+                <div className='mb-4 p-3 bg-amber-50 rounded-xl border border-amber-100'>
+                  <p className='text-amber-600 text-sm'>
+                    OTP এর মেয়াদ শেষ হয়ে গেছে। নতুন OTP পাঠান
+                  </p>
+                </div>
+              )}
+
+              <div className='space-y-4'>
+                {/* Wallet Type Selection */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-1.5'>
+                    ওয়ালেট টাইপ
+                  </label>
+                  <div className='grid grid-cols-2 gap-3'>
                     <button
                       type='button'
-                      onClick={handleResendOtp}
-                      className='text-blue-600 hover:text-blue-800'
+                      onClick={() => setFormData(prev => ({ ...prev, type: 'bKash' }))}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                        formData.type === 'bKash'
+                          ? 'border-green-500 bg-green-50 text-green-700'
+                          : 'border-gray-200 hover:border-green-300 text-gray-600'
+                      }`}
+                      disabled={isOtpSent || isAlreadyVerified}
                     >
-                      OTP পুনরায় পাঠান
+                      <FaMobileAlt className='h-5 w-5' />
+                      <span className='font-medium'>bKash</span>
                     </button>
-                  )}
+                    <button
+                      type='button'
+                      onClick={() => setFormData(prev => ({ ...prev, type: 'Nagad' }))}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                        formData.type === 'Nagad'
+                          ? 'border-purple-500 bg-purple-50 text-purple-700'
+                          : 'border-gray-200 hover:border-purple-300 text-gray-600'
+                      }`}
+                      disabled={isOtpSent || isAlreadyVerified}
+                    >
+                      <FaCreditCard className='h-5 w-5' />
+                      <span className='font-medium'>Nagad</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Phone Number */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-1.5'>
+                    মোবাইল নাম্বার
+                  </label>
+                  <input
+                    type='text'
+                    name='number'
+                    value={formData.number}
+                    onChange={handleInputChange}
+                    placeholder='01XXXXXXXXX'
+                    className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all ${
+                      errors.number
+                        ? 'border-rose-500 bg-rose-50/30'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    disabled={isOtpSent || isAlreadyVerified}
+                  />
+                  {errors.number && <p className='mt-1 text-rose-500 text-xs'>{errors.number}</p>}
+                </div>
+
+                {/* OTP Section */}
+                {isOtpSent && !isAlreadyVerified && otpExpiry && new Date() < otpExpiry && (
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-1.5'>
+                      OTP কোড
+                    </label>
+                    <input
+                      type='text'
+                      value={otp}
+                      onChange={e => {
+                        setOtp(e.target.value)
+                        setErrors(prev => ({ ...prev, otp: '' }))
+                      }}
+                      placeholder='6-অঙ্কের OTP'
+                      className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all ${
+                        errors.otp ? 'border-rose-500 bg-rose-50/30' : 'border-gray-200'
+                      }`}
+                    />
+                    {errors.otp && <p className='mt-1 text-rose-500 text-xs'>{errors.otp}</p>}
+                    <div className='mt-2 text-sm text-gray-500'>
+                      {countdown > 0 ? (
+                        <span>
+                          ⏱️ OTP এর মেয়াদ শেষ হতে {Math.floor(countdown / 60)}:
+                          {String(countdown % 60).padStart(2, '0')} মিনিট বাকি
+                        </span>
+                      ) : (
+                        <button
+                          type='button'
+                          onClick={handleResendOtp}
+                          className='text-rose-500 hover:text-rose-600 font-medium'
+                        >
+                          পুনরায় OTP পাঠান
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className='flex gap-3 pt-2'>
+                  <button
+                    type='button'
+                    onClick={resetForm}
+                    className='flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium'
+                    disabled={isLoading || isVerifying || isAlreadyVerified}
+                  >
+                    বাতিল
+                  </button>
+
+                  {!isOtpSent && !isAlreadyVerified ? (
+                    <button
+                      type='button'
+                      onClick={handleSendOtp}
+                      className='flex-1 bg-rose-500 text-white rounded-xl py-2.5 hover:bg-rose-600 transition-colors disabled:opacity-50 text-sm font-medium'
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <div className='flex items-center justify-center gap-2'>
+                          <div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent' />
+                          OTP পাঠানো হচ্ছে...
+                        </div>
+                      ) : (
+                        'OTP পাঠান'
+                      )}
+                    </button>
+                  ) : isOtpSent && otpExpiry && new Date() < otpExpiry ? (
+                    <button
+                      type='button'
+                      onClick={handleVerifyOtp}
+                      className='flex-1 bg-emerald-500 text-white rounded-xl py-2.5 hover:bg-emerald-600 transition-colors disabled:opacity-50 text-sm font-medium'
+                      disabled={isVerifying}
+                    >
+                      {isVerifying ? (
+                        <div className='flex items-center justify-center gap-2'>
+                          <div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent' />
+                          যাচাই করা হচ্ছে...
+                        </div>
+                      ) : (
+                        'যাচাই করুন'
+                      )}
+                    </button>
+                  ) : null}
                 </div>
               </div>
-            )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Wallets List */}
+        {isFetching && wallets?.length === 0 ? (
+          <div className='flex justify-center py-12'>
+            <div className='animate-spin rounded-full h-8 w-8 border-2 border-rose-500 border-t-transparent' />
           </div>
-
-          <div className='flex justify-end gap-2 sm:gap-3'>
-            <button
-              type='button'
-              onClick={resetForm}
-              className='px-3 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-sm sm:text-base'
-              disabled={isLoading || isVerifying || isAlreadyVerified}
-            >
-              বাতিল
-            </button>
-
-            {!isOtpSent && !isAlreadyVerified ? (
-              <button
-                type='button'
-                onClick={handleSendOtp}
-                className='px-3 sm:px-4 py-1 sm:py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm sm:text-base'
-                disabled={isLoading}
+        ) : wallets?.length === 0 ? (
+          <motion.div
+            variants={fadeUp}
+            className='bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center'
+          >
+            <div className='w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+              <FaWallet className='h-7 w-7 text-gray-400' />
+            </div>
+            <p className='text-gray-500'>কোন ওয়ালেট যোগ করা হয়নি</p>
+            <p className='text-xs text-gray-400 mt-1'>
+              পেমেন্ট গ্রহণের জন্য একটি ওয়ালেট যুক্ত করুন
+            </p>
+          </motion.div>
+        ) : (
+          <motion.div
+            variants={staggerContainer}
+            initial='hidden'
+            animate='visible'
+            className='grid grid-cols-1 sm:grid-cols-2 gap-4'
+          >
+            {wallets.map((wallet, idx) => (
+              <motion.div
+                key={idx}
+                variants={fadeUp}
+                whileHover={{ y: -2 }}
+                className='bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-all'
               >
-                {isLoading ? (
-                  <span className='flex items-center justify-center'>
-                    <svg
-                      className='animate-spin -ml-1 mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4 text-white'
-                      xmlns='http://www.w3.org/2000/svg'
-                      fill='none'
-                      viewBox='0 0 24 24'
-                    >
-                      <circle
-                        className='opacity-25'
-                        cx='12'
-                        cy='12'
-                        r='10'
-                        stroke='currentColor'
-                        strokeWidth='4'
-                      ></circle>
-                      <path
-                        className='opacity-75'
-                        fill='currentColor'
-                        d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                      ></path>
-                    </svg>
-                    OTP পাঠানো হচ্ছে...
-                  </span>
-                ) : (
-                  'OTP পাঠান'
-                )}
-              </button>
-            ) : isOtpSent && otpExpiry && new Date() < otpExpiry ? (
-              <button
-                type='button'
-                onClick={handleVerifyOtp}
-                className='px-3 sm:px-4 py-1 sm:py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 text-sm sm:text-base'
-                disabled={isVerifying}
-              >
-                {isVerifying ? (
-                  <span className='flex items-center justify-center'>
-                    <svg
-                      className='animate-spin -ml-1 mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4 text-white'
-                      xmlns='http://www.w3.org/2000/svg'
-                      fill='none'
-                      viewBox='0 0 24 24'
-                    >
-                      <circle
-                        className='opacity-25'
-                        cx='12'
-                        cy='12'
-                        r='10'
-                        stroke='currentColor'
-                        strokeWidth='4'
-                      ></circle>
-                      <path
-                        className='opacity-75'
-                        fill='currentColor'
-                        d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                      ></path>
-                    </svg>
-                    যাচাই করা হচ্ছে...
-                  </span>
-                ) : (
-                  'যাচাই করুন'
-                )}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      )}
-
-      {/* Wallet limit message */}
-      {/* {wallets?.length >= 2 && (
-        <div className='mb-4 p-3 bg-blue-50 text-blue-700 rounded text-sm sm:text-base'>
-          আপনি সর্বোচ্চ ২টি ওয়ালেট যোগ করতে পারবেন
-        </div>
-      )} */}
-
-      {/* Wallets List */}
-      {isFetching && wallets?.length === 0 ? (
-        <div className='flex justify-center items-center h-40 sm:h-64'>
-          <div className='animate-spin rounded-full h-6 sm:h-8 w-6 sm:w-8 border-b-2 border-blue-500'></div>
-        </div>
-      ) : wallets?.length === 0 ? (
-        <div className='bg-white rounded-lg shadow-md p-6 sm:p-8 text-center'>
-          <p className='text-gray-500 text-sm sm:text-base'>কোন ওয়ালেট যোগ করা হয়নি</p>
-        </div>
-      ) : (
-        <div className='bg-white rounded-lg shadow-md overflow-hidden'>
-          <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4'>
-            {wallets?.map((wallet, idx) => (
-              <div key={idx} className='border border-gray-200 rounded-lg p-3 sm:p-4'>
-                <div className='flex items-center justify-between mb-1 sm:mb-2'>
-                  <span className='font-medium text-sm sm:text-base'>
-                    {wallet.walletName === 'bKash' ? (
-                      <span className='text-green-600'>bKash</span>
-                    ) : (
-                      <span className='text-purple-600'>Nagad</span>
-                    )}
-                  </span>
+                <div className='flex items-center justify-between mb-2'>
+                  <div className='flex items-center gap-2'>
+                    <WalletIcon type={wallet.walletName} />
+                    <span className='font-semibold text-gray-800'>
+                      {wallet.walletName === 'bKash' ? 'bKash' : 'Nagad'}
+                    </span>
+                  </div>
+                  <div className='h-2 w-2 rounded-full bg-emerald-400' />
                 </div>
-                <div className='text-gray-700 text-sm sm:text-base'>{wallet.walletPhoneNo}</div>
-              </div>
+                <p className='text-gray-600 text-sm'>{wallet.walletPhoneNo}</p>
+                <p className='text-xs text-gray-400 mt-2'>প্রাথমিক ওয়ালেট</p>
+              </motion.div>
             ))}
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
 
-      {wallets?.length > 0 && (
-        <div className='mt-4 sm:mt-6 text-sm sm:text-base text-red-600'>
-          ওয়ালেট ডিলিট করতে চাইলে সাপোর্ট এ যোগাযোগ করুন।
-        </div>
-      )}
+        {/* Info Note */}
+        {wallets.length > 0 && (
+          <div className='mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100'>
+            <p className='text-amber-700 text-xs text-center'>
+              ⚠️ ওয়ালেট পরিবর্তন বা ডিলিট করতে চাইলে সাপোর্ট এ যোগাযোগ করুন
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,13 +1,29 @@
 import { motion } from 'framer-motion'
-import { FaQuestionCircle } from 'react-icons/fa'
-import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { FaChevronDown, FaQuestionCircle } from 'react-icons/fa'
+
+// Animation variants
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+}
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+  },
+}
 
 const FAQSection = () => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
   const faqs = [
     {
-      question: ' শপ বিডি রিসেলার জবস কি?',
+      question: 'শপ বিডি রিসেলার জবস কি?',
       answer:
-        ' শপ বিডি রিসেলার জবস একটি সম্পূর্ণ অটোমেটেড অনলাইন প্রোডাক্ট রিসেলিং বিজনেস এর সহযোগী প্লাটফর্ম।',
+        'শপ বিডি রিসেলার জবস একটি সম্পূর্ণ অটোমেটেড অনলাইন প্রোডাক্ট রিসেলিং বিজনেস এর সহযোগী প্লাটফর্ম।',
     },
     {
       question: 'ডেলিভারি চার্জ কত?',
@@ -20,7 +36,7 @@ const FAQSection = () => {
     },
     {
       question: 'নতুন সেলারদের জন্য ডেলিভারি চার্জের নিয়ম কি?',
-      answer: 'নতুন সেলারের ক্ষেত্রে প্রথম  অর্ডারের ডেলিভারি চার্জ অগ্রিম দিতে হবে।',
+      answer: 'নতুন সেলারের ক্ষেত্রে প্রথম অর্ডারের ডেলিভারি চার্জ অগ্রিম দিতে হবে।',
     },
     {
       question: 'এক্সচেঞ্জ অর্ডার এর সুবিধা আছে কি?',
@@ -44,106 +60,94 @@ const FAQSection = () => {
     },
   ]
 
-  // Animation variants
-  const container = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  }
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-      },
-    },
+  const toggleAccordion = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index)
   }
 
   return (
-    <motion.div
-      initial='hidden'
-      animate='visible'
-      variants={container}
-      className='min-h-screen bg-gradient-to-b from-gray-50 to-white p-4 md:p-8'
-    >
+    <div className='min-h-screen bg-[#f7f6f3] py-6 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-4xl mx-auto'>
-        {/* Header Section */}
-        <motion.div variants={item} className='flex items-center gap-4 mb-8 md:mb-12'>
-          <div className='bg-indigo-100 p-3 rounded-full'>
-            <FaQuestionCircle className='text-3xl text-indigo-600' />
-          </div>
-          <div>
-            <h1 className='text-2xl md:text-3xl font-bold text-gray-900'>
-              সচরাচর জিজ্ঞাসিত প্রশ্ন
-            </h1>
-            <p className='text-gray-600 mt-1'>আপনার প্রশ্নের উত্তর খুঁজে নিন</p>
-          </div>
+        {/* Header */}
+        <motion.div initial='hidden' animate='visible' variants={staggerContainer} className='mb-8'>
+          <motion.div
+            variants={fadeUp}
+            className='flex flex-col sm:flex-row items-center gap-4 sm:gap-6'
+          >
+            <div className='h-16 w-16 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center shadow-lg'>
+              <FaQuestionCircle className='text-3xl text-white' />
+            </div>
+            <div className='text-center sm:text-left'>
+              <h1 className='text-2xl md:text-3xl font-bold text-[#1a1a2e]'>
+                সচরাচর জিজ্ঞাসিত প্রশ্ন
+              </h1>
+              <p className='text-gray-500 text-sm mt-1'>আপনার প্রশ্নের উত্তর খুঁজে নিন</p>
+            </div>
+          </motion.div>
         </motion.div>
 
-        {/* FAQ List */}
-        <motion.div variants={container} className='space-y-4'>
+        {/* FAQ Accordion */}
+        <motion.div
+          variants={staggerContainer}
+          initial='hidden'
+          animate='visible'
+          className='space-y-3'
+        >
           {faqs.map((faq, index) => (
             <motion.div
               key={index}
-              variants={item}
-              whileHover={{ scale: 1.01 }}
-              className='bg-white rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden border border-gray-100'
+              variants={fadeUp}
+              className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden'
             >
-              <details className='group'>
-                <summary className='flex justify-between items-center p-5 md:p-6 cursor-pointer list-none'>
-                  <h3 className='text-lg md:text-xl font-semibold text-gray-800 group-open:text-indigo-600'>
-                    {faq.question}
-                  </h3>
-                  <svg
-                    className='h-5 w-5 text-gray-500 group-open:text-indigo-600 group-open:rotate-180 transform transition-transform flex-shrink-0'
-                    xmlns='http://www.w3.org/2000/svg'
-                    viewBox='0 0 20 20'
-                    fill='currentColor'
-                  >
-                    <path
-                      fillRule='evenodd'
-                      d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'
-                      clipRule='evenodd'
-                    />
-                  </svg>
-                </summary>
-                <div className='px-5 md:px-6 pb-5 md:pb-6 pt-0 md:pt-0 bg-gray-50'>
-                  <p className='text-gray-700'>{faq.answer}</p>
+              <button
+                onClick={() => toggleAccordion(index)}
+                className='w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50/50 transition-colors'
+              >
+                <h3
+                  className={`text-base md:text-lg font-semibold transition-colors ${
+                    openIndex === index ? 'text-rose-500' : 'text-gray-800'
+                  }`}
+                >
+                  {faq.question}
+                </h3>
+                <FaChevronDown
+                  className={`h-4 w-4 text-gray-400 transition-transform duration-300 flex-shrink-0 ${
+                    openIndex === index ? 'rotate-180 text-rose-500' : ''
+                  }`}
+                />
+              </button>
+              <div
+                className={`transition-all duration-300 overflow-hidden ${
+                  openIndex === index ? 'max-h-96' : 'max-h-0'
+                }`}
+              >
+                <div className='px-5 pb-5 pt-0'>
+                  <div className='bg-gray-50 rounded-xl p-4'>
+                    <p className='text-gray-700 text-sm leading-relaxed'>{faq.answer}</p>
+                  </div>
                 </div>
-              </details>
+              </div>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* Additional Help Section */}
+        {/* CTA Banner */}
         <motion.div
-          variants={item}
-          className='mt-10 bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-xl p-6 md:p-8 text-white'
+          variants={fadeUp}
+          initial='hidden'
+          animate='visible'
+          className='mt-8 bg-gradient-to-r from-[#1a1a2e] to-[#16213e] rounded-2xl p-6 text-white'
         >
-          <div className='flex flex-col md:flex-row items-center justify-between gap-6'>
-            <div>
-              <h3 className='text-xl font-bold mb-2'>আরো সাহায্য প্রয়োজন?</h3>
-              <p className='text-indigo-100'>আমাদের সাপোর্ট টিম ২৪/৭ আপনার জন্য প্রস্তুত</p>
+          <div className='flex flex-col sm:flex-row items-center justify-between gap-4'>
+            <div className='text-center sm:text-left'>
+              <h3 className='text-lg font-bold mb-1'>আরো সাহায্য প্রয়োজন?</h3>
+              <p className='text-white/60 text-sm'>আমাদের সাপোর্ট টিম ২৪/৭ আপনার জন্য প্রস্তুত</p>
             </div>
             <NavLink
               to='/support'
-              className='px-6 py-3 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600 transition-colors inline-flex items-center whitespace-nowrap'
+              className='px-6 py-2.5 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600 transition-all flex items-center gap-2 shadow-lg shadow-rose-500/20'
             >
               সাপোর্টে যোগাযোগ করুন
-              <svg
-                xmlns='http://www.w3.org/2000/svg'
-                className='h-5 w-5 ml-2'
-                fill='none'
-                viewBox='0 0 24 24'
-                stroke='currentColor'
-              >
+              <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                 <path
                   strokeLinecap='round'
                   strokeLinejoin='round'
@@ -155,8 +159,10 @@ const FAQSection = () => {
           </div>
         </motion.div>
       </div>
-    </motion.div>
+    </div>
   )
 }
+
+import { NavLink } from 'react-router-dom'
 
 export default FAQSection

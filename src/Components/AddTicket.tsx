@@ -1,7 +1,23 @@
-// NewSupportTicketPage.tsx
+import { motion } from 'framer-motion'
 import { ChangeEvent, useRef, useState } from 'react'
+import { FaArrowLeft, FaPaperPlane, FaTimes, FaUpload } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import supportTicketApi from '../Api/support-ticket.api'
+
+// Animation variants
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+}
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+  },
+}
 
 const NewSupportTicketPage = () => {
   const navigate = useNavigate()
@@ -19,6 +35,23 @@ const NewSupportTicketPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const categories = [
+    { value: 'ACCOUNT', label: 'অ্যাকাউন্ট' },
+    { value: 'PAYMENT', label: 'পেমেন্ট' },
+    { value: 'ORDER', label: 'অর্ডার' },
+    { value: 'PRODUCT', label: 'প্রোডাক্ট' },
+    { value: 'WITHDRAWAL', label: 'উত্তোলন' },
+    { value: 'TECHNICAL', label: 'টেকনিক্যাল' },
+    { value: 'OTHER', label: 'অন্যান্য' },
+  ]
+
+  const priorities = [
+    { value: 'LOW', label: 'নিম্ন', color: 'text-emerald-600', bg: 'bg-emerald-100' },
+    { value: 'MEDIUM', label: 'মধ্যম', color: 'text-blue-600', bg: 'bg-blue-100' },
+    { value: 'HIGH', label: 'উচ্চ', color: 'text-amber-600', bg: 'bg-amber-100' },
+    { value: 'CRITICAL', label: 'জরুরি', color: 'text-rose-600', bg: 'bg-rose-100' },
+  ]
+
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -30,11 +63,10 @@ const NewSupportTicketPage = () => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
       if (attachments.length + newFiles.length > 2) {
-        setError('আপনি সর্বোচ্চ ২টি ফাইল আপলোড করতে পারবেন')
+        setError('সর্বোচ্চ ২টি ফাইল আপলোড করতে পারবেন')
         return
       }
 
-      // Check each file size (max 1MB)
       for (const file of newFiles) {
         if (file.size > 1 * 1024 * 1024) {
           setError('প্রতিটি ফাইলের আকার ১MB এর কম হতে হবে')
@@ -71,16 +103,7 @@ const NewSupportTicketPage = () => {
       )
 
       if (success) {
-        setFormData({
-          subject: '',
-          category: 'ACCOUNT',
-          priority: 'MEDIUM',
-          message: '',
-          orderId: '',
-          paymentId: '',
-          productId: '',
-        })
-        setAttachments([])
+        toast.success('টিকেট সফলভাবে তৈরি হয়েছে')
         navigate(`/support-tickets/${data?.ticketId}`)
       } else {
         setError(message || 'টিকিট তৈরি করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।')
@@ -93,60 +116,45 @@ const NewSupportTicketPage = () => {
     }
   }
 
+  const getPriorityBadge = (priority: string) => {
+    const p = priorities.find(p => p.value === priority) || priorities[1]
+    return (
+      <span
+        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${p.bg} ${p.color}`}
+      >
+        {p.label}
+      </span>
+    )
+  }
+
   const ImagePreview = ({ file, onRemove }: { file: File; onRemove: () => void }) => {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-    const [error, setError] = useState<string | null>(null)
 
     const reader = new FileReader()
     reader.onload = () => {
       setPreviewUrl(reader.result as string)
-    }
-    reader.onerror = () => {
-      setError('ফাইল প্রিভিউ করতে সমস্যা হয়েছে।')
     }
     reader.readAsDataURL(file)
 
     return (
       <div className='relative group'>
         {previewUrl ? (
-          <div className='relative'>
-            <img
-              src={previewUrl}
-              alt={file.name}
-              className='w-full h-24 sm:h-32 object-cover rounded-md border border-gray-200'
-            />
+          <div className='relative rounded-xl overflow-hidden border border-gray-100 shadow-sm'>
+            <img src={previewUrl} alt={file.name} className='w-full h-24 object-cover' />
             <button
               type='button'
               onClick={onRemove}
-              className='absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs transition-colors duration-200 opacity-80 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
-              aria-label='ফাইল মুছে ফেলুন'
+              className='absolute top-1 right-1 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 transition-colors opacity-80 group-hover:opacity-100'
             >
-              <svg
-                xmlns='http://www.w3.org/2000/svg'
-                className='h-4 w-4'
-                fill='none'
-                viewBox='0 0 24 24'
-                stroke='currentColor'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M6 18L18 6M6 6l12 12'
-                />
-              </svg>
+              <FaTimes className='h-3 w-3' />
             </button>
-            <div className='absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-md truncate'>
+            <div className='absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 truncate'>
               {file.name}
             </div>
           </div>
         ) : (
-          <div className='flex items-center justify-center w-full h-24 sm:h-32 border border-gray-200 rounded-md'>
-            {error ? (
-              <p className='text-red-500 text-xs text-center px-2'>{error}</p>
-            ) : (
-              <p className='text-gray-400 text-xs text-center px-2'>ফাইল প্রিভিউ লোড হচ্ছে...</p>
-            )}
+          <div className='flex items-center justify-center h-24 border border-gray-200 rounded-xl bg-gray-50'>
+            <div className='animate-pulse text-gray-400 text-xs'>লোড হচ্ছে...</div>
           </div>
         )}
       </div>
@@ -154,153 +162,143 @@ const NewSupportTicketPage = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <div className='container mx-auto px-4 py-4 sm:py-6 max-w-4xl'>
-        <div className='flex justify-between items-center mb-4 sm:mb-6'>
-          <h1 className='text-xl sm:text-2xl font-bold text-gray-800'>নতুন সাপোর্ট টিকিট</h1>
-          <button
-            onClick={() => navigate('/support-tickets')}
-            className='text-gray-600 hover:text-gray-800 p-2 rounded-md hover:bg-gray-100'
-          >
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              className='h-5 w-5 sm:h-6 sm:w-6'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='currentColor'
+    <div className='min-h-screen bg-[#f7f6f3] py-6 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-3xl mx-auto'>
+        {/* Header */}
+        <motion.div initial='hidden' animate='visible' variants={staggerContainer} className='mb-6'>
+          <motion.div variants={fadeUp}>
+            <button
+              onClick={() => navigate('/support-tickets')}
+              className='flex items-center gap-2 text-gray-500 hover:text-rose-500 transition-colors mb-4 group'
             >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M6 18L18 6M6 6l12 12'
-              />
-            </svg>
-          </button>
-        </div>
-
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6'>
-          {error && (
-            <div className='mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm'>{error}</div>
-          )}
-
-          <form onSubmit={handleSubmit} className='space-y-4 sm:space-y-6'>
+              <FaArrowLeft className='h-4 w-4 group-hover:-translate-x-0.5 transition-transform' />
+              <span className='text-sm'>সব টিকেট</span>
+            </button>
             <div>
-              <label htmlFor='subject' className='block text-sm font-medium text-gray-700 mb-1'>
-                বিষয় <span className='text-red-500'>*</span>
+              <h1 className='text-2xl md:text-3xl font-bold text-[#1a1a2e]'>নতুন সাপোর্ট টিকেট</h1>
+              <p className='text-gray-500 text-sm mt-1'>আপনার সমস্যা সম্পর্কে বিস্তারিত জানান</p>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Form Card */}
+        <motion.div
+          variants={fadeUp}
+          initial='hidden'
+          animate='visible'
+          className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden'
+        >
+          <div className='bg-gradient-to-r from-[#1a1a2e] to-[#16213e] px-5 py-4'>
+            <h2 className='text-white font-semibold text-lg'>টিকেট তথ্য</h2>
+          </div>
+
+          <form onSubmit={handleSubmit} className='p-5 space-y-5'>
+            {error && (
+              <div className='p-3 bg-rose-50 rounded-xl border border-rose-100'>
+                <p className='text-rose-600 text-sm'>{error}</p>
+              </div>
+            )}
+
+            {/* Subject */}
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1.5'>
+                বিষয় <span className='text-rose-500'>*</span>
               </label>
               <input
                 type='text'
-                id='subject'
                 name='subject'
                 value={formData.subject}
                 onChange={handleChange}
                 required
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm'
+                className='w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all'
                 placeholder='আপনার সমস্যার সংক্ষিপ্ত বিবরণ দিন'
               />
             </div>
 
-            <div className='space-y-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4'>
+            {/* Category & Priority Row */}
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
               <div>
-                <label htmlFor='category' className='block text-sm font-medium text-gray-700 mb-1'>
-                  বিভাগ <span className='text-red-500'>*</span>
+                <label className='block text-sm font-medium text-gray-700 mb-1.5'>
+                  বিভাগ <span className='text-rose-500'>*</span>
                 </label>
                 <select
-                  id='category'
                   name='category'
                   value={formData.category}
                   onChange={handleChange}
                   required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm'
+                  className='w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all'
                 >
-                  <option value='ACCOUNT'>অ্যাকাউন্ট</option>
-                  <option value='PAYMENT'>পেমেন্ট</option>
-                  <option value='ORDER'>অর্ডার</option>
-                  <option value='PRODUCT'>প্রোডাক্ট</option>
-                  <option value='WITHDRAWAL'>উত্তোলন</option>
-                  <option value='TECHNICAL'>টেকনিক্যাল</option>
-                  <option value='OTHER'>অন্যান্য</option>
+                  {categories.map(cat => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label htmlFor='priority' className='block text-sm font-medium text-gray-700 mb-1'>
-                  গুরুত্ব
-                </label>
+                <label className='block text-sm font-medium text-gray-700 mb-1.5'>গুরুত্ব</label>
                 <select
-                  id='priority'
                   name='priority'
                   value={formData.priority}
                   onChange={handleChange}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm'
+                  className='w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all'
                 >
-                  <option value='LOW'>নিম্ন</option>
-                  <option value='MEDIUM'>মধ্যম</option>
-                  <option value='HIGH'>উচ্চ</option>
-                  <option value='CRITICAL'>জরুরী</option>
+                  {priorities.map(p => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
                 </select>
-              </div>
-
-              <div>
-                <label htmlFor='orderId' className='block text-sm font-medium text-gray-700 mb-1'>
-                  অর্ডার আইডি (যদি থাকে)
-                </label>
-                <input
-                  type='text'
-                  id='orderId'
-                  name='orderId'
-                  value={formData.orderId}
-                  onChange={handleChange}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm'
-                  placeholder='ORD-123456'
-                />
+                <div className='mt-1.5 flex justify-end'>{getPriorityBadge(formData.priority)}</div>
               </div>
             </div>
 
+            {/* Order ID (optional) */}
             <div>
-              <label htmlFor='message' className='block text-sm font-medium text-gray-700 mb-1'>
-                বিস্তারিত বিবরণ <span className='text-red-500'>*</span>
+              <label className='block text-sm font-medium text-gray-700 mb-1.5'>
+                অর্ডার আইডি (যদি থাকে)
+              </label>
+              <input
+                type='text'
+                name='orderId'
+                value={formData.orderId}
+                onChange={handleChange}
+                className='w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all'
+                placeholder='যেমন: ORD-123456'
+              />
+            </div>
+
+            {/* Message */}
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1.5'>
+                বিস্তারিত বিবরণ <span className='text-rose-500'>*</span>
               </label>
               <textarea
-                id='message'
                 name='message'
                 value={formData.message}
                 onChange={handleChange}
                 required
-                rows={4}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-none'
+                rows={5}
+                className='w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all resize-none'
                 placeholder='আপনার সমস্যা সম্পর্কে বিস্তারিত লিখুন...'
               />
             </div>
 
+            {/* Attachments */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label className='block text-sm font-medium text-gray-700 mb-1.5'>
                 সংযুক্তি (সর্বোচ্চ ২টি, প্রতিটি ১ MB পর্যন্ত)
               </label>
-
-              <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
+              <div className='flex flex-col sm:flex-row sm:items-center gap-3'>
                 <button
                   type='button'
                   onClick={() => fileInputRef.current?.click()}
-                  className='inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200'
+                  className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors'
                 >
-                  <svg
-                    className='-ml-1 mr-2 h-4 w-4 text-gray-500'
-                    xmlns='http://www.w3.org/2000/svg'
-                    viewBox='0 0 20 20'
-                    fill='currentColor'
-                    aria-hidden='true'
-                  >
-                    <path
-                      fillRule='evenodd'
-                      d='M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z'
-                      clipRule='evenodd'
-                    />
-                  </svg>
+                  <FaUpload className='h-4 w-4' />
                   ফাইল নির্বাচন করুন
                 </button>
-
                 <input
                   ref={fileInputRef}
                   type='file'
@@ -309,12 +307,13 @@ const NewSupportTicketPage = () => {
                   className='hidden'
                   accept='image/*,.pdf,.doc,.docx,.xls,.xlsx'
                 />
-
-                <p className='text-sm text-gray-500'>{attachments.length} / 2 ফাইল নির্বাচিত</p>
+                <span className='text-xs text-gray-400'>
+                  {attachments.length} / ২টি ফাইল নির্বাচিত
+                </span>
               </div>
 
               {attachments.length > 0 && (
-                <div className='mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3'>
+                <div className='mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3'>
                   {attachments.map((file, index) => (
                     <ImagePreview
                       key={index}
@@ -326,51 +325,35 @@ const NewSupportTicketPage = () => {
               )}
             </div>
 
-            <div className='flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200'>
+            {/* Actions */}
+            <div className='flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-100'>
               <button
                 type='button'
                 onClick={() => navigate('/support-tickets')}
-                className='w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200'
+                className='px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors'
               >
                 বাতিল করুন
               </button>
-
               <button
                 type='submit'
                 disabled={loading}
-                className='w-full sm:w-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors duration-200'
+                className='inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600 transition-all disabled:opacity-50 shadow-lg shadow-rose-500/20'
               >
                 {loading ? (
-                  <div className='flex items-center justify-center'>
-                    <svg
-                      className='animate-spin -ml-1 mr-2 h-4 w-4 text-white'
-                      xmlns='http://www.w3.org/2000/svg'
-                      fill='none'
-                      viewBox='0 0 24 24'
-                    >
-                      <circle
-                        className='opacity-25'
-                        cx='12'
-                        cy='12'
-                        r='10'
-                        stroke='currentColor'
-                        strokeWidth='4'
-                      />
-                      <path
-                        className='opacity-75'
-                        fill='currentColor'
-                        d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                      />
-                    </svg>
+                  <>
+                    <div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent' />
                     প্রক্রিয়াধীন...
-                  </div>
+                  </>
                 ) : (
-                  'টিকিট তৈরি করুন'
+                  <>
+                    <FaPaperPlane className='h-4 w-4' />
+                    টিকেট তৈরি করুন
+                  </>
                 )}
               </button>
             </div>
           </form>
-        </div>
+        </motion.div>
       </div>
     </div>
   )

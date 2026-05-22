@@ -41,7 +41,10 @@ import CustomerReferralOrders from './Components/CustomerReferralOrders.tsx'
 import CustomerRegister from './Components/CustomerRegister.tsx'
 import Footer from './Components/Footer.tsx'
 import FraudCheckComponent from './Components/FraudChecker.tsx'
-import OrderProduct from './Components/OrderProduct.tsx'
+import {
+  default as OrderProduct,
+  default as SingleProductOrder,
+} from './Components/OrderProduct.tsx'
 import ResellerPassiveIncome from './Components/PassiveIncome.tsx'
 import PayDue from './Components/PayDue.tsx'
 import PaymentHistory from './Components/PaymentHistory.tsx'
@@ -52,6 +55,7 @@ import ReferralOrders from './Components/ReferralOrders.tsx'
 import ReferredCustomers from './Components/ReferredCustomers.tsx'
 import ReferredSellers from './Components/ReferredSellers.tsx'
 import RefundPolicy from './Components/RefundPolicy.tsx'
+import ScrollToTop from './Components/ScrollToTop.tsx'
 import SellerDashboard from './Components/SellerDashboard.tsx'
 import SupportTicketDetailPage from './Components/SupportTicketDetail.tsx'
 import {
@@ -126,7 +130,9 @@ const UserProviderWrapper = () => {
   const { customerMode } = useAuth()
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
+        <Route path='/customer-order/:token' element={<SingleProductOrder />} />
         <Route path='/' element={<Home />}>
           <Route
             index

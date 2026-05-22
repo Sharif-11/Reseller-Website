@@ -1,3 +1,6 @@
+// Favorites.tsx — BazaarHub Design System
+// Design tokens: --navy: #1a1a2e  --rose: #e94560  --cream: #f7f6f3
+
 import { ChevronLeft, ChevronRight, Download, Heart, MapPin, Package } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -16,13 +19,11 @@ const Favorites = () => {
   const itemsPerPage = 12
   const { loadCartCount, loadFavoriteCount } = useCartFavorite()
 
-  // Load favorites from localStorage
   useEffect(() => {
     const loadFavorites = () => {
       try {
         setLoading(true)
         const savedFavorites = localStorage.getItem(FAVORITES_KEY)
-
         if (savedFavorites) {
           const parsed = JSON.parse(savedFavorites)
           if (Array.isArray(parsed)) {
@@ -36,9 +37,9 @@ const Favorites = () => {
         setLoading(false)
       }
     }
-
     loadFavorites()
   }, [])
+
   useEffect(() => {
     loadFavoriteCount()
     loadCartCount()
@@ -54,12 +55,11 @@ const Favorites = () => {
   const downloadAllImages = async (product: Product) => {
     if (!product.ProductImage) return
     const imageUrls = product.ProductImage.map(image => image.imageUrl)
-
     try {
       setDownloadingId(product.productId)
       await fileDownloader.downloadAllFiles(imageUrls, {
         baseNamePrefix: `product_${product.name.replace(/\s+/g, '_')}`,
-        delayBetweenDownloads: 500, // Optional delay between downloads
+        delayBetweenDownloads: 500,
       })
     } catch (error) {
       console.error('Error downloading images:', error)
@@ -68,9 +68,7 @@ const Favorites = () => {
     }
   }
 
-  const formatPrice = (price: number) => {
-    return `৳${price.toLocaleString()}`
-  }
+  const formatPrice = (price: number) => `৳${price.toLocaleString()}`
 
   const nextImage = (productId: number, totalImages: number) => {
     setCurrentImageIndex(prev => ({
@@ -86,52 +84,58 @@ const Favorites = () => {
     }))
   }
 
-  const navigateToProductDetail = (productId: number) => {
-    navigate(`/products/${productId}`)
-  }
-
-  // Pagination
   const totalPages = Math.ceil(favorites.length / itemsPerPage)
   const paginatedFavorites = favorites.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   )
 
-  if (loading) {
+  /* ── Loading ── */
+  if (loading)
     return (
-      <div className='flex justify-center items-center h-64'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500'></div>
+      <div className='flex min-h-[60vh] items-center justify-center bg-[#f7f6f3]'>
+        <div className='relative h-10 w-10'>
+          <div className='absolute inset-0 rounded-full border-2 border-gray-200' />
+          <div className='absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#e94560]' />
+        </div>
       </div>
     )
-  }
 
-  if (favorites.length === 0) {
+  /* ── Empty ── */
+  if (favorites.length === 0)
     return (
-      <div className='flex flex-col items-center justify-center py-12 text-gray-500'>
-        <Heart className='text-4xl mb-4 text-gray-300' />
-        <p className='text-xl font-medium mb-2'>No favorite products yet</p>
-        <p className='text-sm'>Add products to your favorites to see them here</p>
+      <div className='flex min-h-[60vh] flex-col items-center justify-center bg-[#f7f6f3] p-6 text-center'>
+        <div className='mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-[#1a1a2e]'>
+          <Heart className='h-9 w-9 text-white/20' />
+        </div>
+        <h2 className='mb-1.5 font-serif text-xl font-bold text-[#1a1a2e]'>পছন্দের তালিকা খালি</h2>
+        <p className='text-[13px] text-gray-500'>পণ্য পছন্দের তালিকায় যোগ করলে এখানে দেখা যাবে</p>
       </div>
     )
-  }
 
   return (
-    <div className='min-h-screen bg-gray-50'>
-      {/* Header */}
-      <div className='bg-white shadow-sm border-b sticky top-0 z-40'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='flex items-center justify-between h-16'>
-            <h1 className='text-xl font-bold text-gray-900'>Your Favorite Products</h1>
-            <div className='text-sm text-gray-600'>
-              {favorites.length} {favorites.length === 1 ? 'item' : 'items'}
+    <div className='min-h-screen bg-[#f7f6f3]'>
+      {/* ── Page header ── */}
+      <div className='border-b border-gray-100 bg-white'>
+        <div className='mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h1 className='font-serif text-2xl font-bold text-[#1a1a2e]'>পছন্দের পণ্যসমূহ</h1>
+              <p className='mt-0.5 text-[13px] text-gray-400'>
+                {favorites.length} টি পণ্য সংরক্ষিত
+              </p>
+            </div>
+            {/* Decorative rose accent */}
+            <div className='hidden h-10 w-10 items-center justify-center rounded-2xl bg-[#e94560]/10 sm:flex'>
+              <Heart className='h-5 w-5 text-[#e94560]' />
             </div>
           </div>
         </div>
       </div>
 
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Products Grid */}
-        <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'>
+      <div className='mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8'>
+        {/* ── Product grid ── */}
+        <div className='grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-4'>
           {paginatedFavorites.map(product => {
             const currentImg = currentImageIndex[product.productId] || 0
             const totalImages = product.ProductImage?.length || 0
@@ -139,24 +143,24 @@ const Favorites = () => {
             return (
               <div
                 key={`${product.productId}-${currentImg}`}
-                className='bg-white rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 group overflow-hidden'
+                className='group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5'
               >
-                {/* Image Section with Slider */}
-                <div className='relative aspect-square'>
+                {/* Image */}
+                <div className='relative aspect-square overflow-hidden'>
                   {product.ProductImage && product.ProductImage.length > 0 ? (
                     <img
                       src={product.ProductImage[currentImg]?.imageUrl}
                       alt={product.name}
-                      className='w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer'
-                      onClick={() => navigateToProductDetail(product.productId)}
+                      className='h-full w-full cursor-pointer object-cover transition-transform duration-500 group-hover:scale-105'
+                      onClick={() => navigate(`/products/${product.productId}`)}
                     />
                   ) : (
-                    <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
-                      <Package className='h-12 w-12 text-gray-400' />
+                    <div className='flex h-full w-full items-center justify-center bg-gray-100'>
+                      <Package className='h-10 w-10 text-gray-300' />
                     </div>
                   )}
 
-                  {/* Image Navigation */}
+                  {/* Prev / Next arrows */}
                   {totalImages > 1 && (
                     <>
                       <button
@@ -164,53 +168,48 @@ const Favorites = () => {
                           e.stopPropagation()
                           prevImage(product.productId, totalImages)
                         }}
-                        className='absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                        className='absolute left-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-[#1a1a2e]/60 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100'
                       >
-                        <ChevronLeft className='h-4 w-4' />
+                        <ChevronLeft className='h-3.5 w-3.5' />
                       </button>
                       <button
                         onClick={e => {
                           e.stopPropagation()
                           nextImage(product.productId, totalImages)
                         }}
-                        className='absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                        className='absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-[#1a1a2e]/60 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100'
                       >
-                        <ChevronRight className='h-4 w-4' />
+                        <ChevronRight className='h-3.5 w-3.5' />
                       </button>
                     </>
                   )}
 
-                  {/* Image Indicators */}
+                  {/* Dot indicators */}
                   {totalImages > 1 && (
-                    <div className='absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1'>
+                    <div className='absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1'>
                       {product.ProductImage.map((_, index) => (
                         <button
                           key={index}
                           onClick={e => {
                             e.stopPropagation()
-                            setCurrentImageIndex(prev => ({
-                              ...prev,
-                              [product.productId]: index,
-                            }))
+                            setCurrentImageIndex(prev => ({ ...prev, [product.productId]: index }))
                           }}
-                          className={`w-2 h-2 rounded-full transition-colors ${
-                            index === currentImg ? 'bg-white' : 'bg-white/50'
-                          }`}
+                          className={`h-1.5 rounded-full transition-all ${index === currentImg ? 'w-4 bg-white' : 'w-1.5 bg-white/50'}`}
                         />
                       ))}
                     </div>
                   )}
 
-                  {/* Action Buttons */}
-                  <div className='absolute top-3 right-3 flex flex-col space-y-2'>
+                  {/* Action buttons */}
+                  <div className='absolute right-2.5 top-2.5 flex flex-col gap-1.5'>
                     <button
                       onClick={e => {
                         e.stopPropagation()
                         removeFavorite(product.productId)
                       }}
-                      className='p-2 bg-white/90 text-red-500 hover:bg-white rounded-full shadow-lg transition-all'
+                      className='flex h-8 w-8 items-center justify-center rounded-xl border border-red-100 bg-white/90 text-[#e94560] shadow-sm backdrop-blur-sm transition hover:bg-white hover:shadow-md'
                     >
-                      <Heart className='h-4 w-4 fill-current' />
+                      <Heart className='h-3.5 w-3.5 fill-current' />
                     </button>
 
                     {totalImages > 0 && (
@@ -219,54 +218,42 @@ const Favorites = () => {
                           e.stopPropagation()
                           downloadAllImages(product)
                         }}
-                        className='p-2 bg-white/90 text-gray-700 hover:bg-white rounded-full shadow-lg transition-all'
                         disabled={downloadingId === product.productId}
+                        className='flex h-8 w-8 items-center justify-center rounded-xl border border-gray-100 bg-white/90 text-gray-600 shadow-sm backdrop-blur-sm transition hover:bg-white hover:shadow-md disabled:opacity-50'
                       >
                         {downloadingId === product.productId ? (
-                          <div className='animate-spin h-4 w-4 border-b-2 border-blue-500 rounded-full'></div>
+                          <div className='h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-[#e94560]' />
                         ) : (
-                          <Download className='h-4 w-4' />
+                          <Download className='h-3.5 w-3.5' />
                         )}
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Product Info */}
+                {/* Info */}
                 <div
-                  className='p-4 cursor-pointer'
-                  onClick={() => navigateToProductDetail(product.productId)}
+                  className='cursor-pointer p-3.5'
+                  onClick={() => navigate(`/products/${product.productId}`)}
                 >
-                  <h3 className='font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors text-sm'>
+                  <h3 className='mb-2 line-clamp-2 text-[13px] font-semibold leading-snug text-[#1a1a2e] transition-colors group-hover:text-[#e94560]'>
                     {product.name}
                   </h3>
 
-                  <div className='flex items-center justify-between mb-3'>
-                    <div>
-                      <span className='text-lg font-bold text-gray-900'>
-                        {formatPrice(product.basePrice || product?.price!)}
-                      </span>
-                    </div>
-                  </div>
+                  <p className='mb-3 text-base font-bold text-[#1a1a2e]'>
+                    {formatPrice(product.basePrice || product?.price!)}
+                  </p>
 
-                  {/* Shop Info */}
                   {product.shop && (
-                    <div className='text-xs text-gray-500 space-y-1 border-t border-gray-100 pt-3'>
-                      <div className='flex items-center'>
-                        <Package className='h-3 w-3 mr-1' />
-                        <span>{product.shop.shopName}</span>
+                    <div className='space-y-1.5 border-t border-gray-50 pt-3'>
+                      <div className='flex items-center gap-1.5 text-[11px] text-gray-400'>
+                        <Package className='h-3 w-3 shrink-0' />
+                        <span className='truncate'>{product.shop.shopName}</span>
                       </div>
-                      <div className='flex items-center'>
-                        <MapPin className='h-3 w-3 mr-1' />
-                        <span>{product.shop.shopLocation}</span>
+                      <div className='flex items-center gap-1.5 text-[11px] text-gray-400'>
+                        <MapPin className='h-3 w-3 shrink-0' />
+                        <span className='truncate'>{product.shop.shopLocation}</span>
                       </div>
-                      {/* <div className='flex items-center'>
-                        <Truck className='h-3 w-3 mr-1' />
-                        <span>
-                          Delivery: ৳{product.shop.deliveryChargeInside} (inside), ৳
-                          {product.shop.deliveryChargeOutside} (outside)
-                        </span>
-                      </div> */}
                     </div>
                   )}
                 </div>
@@ -275,30 +262,38 @@ const Favorites = () => {
           })}
         </div>
 
-        {/* Pagination */}
+        {/* ── Pagination ── */}
         {totalPages > 1 && (
-          <div className='flex justify-center mt-8'>
-            <nav className='flex items-center space-x-2'>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
-              >
-                <ChevronLeft className='h-4 w-4' />
-              </button>
+          <div className='mt-8 flex items-center justify-center gap-2'>
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className='flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:border-[#e94560]/30 hover:text-[#e94560] disabled:opacity-40'
+            >
+              <ChevronLeft className='h-4 w-4' />
+            </button>
 
-              <span className='px-4 py-2 text-sm text-gray-600'>
-                Page {currentPage} of {totalPages}
-              </span>
-
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
               <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`flex h-9 w-9 items-center justify-center rounded-xl text-[13px] font-medium transition ${
+                  page === currentPage
+                    ? 'bg-[#e94560] text-white shadow-[0_4px_12px_rgba(233,69,96,0.3)]'
+                    : 'border border-gray-200 bg-white text-gray-600 hover:border-[#e94560]/30 hover:text-[#e94560]'
+                }`}
               >
-                <ChevronRight className='h-4 w-4' />
+                {page}
               </button>
-            </nav>
+            ))}
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className='flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:border-[#e94560]/30 hover:text-[#e94560] disabled:opacity-40'
+            >
+              <ChevronRight className='h-4 w-4' />
+            </button>
           </div>
         )}
       </div>

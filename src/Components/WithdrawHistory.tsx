@@ -1,4 +1,16 @@
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import {
+  FaCheckCircle,
+  FaClock,
+  FaCreditCard,
+  FaExclamationTriangle,
+  FaMobileAlt,
+  FaSearch,
+  FaTimesCircle,
+  FaTrash,
+  FaWallet,
+} from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import withdrawApi from '../Api/withdraw.api'
 import { formatDate } from '../utils/date.utils'
@@ -27,6 +39,20 @@ interface PaginationState {
   totalPages: number
   totalRequests: number
   pageSize: number
+}
+
+// Animation variants
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+}
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+  },
 }
 
 const WithdrawHistory = () => {
@@ -67,26 +93,14 @@ const WithdrawHistory = () => {
           },
         }))
       } else {
-        toast.error(response.message || 'Failed to load withdrawal history')
+        toast.error(response.message || 'হিস্ট্রি লোড করতে ব্যর্থ হয়েছে')
       }
     } catch (error) {
-      toast.error('An error occurred while fetching withdrawal history')
+      toast.error('হিস্ট্রি লোড করতে সমস্যা হয়েছে')
       console.error('Error fetching withdrawal history:', error)
     } finally {
       setLoading(false)
     }
-  }
-
-  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newPageSize = parseInt(e.target.value)
-    setPagination(prev => ({
-      ...prev,
-      [activeTab]: {
-        ...prev[activeTab],
-        pageSize: newPageSize,
-      },
-    }))
-    fetchWithdrawHistory(1, newPageSize)
   }
 
   const handleSearch = (e: React.FormEvent) => {
@@ -104,16 +118,16 @@ const WithdrawHistory = () => {
       const response = await withdrawApi.cancelWithdraw(withdrawId)
 
       if (response.success) {
-        toast.success('Withdrawal request cancelled successfully')
+        toast.success('উইথড্র রিকোয়েস্ট বাতিল করা হয়েছে')
         fetchWithdrawHistory(pagination[activeTab].currentPage)
       } else {
-        setError(response.message || 'Failed to cancel withdrawal request')
+        setError(response.message || 'রিকোয়েস্ট বাতিল করতে ব্যর্থ হয়েছে')
       }
     } catch (error) {
-      toast.error((error as Error).message || 'Error cancelling withdrawal request')
+      toast.error((error as Error).message || 'রিকোয়েস্ট বাতিল করতে সমস্যা হয়েছে')
     } finally {
       setCancellingId(null)
-      setShowCancelConfirmation(false) // Close confirmation after a short delay
+      setShowCancelConfirmation(false)
       setRequestToCancel(null)
     }
   }
@@ -126,21 +140,47 @@ const WithdrawHistory = () => {
   const closeCancelConfirmation = () => {
     setShowCancelConfirmation(false)
     setRequestToCancel(null)
+    setError(null)
   }
 
   const getStatusBadge = (status: string) => {
-    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium'
-
     switch (status) {
       case 'COMPLETED':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Completed</span>
+        return (
+          <span className='inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700'>
+            <FaCheckCircle className='h-3 w-3' />
+            সম্পন্ন
+          </span>
+        )
       case 'REJECTED':
-        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Rejected</span>
+        return (
+          <span className='inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-700'>
+            <FaExclamationTriangle className='h-3 w-3' />
+            বাতিল
+          </span>
+        )
       case 'CANCELLED':
-        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>Cancelled</span>
+        return (
+          <span className='inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
+            <FaTimesCircle className='h-3 w-3' />
+            নাকচ
+          </span>
+        )
       default:
-        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Pending</span>
+        return (
+          <span className='inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700'>
+            <FaClock className='h-3 w-3' />
+            প্রক্রিয়াধীন
+          </span>
+        )
     }
+  }
+
+  const getWalletIcon = (type: string) => {
+    if (type === 'bKash') {
+      return <FaMobileAlt className='text-green-500' />
+    }
+    return <FaCreditCard className='text-purple-500' />
   }
 
   const showDetailsModal = (request: WithdrawRequest) => {
@@ -153,513 +193,478 @@ const WithdrawHistory = () => {
 
   const currentPagination = pagination[activeTab]
 
+  const tabs = [
+    { id: 'PENDING', label: 'প্রক্রিয়াধীন', count: pagination.PENDING.totalRequests },
+    { id: 'COMPLETED', label: 'সম্পন্ন', count: pagination.COMPLETED.totalRequests },
+    { id: 'REJECTED', label: 'বাতিল', count: pagination.REJECTED.totalRequests },
+  ] as const
+
   return (
-    <div className='px-4 py-6 max-w-6xl mx-auto'>
-      <h1 className='text-xl font-bold mb-4 md:text-2xl md:mb-6'>Withdrawal History</h1>
+    <div className='min-h-screen bg-[#f7f6f3] py-6 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-6xl mx-auto'>
+        {/* Header */}
+        <motion.div initial='hidden' animate='visible' variants={staggerContainer} className='mb-6'>
+          <motion.div variants={fadeUp}>
+            <h1 className='text-2xl md:text-3xl font-bold text-[#1a1a2e]'>উইথড্র হিস্ট্রি</h1>
+            <p className='text-gray-500 text-sm mt-1'>আপনার সকল উত্তোলনের ইতিহাস</p>
+          </motion.div>
+        </motion.div>
 
-      {/* Search and filter section */}
-      <div className='mb-6'>
-        <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
-          {/* Tabs - Full width on mobile, auto width on desktop */}
-          <div className='flex border-b w-full lg:w-auto overflow-x-auto'>
-            <button
-              className={`px-4 py-2.5 text-sm whitespace-nowrap ${
-                activeTab === 'PENDING'
-                  ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('PENDING')}
-            >
-              Pending
-            </button>
-            <button
-              className={`px-4 py-2.5 text-sm whitespace-nowrap ${
-                activeTab === 'COMPLETED'
-                  ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('COMPLETED')}
-            >
-              Completed
-            </button>
-            <button
-              className={`px-4 py-2.5 text-sm whitespace-nowrap ${
-                activeTab === 'REJECTED'
-                  ? 'text-blue-600 border-b-2 border-blue-600 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('REJECTED')}
-            >
-              Rejected
-            </button>
-          </div>
-
-          {/* Search and Page Size - Stacked on mobile, inline on desktop */}
-          <div className='flex flex-col gap-3 w-full lg:flex-row lg:items-center lg:flex-1 lg:max-w-2xl lg:justify-end'>
-            {/* Search - Full width on mobile, expands on desktop */}
-            <form onSubmit={handleSearch} className='flex gap-2 w-full lg:flex-1 lg:min-w-[300px]'>
-              <input
-                type='text'
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder='Search by phone, name, or transaction ID'
-                className='w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              />
-              <button
-                type='submit'
-                className='hidden lg:block px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap'
-              >
-                Search
-              </button>
-            </form>
-
-            {/* Page Size - Full width on mobile, auto width on desktop */}
-            <select
-              value={currentPagination.pageSize}
-              onChange={handlePageSizeChange}
-              className='w-full lg:w-auto px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-            >
-              <option value='5'>5 per page</option>
-              <option value='10'>10 per page</option>
-              <option value='20'>20 per page</option>
-              <option value='50'>50 per page</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      {loading ? (
-        <div className='flex justify-center items-center h-64'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500'></div>
-        </div>
-      ) : allRequests.length === 0 ? (
-        <div className='bg-white rounded-lg shadow p-6 text-center'>
-          <p className='text-gray-500'>No {activeTab.toLowerCase()} withdrawal requests found</p>
-        </div>
-      ) : (
-        <>
-          {/* Desktop view - table (hidden on mobile) */}
-          <div className='hidden md:block bg-white rounded-lg shadow overflow-hidden'>
-            <div className='overflow-x-auto'>
-              <table className='min-w-full divide-y divide-gray-200 text-sm'>
-                <thead className='bg-gray-50'>
-                  <tr>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      Date
-                    </th>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      Wallet
-                    </th>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      Amount
-                    </th>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      Fee
-                    </th>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      Received
-                    </th>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      Status
-                    </th>
-                    <th className='px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider'>
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className='bg-white divide-y divide-gray-200'>
-                  {allRequests.map(request => (
-                    <tr key={request.withdrawId}>
-                      <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
-                        {formatDate(request.requestedAt)}
-                      </td>
-                      <td className='px-4 py-4 whitespace-nowrap'>
-                        <div className='font-medium text-gray-900'>{request.walletName}</div>
-                        <div className='text-gray-500'>{request.walletPhoneNo}</div>
-                      </td>
-                      <td className='px-4 py-4 whitespace-nowrap text-gray-900'>
-                        {parseFloat(request.amount).toFixed(2)}৳
-                      </td>
-                      <td className='px-4 py-4 whitespace-nowrap text-gray-500'>
-                        {parseFloat(request.transactionFee).toFixed(2)}৳
-                      </td>
-                      <td className='px-4 py-4 whitespace-nowrap text-gray-900 font-medium'>
-                        {parseFloat(request.actualAmount).toFixed(2)}৳
-                      </td>
-                      <td className='px-4 py-4 whitespace-nowrap'>
-                        <div className='flex items-center space-x-2'>
-                          {getStatusBadge(request.withdrawStatus)}
-                          {(request.withdrawStatus === 'COMPLETED' ||
-                            request.withdrawStatus === 'REJECTED') && (
-                            <button
-                              onClick={() => showDetailsModal(request)}
-                              className='text-blue-600 hover:text-blue-800'
-                            >
-                              Details
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td className='px-4 py-4 whitespace-nowrap font-medium'>
-                        {request.withdrawStatus === 'PENDING' ? (
-                          <button
-                            onClick={() => openCancelConfirmation(request)}
-                            disabled={cancellingId === request.withdrawId}
-                            className='text-red-600 hover:text-red-900 disabled:opacity-50'
-                          >
-                            {cancellingId === request.withdrawId ? 'Cancelling...' : 'Cancel'}
-                          </button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Search and Tabs Section */}
+        <motion.div
+          variants={fadeUp}
+          className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6'
+        >
+          {/* Tabs */}
+          <div className='border-b border-gray-100'>
+            <div className='flex overflow-x-auto scrollbar-hide'>
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-all relative ${
+                    activeTab === tab.id ? 'text-rose-500' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <span
+                      className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${
+                        activeTab === tab.id
+                          ? 'bg-rose-100 text-rose-600'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                  {activeTab === tab.id && (
+                    <motion.div
+                      layoutId='activeTab'
+                      className='absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500'
+                    />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Mobile view - list (hidden on desktop) */}
-          <div className='md:hidden space-y-4'>
-            {allRequests.map(request => (
-              <div key={request.withdrawId} className='bg-white rounded-lg shadow p-4'>
-                <div className='flex justify-between items-start'>
-                  <div>
-                    <p className='text-sm text-gray-500'>{formatDate(request.requestedAt)}</p>
-                    <h3 className='font-medium text-gray-900 mt-1'>{request.walletName}</h3>
-                    <p className='text-sm text-gray-500'>{request.walletPhoneNo}</p>
-                  </div>
-                  <div className='text-right'>
-                    <div className='font-medium text-gray-900'>
-                      {parseFloat(request.amount).toFixed(2)}৳
-                    </div>
-                    <div className='text-xs text-gray-500'>
-                      Fee: {parseFloat(request.transactionFee).toFixed(2)}৳
-                    </div>
-                    <div className='text-sm font-medium text-green-600'>
-                      {parseFloat(request.actualAmount).toFixed(2)}৳
-                    </div>
-                  </div>
-                </div>
+          {/* Search Bar */}
+          <div className='p-4'>
+            <form onSubmit={handleSearch} className='flex gap-2'>
+              <div className='flex-1 relative'>
+                <FaSearch className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4' />
+                <input
+                  type='text'
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder='ফোন, নাম বা ট্রানজেকশন আইডি দিয়ে খুঁজুন...'
+                  className='w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 transition-all'
+                />
+              </div>
+              <button
+                type='submit'
+                className='px-5 py-2 bg-rose-500 text-white rounded-xl text-sm font-medium hover:bg-rose-600 transition-all'
+              >
+                খুঁজুন
+              </button>
+            </form>
+          </div>
+        </motion.div>
 
-                <div className='mt-3 flex justify-between items-center'>
-                  <div>{getStatusBadge(request.withdrawStatus)}</div>
-                  <div className='flex space-x-2'>
+        {/* Loading State */}
+        {loading ? (
+          <div className='flex justify-center py-12'>
+            <div className='animate-spin rounded-full h-8 w-8 border-2 border-rose-500 border-t-transparent' />
+          </div>
+        ) : allRequests.length === 0 ? (
+          <motion.div
+            variants={fadeUp}
+            className='bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center'
+          >
+            <div className='w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+              <FaWallet className='h-7 w-7 text-gray-400' />
+            </div>
+            <p className='text-gray-500'>কোন উইথড্র রিকোয়েস্ট পাওয়া যায়নি</p>
+            <p className='text-xs text-gray-400 mt-1'>
+              {activeTab === 'PENDING'
+                ? 'আপনার কোনো প্রক্রিয়াধীন রিকোয়েস্ট নেই'
+                : activeTab === 'COMPLETED'
+                  ? 'আপনার কোনো সম্পন্ন রিকোয়েস্ট নেই'
+                  : 'আপনার কোনো বাতিল রিকোয়েস্ট নেই'}
+            </p>
+          </motion.div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className='hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden'>
+              <div className='overflow-x-auto'>
+                <table className='w-full'>
+                  <thead className='bg-gray-50 border-b border-gray-100'>
+                    <tr>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        তারিখ
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        ওয়ালেট
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        পরিমাণ
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        ফি
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        প্রাপ্ত
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        স্ট্যাটাস
+                      </th>
+                      <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        অ্যাকশন
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-gray-100'>
+                    {allRequests.map(request => (
+                      <motion.tr
+                        key={request.withdrawId}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className='hover:bg-gray-50/50 transition-colors'
+                      >
+                        <td className='px-5 py-4 text-sm text-gray-500 whitespace-nowrap'>
+                          {formatDate(request.requestedAt)}
+                        </td>
+                        <td className='px-5 py-4'>
+                          <div className='flex items-center gap-2'>
+                            {getWalletIcon(request.walletName)}
+                            <div>
+                              <p className='text-sm font-medium text-gray-800'>
+                                {request.walletName}
+                              </p>
+                              <p className='text-xs text-gray-400'>{request.walletPhoneNo}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className='px-5 py-4 text-sm font-medium text-gray-800'>
+                          ৳{parseFloat(request.amount).toFixed(2)}
+                        </td>
+                        <td className='px-5 py-4 text-sm text-rose-500'>
+                          - ৳{parseFloat(request.transactionFee).toFixed(2)}
+                        </td>
+                        <td className='px-5 py-4 text-sm font-semibold text-emerald-600'>
+                          ৳{parseFloat(request.actualAmount).toFixed(2)}
+                        </td>
+                        <td className='px-5 py-4'>{getStatusBadge(request.withdrawStatus)}</td>
+                        <td className='px-5 py-4'>
+                          <div className='flex items-center gap-2'>
+                            {(request.withdrawStatus === 'COMPLETED' ||
+                              request.withdrawStatus === 'REJECTED') && (
+                              <button
+                                onClick={() => showDetailsModal(request)}
+                                className='text-rose-500 hover:text-rose-600 text-sm font-medium'
+                              >
+                                বিস্তারিত
+                              </button>
+                            )}
+                            {request.withdrawStatus === 'PENDING' && (
+                              <button
+                                onClick={() => openCancelConfirmation(request)}
+                                disabled={cancellingId === request.withdrawId}
+                                className='text-red-500 hover:text-red-600 text-sm font-medium disabled:opacity-50 flex items-center gap-1'
+                              >
+                                <FaTrash className='h-3 w-3' />
+                                বাতিল
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className='md:hidden space-y-3'>
+              {allRequests.map(request => (
+                <motion.div
+                  key={request.withdrawId}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className='bg-white rounded-xl border border-gray-100 p-4 shadow-sm'
+                >
+                  <div className='flex justify-between items-start mb-3'>
+                    <div className='flex items-center gap-2'>
+                      {getWalletIcon(request.walletName)}
+                      <div>
+                        <p className='font-medium text-gray-800'>{request.walletName}</p>
+                        <p className='text-xs text-gray-400'>{request.walletPhoneNo}</p>
+                      </div>
+                    </div>
+                    {getStatusBadge(request.withdrawStatus)}
+                  </div>
+
+                  <div className='grid grid-cols-2 gap-2 mb-3 text-sm'>
+                    <div>
+                      <p className='text-gray-400 text-xs'>তারিখ</p>
+                      <p className='text-gray-700'>{formatDate(request.requestedAt)}</p>
+                    </div>
+                    <div className='text-right'>
+                      <p className='text-gray-400 text-xs'>প্রাপ্ত অর্থ</p>
+                      <p className='font-semibold text-emerald-600'>
+                        ৳{parseFloat(request.actualAmount).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className='flex justify-between items-center pt-2 border-t border-gray-100'>
+                    <div>
+                      <p className='text-xs text-gray-400'>উইথড্র পরিমাণ</p>
+                      <p className='text-sm font-medium'>
+                        ৳{parseFloat(request.amount).toFixed(2)}
+                      </p>
+                      <p className='text-xs text-rose-500'>
+                        - ৳{parseFloat(request.transactionFee).toFixed(2)} ফি
+                      </p>
+                    </div>
                     {(request.withdrawStatus === 'COMPLETED' ||
                       request.withdrawStatus === 'REJECTED') && (
                       <button
                         onClick={() => showDetailsModal(request)}
-                        className='text-blue-600 hover:text-blue-800 text-sm'
+                        className='px-3 py-1.5 bg-rose-50 text-rose-500 rounded-lg text-xs font-medium'
                       >
-                        Details
+                        বিস্তারিত
                       </button>
                     )}
                     {request.withdrawStatus === 'PENDING' && (
                       <button
                         onClick={() => openCancelConfirmation(request)}
                         disabled={cancellingId === request.withdrawId}
-                        className='text-red-600 hover:text-red-900 text-sm disabled:opacity-50'
+                        className='px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-medium disabled:opacity-50'
                       >
-                        {cancellingId === request.withdrawId ? 'Cancelling...' : 'Cancel'}
+                        বাতিল
                       </button>
                     )}
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {currentPagination.totalPages > 1 && (
-            <div className='bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200 mt-4'>
-              <div className='flex-1 flex justify-between sm:hidden'>
-                <button
-                  onClick={() => fetchWithdrawHistory(currentPagination.currentPage - 1)}
-                  disabled={currentPagination.currentPage === 1}
-                  className='relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => fetchWithdrawHistory(currentPagination.currentPage + 1)}
-                  disabled={currentPagination.currentPage === currentPagination.totalPages}
-                  className='ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'
-                >
-                  Next
-                </button>
-              </div>
-
-              <div className='hidden sm:flex-1 sm:flex sm:items-center sm:justify-between'>
-                <div>
-                  <p className='text-sm text-gray-700'>
-                    Showing{' '}
-                    <span className='font-medium'>
-                      {(currentPagination.currentPage - 1) * currentPagination.pageSize + 1}
-                    </span>{' '}
-                    to{' '}
-                    <span className='font-medium'>
-                      {Math.min(
-                        currentPagination.currentPage * currentPagination.pageSize,
-                        currentPagination.totalRequests
-                      )}
-                    </span>{' '}
-                    of <span className='font-medium'>{currentPagination.totalRequests}</span>{' '}
-                    requests
-                  </p>
-                </div>
-                <div>
-                  <nav className='relative z-0 inline-flex rounded-md shadow-sm -space-x-px'>
-                    <button
-                      onClick={() => fetchWithdrawHistory(currentPagination.currentPage - 1)}
-                      disabled={currentPagination.currentPage === 1}
-                      className='relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50'
-                    >
-                      <span className='sr-only'>Previous</span>
-                      <svg
-                        className='h-5 w-5'
-                        xmlns='http://www.w3.org/2000/svg'
-                        viewBox='0 0 20 20'
-                        fill='currentColor'
-                        aria-hidden='true'
-                      >
-                        <path
-                          fillRule='evenodd'
-                          d='M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z'
-                          clipRule='evenodd'
-                        />
-                      </svg>
-                    </button>
-                    {Array.from({ length: Math.min(5, currentPagination.totalPages) }, (_, i) => {
-                      let pageNum
-                      if (currentPagination.totalPages <= 5) {
-                        pageNum = i + 1
-                      } else if (currentPagination.currentPage <= 3) {
-                        pageNum = i + 1
-                      } else if (
-                        currentPagination.currentPage >=
-                        currentPagination.totalPages - 2
-                      ) {
-                        pageNum = currentPagination.totalPages - 4 + i
-                      } else {
-                        pageNum = currentPagination.currentPage - 2 + i
-                      }
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => fetchWithdrawHistory(pageNum)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            pageNum === currentPagination.currentPage
-                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      )
-                    })}
-                    <button
-                      onClick={() => fetchWithdrawHistory(currentPagination.currentPage + 1)}
-                      disabled={currentPagination.currentPage === currentPagination.totalPages}
-                      className='relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50'
-                    >
-                      <span className='sr-only'>Next</span>
-                      <svg
-                        className='h-5 w-5'
-                        xmlns='http://www.w3.org/2000/svg'
-                        viewBox='0 0 20 20'
-                        fill='currentColor'
-                        aria-hidden='true'
-                      >
-                        <path
-                          fillRule='evenodd'
-                          d='M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z'
-                          clipRule='evenodd'
-                        />
-                      </svg>
-                    </button>
-                  </nav>
-                </div>
-              </div>
+                </motion.div>
+              ))}
             </div>
-          )}
-        </>
-      )}
+
+            {/* Pagination */}
+            {currentPagination.totalPages > 1 && (
+              <div className='mt-6 flex justify-center'>
+                <div className='flex gap-1'>
+                  <button
+                    onClick={() => fetchWithdrawHistory(currentPagination.currentPage - 1)}
+                    disabled={currentPagination.currentPage === 1}
+                    className='px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all'
+                  >
+                    পূর্ববর্তী
+                  </button>
+                  {Array.from({ length: Math.min(5, currentPagination.totalPages) }, (_, i) => {
+                    let pageNum
+                    if (currentPagination.totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPagination.currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPagination.currentPage >= currentPagination.totalPages - 2) {
+                      pageNum = currentPagination.totalPages - 4 + i
+                    } else {
+                      pageNum = currentPagination.currentPage - 2 + i
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => fetchWithdrawHistory(pageNum)}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                          pageNum === currentPagination.currentPage
+                            ? 'bg-rose-500 text-white'
+                            : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
+                  <button
+                    onClick={() => fetchWithdrawHistory(currentPagination.currentPage + 1)}
+                    disabled={currentPagination.currentPage === currentPagination.totalPages}
+                    className='px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all'
+                  >
+                    পরবর্তী
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Details Modal */}
       {selectedRequest && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-          <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
-            <div className='p-4 border-b'>
-              <h2 className='text-lg font-medium'>Withdrawal Request Details</h2>
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50'>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className='bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden'
+          >
+            <div className='bg-gradient-to-r from-[#1a1a2e] to-[#16213e] px-5 py-4'>
+              <div className='flex justify-between items-center'>
+                <h2 className='text-white font-semibold text-lg'>উইথড্র বিস্তারিত</h2>
+                <button
+                  onClick={closeDetailsModal}
+                  className='text-white/50 hover:text-white transition-colors'
+                >
+                  <FaTimesCircle className='h-5 w-5' />
+                </button>
+              </div>
             </div>
 
-            <div className='p-4 space-y-4'>
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <p className='text-sm font-medium text-gray-700'>Status:</p>
-                  <div className='mt-1'>{getStatusBadge(selectedRequest.withdrawStatus)}</div>
-                </div>
-                <div>
-                  <p className='text-sm font-medium text-gray-700'>Request Date:</p>
-                  <p className='mt-1 text-gray-900'>{formatDate(selectedRequest.requestedAt)}</p>
-                </div>
+            <div className='p-5 space-y-4 overflow-y-auto max-h-[calc(90vh-80px)]'>
+              <div className='flex justify-between items-center pb-2 border-b border-gray-100'>
+                <span className='text-gray-500 text-sm'>স্ট্যাটাস</span>
+                {getStatusBadge(selectedRequest.withdrawStatus)}
               </div>
 
-              <div className='grid grid-cols-3 gap-2'>
-                <div>
-                  <p className='text-sm font-medium text-gray-700'>Amount:</p>
-                  <p className='mt-1 text-gray-900'>
-                    {parseFloat(selectedRequest.amount).toFixed(2)}৳
-                  </p>
+              <div className='flex justify-between'>
+                <span className='text-gray-500 text-sm'>রিকোয়েস্ট তারিখ</span>
+                <span className='text-gray-800 text-sm'>
+                  {formatDate(selectedRequest.requestedAt)}
+                </span>
+              </div>
+
+              <div className='bg-gray-50 rounded-xl p-3 space-y-2'>
+                <div className='flex justify-between'>
+                  <span className='text-gray-500 text-sm'>উইথড্র পরিমাণ</span>
+                  <span className='font-medium'>
+                    ৳{parseFloat(selectedRequest.amount).toFixed(2)}
+                  </span>
                 </div>
-                <div>
-                  <p className='text-sm font-medium text-gray-700'>Fee:</p>
-                  <p className='mt-1 text-gray-900'>
-                    {parseFloat(selectedRequest.transactionFee).toFixed(2)}৳
-                  </p>
+                <div className='flex justify-between'>
+                  <span className='text-gray-500 text-sm'>লেনদেন ফি</span>
+                  <span className='text-rose-500'>
+                    - ৳{parseFloat(selectedRequest.transactionFee).toFixed(2)}
+                  </span>
                 </div>
-                <div>
-                  <p className='text-sm font-medium text-gray-700'>Received:</p>
-                  <p className='mt-1 text-gray-900 font-medium'>
-                    {parseFloat(selectedRequest.actualAmount).toFixed(2)}৳
-                  </p>
+                <div className='flex justify-between pt-2 border-t border-gray-200'>
+                  <span className='font-semibold'>প্রাপ্ত অর্থ</span>
+                  <span className='font-bold text-emerald-600'>
+                    ৳{parseFloat(selectedRequest.actualAmount).toFixed(2)}
+                  </span>
                 </div>
               </div>
 
               <div>
-                <p className='text-sm font-medium text-gray-700'>Your Wallet:</p>
-                <p className='mt-1 text-gray-900'>
-                  {selectedRequest.walletName} - {selectedRequest.walletPhoneNo}
-                </p>
-              </div>
-              <div>
-                <p className='text-sm font-medium text-gray-700'>Sender Wallet:</p>
-                <p className='mt-1 text-gray-900'>
-                  {selectedRequest.walletName} - {selectedRequest.systemWalletPhoneNo}
-                </p>
-              </div>
-
-              {selectedRequest.withdrawStatus !== 'PENDING' && (
-                <>
-                  <div className='grid grid-cols-2 gap-4'>
-                    <div>
-                      <p className='text-sm font-medium text-gray-700'>Transaction ID:</p>
-                      <p className='mt-1 text-gray-900'>{selectedRequest.transactionId || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className='text-sm font-medium text-gray-700'>Processed Date:</p>
-                      <p className='mt-1 text-gray-900'>
-                        {selectedRequest.processedAt
-                          ? formatDate(selectedRequest.processedAt)
-                          : 'N/A'}
-                      </p>
-                    </div>
+                <p className='text-gray-500 text-sm mb-1'>ওয়ালেট</p>
+                <div className='flex items-center gap-2'>
+                  {getWalletIcon(selectedRequest.walletName)}
+                  <div>
+                    <p className='font-medium'>{selectedRequest.walletName}</p>
+                    <p className='text-xs text-gray-400'>{selectedRequest.walletPhoneNo}</p>
                   </div>
-                </>
+                </div>
+              </div>
+
+              {selectedRequest.transactionId && (
+                <div>
+                  <p className='text-gray-500 text-sm mb-1'>ট্রানজেকশন আইডি</p>
+                  <p className='text-sm font-mono bg-gray-50 p-2 rounded-lg break-all'>
+                    {selectedRequest.transactionId}
+                  </p>
+                </div>
+              )}
+
+              {selectedRequest.processedAt && (
+                <div className='flex justify-between'>
+                  <span className='text-gray-500 text-sm'>প্রসেসিং তারিখ</span>
+                  <span className='text-gray-800 text-sm'>
+                    {formatDate(selectedRequest.processedAt)}
+                  </span>
+                </div>
               )}
 
               {selectedRequest.remarks && (
                 <div>
-                  <p className='text-sm font-medium text-gray-700'>Remarks:</p>
-                  <p className='mt-1 text-gray-900 whitespace-pre-line'>
+                  <p className='text-gray-500 text-sm mb-1'>মন্তব্য</p>
+                  <p className='text-sm text-gray-700 bg-gray-50 p-3 rounded-lg'>
                     {selectedRequest.remarks}
                   </p>
                 </div>
               )}
             </div>
 
-            <div className='p-4 border-t flex justify-end'>
+            <div className='px-5 py-4 border-t border-gray-100'>
               <button
                 onClick={closeDetailsModal}
-                className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200'
+                className='w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors'
               >
-                Close
+                বন্ধ করুন
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* Cancel Confirmation Modal */}
-      {/* Cancel Confirmation Modal */}
       {showCancelConfirmation && requestToCancel && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-          <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
-            <div className='p-4 border-b'>
-              <h2 className='text-lg font-medium text-red-600'>Cancel Withdrawal Request</h2>
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50'>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className='bg-white rounded-2xl shadow-xl w-full max-w-md'
+          >
+            <div className='bg-gradient-to-r from-rose-500 to-rose-600 px-5 py-4 rounded-t-2xl'>
+              <h2 className='text-white font-semibold text-lg'>রিকোয়েস্ট বাতিল করুন</h2>
             </div>
 
-            <div className='p-4 space-y-4'>
-              {/* Error message display */}
+            <div className='p-5'>
               {error && (
-                <div className='p-3 bg-red-50 rounded-md'>
-                  <div className='flex items-center'>
-                    <svg
-                      className='h-5 w-5 text-red-400 mr-2'
-                      xmlns='http://www.w3.org/2000/svg'
-                      viewBox='0 0 20 20'
-                      fill='currentColor'
-                    >
-                      <path
-                        fillRule='evenodd'
-                        d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
-                        clipRule='evenodd'
-                      />
-                    </svg>
-                    <span className='text-sm text-red-700'>{error}</span>
-                  </div>
+                <div className='mb-4 p-3 bg-rose-50 rounded-xl border border-rose-100'>
+                  <p className='text-rose-600 text-sm'>{error}</p>
                 </div>
               )}
 
-              <p className='text-gray-700'>
-                Are you sure you want to cancel this withdrawal request?
-              </p>
+              <p className='text-gray-700 mb-4'>আপনি কি এই উইথড্র রিকোয়েস্ট বাতিল করতে চান?</p>
 
-              <div className='bg-red-50 p-3 rounded-md'>
-                <div className='flex items-start'>
-                  <div className='flex-shrink-0'>
-                    <svg
-                      className='h-5 w-5 text-red-400'
-                      xmlns='http://www.w3.org/2000/svg'
-                      viewBox='0 0 20 20'
-                      fill='currentColor'
-                    >
-                      <path
-                        fillRule='evenodd'
-                        d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z'
-                        clipRule='evenodd'
-                      />
-                    </svg>
-                  </div>
-                  <div className='ml-3'>
-                    <h3 className='text-sm font-medium text-red-800'>
-                      Amount: {parseFloat(requestToCancel.amount).toFixed(2)}৳
-                    </h3>
-                    <div className='mt-2 text-sm text-red-700'>
-                      <p>
-                        Wallet: {requestToCancel.walletName} - {requestToCancel.walletPhoneNo}
-                      </p>
-                      <p className='mt-1'>Date: {formatDate(requestToCancel.requestedAt)}</p>
-                    </div>
-                  </div>
+              <div className='bg-amber-50 rounded-xl p-3 mb-4'>
+                <div className='flex justify-between text-sm'>
+                  <span className='text-gray-600'>পরিমাণ</span>
+                  <span className='font-semibold'>
+                    ৳{parseFloat(requestToCancel.amount).toFixed(2)}
+                  </span>
+                </div>
+                <div className='flex justify-between text-sm mt-1'>
+                  <span className='text-gray-600'>ওয়ালেট</span>
+                  <span>
+                    {requestToCancel.walletName} - {requestToCancel.walletPhoneNo}
+                  </span>
                 </div>
               </div>
-            </div>
 
-            <div className='p-4 border-t flex justify-end gap-3'>
-              <button
-                onClick={closeCancelConfirmation}
-                className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200'
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleCancelRequest(requestToCancel.withdrawId)}
-                disabled={cancellingId === requestToCancel.withdrawId}
-                className='px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50'
-              >
-                {cancellingId === requestToCancel.withdrawId ? 'Cancelling...' : 'Confirm'}
-              </button>
+              <div className='flex gap-3'>
+                <button
+                  onClick={closeCancelConfirmation}
+                  className='flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 transition-colors'
+                >
+                  না, বাতিল করবেন না
+                </button>
+                <button
+                  onClick={() => handleCancelRequest(requestToCancel.withdrawId)}
+                  disabled={cancellingId === requestToCancel.withdrawId}
+                  className='flex-1 px-4 py-2.5 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600 transition-colors disabled:opacity-50'
+                >
+                  {cancellingId === requestToCancel.withdrawId
+                    ? 'বাতিল হচ্ছে...'
+                    : 'হ্যাঁ, বাতিল করুন'}
+                </button>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>
